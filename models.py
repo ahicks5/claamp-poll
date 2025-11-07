@@ -67,3 +67,17 @@ class BallotItem(Base):
         Index("ix_ballot_items_rank", "rank"),
     )
 
+class DefaultBallot(Base):
+    __tablename__ = "default_ballots"
+
+    id       = Column(Integer, primary_key=True)
+    poll_id  = Column(Integer, ForeignKey("polls.id"), nullable=True)  # None = global default
+    week_key = Column(String(32), nullable=True)  # e.g. "2025w10" or "Nov-07"
+    rank     = Column(Integer, nullable=False)
+    team_id  = Column(Integer, ForeignKey("teams.id"), nullable=False, index=True)
+
+    team = relationship("Team")
+    __table_args__ = (
+        UniqueConstraint("poll_id", "week_key", "rank", name="uq_default_slot"),
+    )
+

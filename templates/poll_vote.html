@@ -8,6 +8,7 @@
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
       <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a>
+      <button id="use-default" class="btn btn-ghost sm" type="button" disabled>Insert CFP Default</button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
     </div>
@@ -212,37 +213,59 @@
 </style>
 
 <script>
-(function(){
-  // ---- Config ----
-  const MAX_RANK   = {{ MAX_RANK }};
-  const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
-  const RANK_MAP   = {{ (rank_map or {}) | tojson }};
+(function () {
+  // ---- Config from server ----
+  const MAX_RANK  = {{ MAX_RANK }};
+  const LOGO_BASE = "{{ url_for('static', filename='logos/') }}";
+  const RANK_MAP  = {{ (rank_map or {}) | tojson }};                // user’s current saved ballot (rank -> team_id)
+  const DEFAULT_MAP = {{ (default_rank_map or {}) | tojson }};      // committee defaults (rank -> team_id)
 
+  // Flat team index for lookups (id -> {id,name,file})
   const TEAMS = [
     {% for t in teams %}
       { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
     {% endfor %}
-  ];
+  ].reduce((acc,t)=>{ acc[String(t.id)] = t; return acc; }, {});
 
   // ---- DOM ----
-  const form            = document.getElementById('vote-form');
-  const hiddenInputs    = document.getElementById('hidden-inputs');
-  const dropzones       = Array.from(document.querySelectorAll('.rank-dropzone'));
-  const rankCells       = Array.from(document.querySelectorAll('.rank-cell'));
-  const palette         = document.getElementById('palette');
-  const filterInput     = document.getElementById('team-filter');
-  const clearBtn        = document.getElementById('clear-all');
-  const selectionCount  = document.getElementById('selection-count');
-
-  const picker          = document.getElementById('team-picker');
-  const pickerSearch    = document.getElementById('picker-search');
-  const pickerList      = document.getElementById('picker-list');
+  const form           = document.getElementById('vote-form');
+  const hiddenInputs   = document.getElementById('hidden-inputs');
+  const dropzones      = Array.from(document.querySelectorAll('.rank-dropzone'));
+  const rankCells      = Array.from(document.querySelectorAll('.rank-cell'));
+  const palette        = document.getElementById('palette');
+  const filterInput    = document.getElementById('team-filter');
+  const clearBtn       = document.getElementById('clear-all');
+  const selectionCount = document.getElementById('selection-count');
+  const picker         = document.getElementById('team-picker');
+  const pickerSearch   = document.getElementById('picker-search');
+  const pickerList     = document.getElementById('picker-list');
+  const autofillBtn    = document.getElementById('autofill-defaults'); // <-- add a button with this id in your header/subbar
 
   let pickerTargetRank = null;
 
   // ---- Helpers ----
-  function slotFromZone(zone){
-    return zone?.closest('.rank-slot') || null;
+  function slotFromZone(zone){ return zone?.closest('.rank-slot') || null; }
+
+  function isBallotEmpty(){
+    return dropzones.every(z => !z.firstElementChild);
+  }
+
+  function updateAutofillState(){
+    if (!autofillBtn) return;
+    const hasDefaults = DEFAULT_MAP && Object.keys(DEFAULT_MAP).length > 0;
+    const canUse = hasDefaults && isBallotEmpty();
+    autofillBtn.disabled = !canUse;
+    autofillBtn.classList.toggle('disabled', !canUse);
+    autofillBtn.setAttribute('aria-disabled', String(!canUse));
+    if (!hasDefaults) autofillBtn.title = 'No defaults provided';
+    else if (!isBallotEmpty()) autofillBtn.title = 'Autofill only works on an empty ballot';
+    else autofillBtn.title = 'Autofill with committee defaults';
+  }
+
+  function updateCount(){
+    const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
+    if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
+    updateAutofillState();
   }
 
   function updateSlotState(slot){
@@ -250,11 +273,6 @@
     const zone = slot.querySelector('.rank-dropzone');
     if (zone?.firstElementChild) slot.classList.add('filled');
     else slot.classList.remove('filled');
-  }
-
-  function updateCount(){
-    const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
-    if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
   }
 
   function removeIfPlaced(teamId){
@@ -282,6 +300,7 @@
     img.onerror = () => { img.src = LOGO_BASE + 'default.png'; };
     div.appendChild(img);
 
+    // Drag start (desktop reordering)
     div.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
         teamId: div.dataset.teamId, teamName: div.dataset.teamName, file: div.dataset.file || ''
@@ -289,6 +308,7 @@
       e.dataTransfer.effectAllowed = 'move';
     });
 
+    // Quick remove (desktop)
     div.addEventListener('dblclick', () => {
       const slot = div.closest('.rank-dropzone');
       if (slot) {
@@ -298,6 +318,7 @@
       updateCount();
     });
 
+    // Mobile: tap a filled slot to re-open picker for that rank
     div.addEventListener('click', () => {
       if (window.matchMedia('(max-width: 768px)').matches) {
         const slot = div.closest('.rank-slot');
@@ -321,7 +342,7 @@
     return dropzones.find(z => !z.firstElementChild);
   }
 
-  // ---- Desktop palette ----
+  // ---- Desktop palette support ----
   document.querySelectorAll('.logo-card').forEach(card => {
     const payload = () => ({
       teamId: card.dataset.teamId,
@@ -334,6 +355,7 @@
       e.dataTransfer.effectAllowed = 'copyMove';
     });
 
+    // Enter to add to first empty
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const target = nextEmptyZone(); if (!target) return;
@@ -342,7 +364,7 @@
     });
   });
 
-  // ---- Desktop DnD ----
+  // ---- Desktop DnD targets ----
   document.addEventListener('dragover', function(e){
     const slot = e.target.closest('.rank-slot'); if (!slot) return;
     const zone = slot.querySelector('.rank-dropzone'); if (!zone) return;
@@ -362,7 +384,7 @@
     placeInZone(zone, data);
   });
 
-  // ---- Desktop rank controls ----
+  // ---- Inline rank controls (desktop) ----
   rankCells.forEach(cell => {
     const zone = cell.querySelector('.rank-dropzone');
     const up   = cell.querySelector('[data-act="up"]');
@@ -397,13 +419,17 @@
 
   // ---- Mobile picker ----
   function openPickerForRank(rankStr){
+    if (!picker) return;
     pickerTargetRank = String(rankStr);
     picker.classList.remove('hidden');
-    pickerSearch.value = '';
-    filterPicker('');
-    setTimeout(() => pickerSearch.focus(), 0);
+    if (pickerSearch) {
+      pickerSearch.value = '';
+      filterPicker('');
+      setTimeout(() => pickerSearch.focus(), 0);
+    }
   }
   function closePicker(){
+    if (!picker) return;
     picker.classList.add('hidden');
     pickerTargetRank = null;
   }
@@ -411,28 +437,26 @@
   document.querySelectorAll('[data-open-picker]').forEach(btn => {
     btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank));
   });
-
   document.querySelectorAll('[data-close-picker]').forEach(btn => {
     btn.addEventListener('click', closePicker);
   });
-
-  picker.addEventListener('click', (e) => {
+  picker?.addEventListener('click', (e) => {
     if (e.target === picker) closePicker();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !picker.classList.contains('hidden')) closePicker();
+    if (e.key === 'Escape' && picker && !picker.classList.contains('hidden')) closePicker();
   });
 
   function filterPicker(q){
     const qq = (q || '').toLowerCase().trim();
-    pickerList.querySelectorAll('.picker__item').forEach(item => {
+    pickerList?.querySelectorAll('.picker__item').forEach(item => {
       const name = (item.dataset.teamName || '').toLowerCase();
       item.style.display = name.includes(qq) ? '' : 'none';
     });
   }
-  pickerSearch.addEventListener('input', (e) => filterPicker(e.target.value));
+  pickerSearch?.addEventListener('input', (e) => filterPicker(e.target.value));
 
-  pickerList.addEventListener('click', (e) => {
+  pickerList?.addEventListener('click', (e) => {
     const btn = e.target.closest('.picker__item');
     if (!btn || !pickerTargetRank) return;
     const zone = document.querySelector('.rank-dropzone[data-rank="'+ pickerTargetRank +'"]');
@@ -450,7 +474,7 @@
   // ---- Palette filter ----
   function filterPalette(){
     const q = (filterInput?.value || '').toLowerCase().trim();
-    palette.querySelectorAll('.logo-card').forEach(c => {
+    palette?.querySelectorAll('.logo-card').forEach(c => {
       const name = (c.dataset.teamName || '').toLowerCase();
       c.style.display = name.includes(q) ? '' : 'none';
     });
@@ -466,15 +490,31 @@
     updateCount();
   });
 
-  // ---- Prefill ----
+  // ---- NEW: Autofill with committee defaults (only if empty) ----
+  function applyDefaults(){
+    if (!DEFAULT_MAP || !isBallotEmpty()) return;
+    // Apply ranks 1..MAX_RANK where defaults exist
+    for (let r = 1; r <= MAX_RANK; r++){
+      const teamId = DEFAULT_MAP[String(r)] || DEFAULT_MAP[r];
+      if (!teamId) continue;
+      const team = TEAMS[String(teamId)];
+      const zone = document.querySelector('.rank-dropzone[data-rank="'+ r +'"]');
+      if (!team || !zone) continue;
+      placeInZone(zone, { teamId: team.id, teamName: team.name, file: team.file || '' });
+    }
+  }
+
+  autofillBtn?.addEventListener('click', () => {
+    if (!isBallotEmpty()) return; // safety: don’t override user work
+    applyDefaults();
+  });
+
+  // ---- Prefill existing saved ballot ----
   (function prefill(){
     if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
-    const index = {};
-    TEAMS.forEach(t => index[String(t.id)] = t);
-
     Object.keys(RANK_MAP).forEach(rank => {
       const teamId = String(RANK_MAP[rank]);
-      const meta = index[teamId];
+      const meta = TEAMS[teamId];
       const zone = document.querySelector('.rank-dropzone[data-rank="'+ rank +'"]');
       if (zone && meta) {
         zone.innerHTML = '';
@@ -482,12 +522,11 @@
         updateSlotState(slotFromZone(zone));
       }
     });
-
     dropzones.forEach(z => updateSlotState(slotFromZone(z)));
     updateCount();
   }());
 
-  // ---- Submit ----
+  // ---- Submit hidden inputs ----
   form?.addEventListener('submit', () => {
     hiddenInputs.innerHTML = '';
     dropzones.forEach(z => {

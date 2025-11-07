@@ -10,7 +10,7 @@ from sqlalchemy import select, asc, func
 from sqlalchemy.exc import IntegrityError
 
 from db import SessionLocal
-from models import Poll, Ballot, BallotItem, Team, User
+from models import Poll, Ballot, BallotItem, Team, User, DefaultBallot
 from utils.logo_map import logo_map
 
 from . import bp  # your Blueprint: bp = Blueprint("poll", __name__, url_prefix="/poll")
@@ -295,6 +295,30 @@ def submit_vote():
 
     return redirect(url_for("poll.dashboard"))
 
+@bp.get("/api/polls/<int:poll_id>/default")
+@login_required
+def api_poll_default(poll_id):
+    """Return the current default map {rank: team_id}.
+       If you seeded with poll_id=None, we fall back to global defaults.
+       If you seeded with a week_key, you can pick the latest, or pass one via query param later.
+    """
+    week_key = None  # simple version: latest by id if multiple exist
+
+    with SessionLocal() as s:
+        q = select(DefaultBallot).where(
+            or_(
+                DefaultBallot.poll_id == poll_id,
+                DefaultBallot.poll_id.is_(None)
+            )
+        )
+        if week_key:
+            q = q.where(DefaultBallot.week_key == week_key)
+        q = q.order_by(DefaultBallot.rank)
+
+        rows = s.scalars(q).all()
+        payload = {str(r.rank): r.team_id for r in rows}
+
+    return jsonify(payload)
 
 @bp.get("/results")
 @login_required

@@ -14,6 +14,9 @@
         <div class="flex gap-2">
           <a class="btn" href="{{ url_for('poll.vote_form') }}">Edit Ballot</a>
           <a class="btn btn-primary" href="{{ url_for('poll.results') }}">See Results</a>
+          <a class="btn sm" href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}" target="_blank" download>
+            Share image
+          </a>
         </div>
       {% else %}
         <a class="btn btn-primary" href="{{ url_for('poll.vote_form') }}">Vote Now</a>

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify
+from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify, send_file
 from datetime import datetime, timezone
 
 from flask_login import login_required, current_user
@@ -15,6 +15,8 @@ from utils.logo_map import logo_map
 
 from . import bp  # your Blueprint: bp = Blueprint("poll", __name__, url_prefix="/poll")
 
+import io
+from PIL import Image, ImageDraw, ImageFont
 
 # -------------------------
 # Config / helpers
@@ -476,3 +478,157 @@ def admin_seed_teams():
 
     flash("Seeded teams.", "success")
     return redirect(url_for("poll.admin_panel"))
+
+
+# --- helper: safe font load ---
+def _load_font(size:int):
+    # Try a bundled font first; fall back to default.
+    try:
+        font_path = os.path.join(current_app.static_folder, "fonts", "Inter-SemiBold.ttf")
+        return ImageFont.truetype(font_path, size)
+    except Exception:
+        try:
+            # DejaVu is often available on Heroku/Pillow builds
+            return ImageFont.truetype("DejaVuSans.ttf", size)
+        except Exception:
+            return ImageFont.load_default()
+
+# --- helper: load & fit logo ---
+def _load_team_logo(team_name:str, logo_map:dict, size:int=180) -> Image.Image:
+    fname = logo_map.get(team_name)
+    if fname:
+        path = os.path.join(current_app.static_folder, "logos", fname)
+    else:
+        path = os.path.join(current_app.static_folder, "logos", "default.png")
+
+    try:
+        im = Image.open(path).convert("RGBA")
+    except Exception:
+        im = Image.open(os.path.join(current_app.static_folder, "logos", "default.png")).convert("RGBA")
+
+    # fit within size x size preserving aspect
+    im.thumbnail((size, size))
+    # paste onto square canvas (to center)
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    ox = (size - im.width) // 2
+    oy = (size - im.height) // 2
+    canvas.paste(im, (ox, oy), im)
+    return canvas
+
+# --- main: render a shareable PNG of a ballot ---
+@bp.get("/ballot/<int:ballot_id>/share.png")
+@login_required
+def share_ballot_png(ballot_id:int):
+    with SessionLocal() as s:
+        # load ballot, ensure owner or admin can view
+        ballot = s.get(Ballot, ballot_id)
+        if not ballot:
+            abort(404)
+        if ballot.user_id != current_user.id and not getattr(current_user, "is_admin", False):
+            abort(403)
+
+        poll = s.get(Poll, ballot.poll_id)
+        user = s.get(User, ballot.user_id)
+
+        # get items ordered by rank and join team names
+        items = (
+            s.execute(
+                select(BallotItem)
+                .where(BallotItem.ballot_id == ballot.id)
+                .order_by(BallotItem.rank.asc())
+            )
+            .scalars()
+            .all()
+        )
+        team_ids = [it.team_id for it in items]
+        teams = {}
+        if team_ids:
+            for t in s.execute(select(Team).where(Team.id.in_(team_ids))).scalars().all():
+                teams[t.id] = t.name
+
+    # canvas config
+    W, H = 1200, 1600                  # tall share card (mobile friendly)
+    M = 48                              # outer margin
+    GRID_W, GRID_H = W - 2*M, H - 420   # reserve ~420px for header/footer
+    COLS, ROWS = 5, 5
+    CELL_W = GRID_W // COLS
+    CELL_H = GRID_H // ROWS
+
+    # create background
+    img = Image.new("RGB", (W, H), (12, 16, 26))  # dark panel
+    draw = ImageDraw.Draw(img)
+
+    # soft header panel
+    header_h = 180
+    draw.rounded_rectangle((M, M, W-M, M+header_h), radius=24, fill=(16, 20, 32))
+    title_font = _load_font(52)
+    sub_font   = _load_font(28)
+
+    poll_title = poll.title if poll else "Poll"
+    user_name  = user.username if user and user.username else f"User {ballot.user_id}"
+
+    # title + subtitle
+    draw.text((M+32, M+30), poll_title, fill=(234, 238, 247), font=title_font)
+    draw.text((M+32, M+100), f"{user_name} • Ballot", fill=(168, 178, 198), font=sub_font)
+
+    # grid background
+    grid_top = M + header_h + 24
+    draw.rounded_rectangle((M, grid_top, W-M, grid_top + GRID_H), radius=18, fill=(14, 18, 28), outline=(40, 48, 64))
+
+    # render cells 1..25
+    rank_font = _load_font(28)
+    label_font = _load_font(26)
+
+    for i in range(ROWS * COLS):
+        r = i + 1
+        # locate cell
+        c_idx = i % COLS
+        r_idx = i // COLS
+        x0 = M + c_idx * CELL_W
+        y0 = grid_top + r_idx * CELL_H
+        x1 = x0 + CELL_W
+        y1 = y0 + CELL_H
+
+        # cell border
+        draw.rectangle((x0, y0, x1, y1), outline=(40, 48, 64), width=1)
+
+        # rank bubble
+        bubble_r = 26
+        bx = x0 + 20
+        by = y0 + 18
+        draw.ellipse((bx-bubble_r, by-bubble_r, bx+bubble_r, by+bubble_r), fill=(29, 36, 54))
+        rw = draw.textlength(str(r), font=rank_font)
+        draw.text((bx - rw/2, by - 18), str(r), fill=(200, 210, 230), font=rank_font)
+
+        # logo + label if present
+        if r <= len(items):
+            team_name = teams.get(items[r-1].team_id, "—")
+            logo = _load_team_logo(team_name, logo_map, size=160)
+
+            # center logo
+            lg_x = x0 + (CELL_W - logo.width) // 2
+            lg_y = y0 + 20 + 40  # a bit lower than rank badge
+            img.paste(logo, (lg_x, lg_y), logo)
+
+            # team text (truncate if too long)
+            label = team_name
+            max_width = CELL_W - 24
+            while draw.textlength(label, font=label_font) > max_width and len(label) > 3:
+                label = label[:-2] + "…"
+            tw = draw.textlength(label, font=label_font)
+            draw.text((x0 + (CELL_W - tw)//2, y0 + CELL_H - 44), label, fill=(220, 226, 240), font=label_font)
+        else:
+            # empty placeholder
+            dash_w = draw.textlength("—", font=label_font)
+            draw.text((x0 + (CELL_W - dash_w)//2, y0 + CELL_H - 44), "—", fill=(90, 100, 120), font=label_font)
+
+    # footer
+    foot = "Generated with CLAAMP Polls"
+    fw = draw.textlength(foot, font=sub_font)
+    draw.text((W - M - fw, H - M - 8 - 28), foot, fill=(120, 132, 152), font=sub_font)
+
+    # out
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png", as_attachment=False, download_name="ballot.png")

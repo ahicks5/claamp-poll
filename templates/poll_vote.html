@@ -15,7 +15,7 @@
 
   <div class="vote-subbar">
     <span class="muted">
-      Drag on desktop. On mobile: tap a team to add, tap a rank to edit.
+      Drag on desktop. On mobile: tap “+” in a slot to search and add a team.
     </span>
     <span class="muted" id="selection-count">0 of {{ MAX_RANK }} selected</span>
   </div>
@@ -35,7 +35,10 @@
             <div class="rank-num">#{{ r }}</div>
             <div class="rank-slot" data-rank="{{ r }}" tabindex="0" aria-label="Rank {{ r }}">
               <div class="rank-dropzone" data-rank="{{ r }}"></div>
+              <!-- Mobile-only add button -->
+              <button class="slot-add" type="button" data-open-picker data-rank="{{ r }}" aria-label="Add team to rank {{ r }}">+</button>
             </div>
+            <!-- Desktop quick controls stay; hidden on mobile via CSS -->
             <div class="rank-controls" aria-hidden="true">
               <button class="rc rc-up"   type="button" title="Move up"   data-act="up">▲</button>
               <button class="rc rc-down" type="button" title="Move down" data-act="down">▼</button>
@@ -51,6 +54,7 @@
             <div class="rank-num">#{{ r }}</div>
             <div class="rank-slot" data-rank="{{ r }}" tabindex="0" aria-label="Rank {{ r }}">
               <div class="rank-dropzone" data-rank="{{ r }}"></div>
+              <button class="slot-add" type="button" data-open-picker data-rank="{{ r }}" aria-label="Add team to rank {{ r }}">+</button>
             </div>
             <div class="rank-controls" aria-hidden="true">
               <button class="rc rc-up"   type="button" title="Move up"   data-act="up">▲</button>
@@ -67,6 +71,7 @@
             <div class="rank-num">#{{ r }}</div>
             <div class="rank-slot" data-rank="{{ r }}" tabindex="0" aria-label="Rank {{ r }}">
               <div class="rank-dropzone" data-rank="{{ r }}"></div>
+              <button class="slot-add" type="button" data-open-picker data-rank="{{ r }}" aria-label="Add team to rank {{ r }}">+</button>
             </div>
             <div class="rank-controls" aria-hidden="true">
               <button class="rc rc-up"   type="button" title="Move up"   data-act="up">▲</button>
@@ -107,23 +112,109 @@
           >
             <img src="{{ img_src }}" alt="{{ t.name }} logo" onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
             <div class="logo-name">{{ t.name }}</div>
-            <!-- Mobile-only add button -->
-            <button class="btn add-btn-mobile" type="button" data-act="add">+ Add</button>
           </div>
         {% endfor %}
       </div>
 
-      <p class="muted tip">Tip: tap a filled rank to move or remove; double-click (desktop) to remove.</p>
+      <p class="muted tip">Tip: desktop drag between slots; double-click a placed logo to remove.</p>
     </section>
   </form>
 </section>
 
+<!-- Lightweight searchable picker (mobile-first) -->
+<div id="team-picker" class="picker hidden" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+  <div class="picker__panel">
+    <div class="picker__head">
+      <h3 id="picker-title">Choose a team</h3>
+      <button class="btn btn-ghost sm" type="button" data-close-picker>Close</button>
+    </div>
+    <input id="picker-search" class="input" type="text" placeholder="Search teams…" aria-label="Search teams">
+    <div id="picker-list" class="picker__list">
+      {% for t in teams %}
+        {% set fname = logo_map.get(t.name) %}
+        {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+        <button class="picker__item" type="button"
+                data-team-id="{{ t.id }}"
+                data-team-name="{{ t.name }}"
+                data-file="{{ fname or '' }}">
+          <img src="{{ img_src }}" alt="" onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+          <span>{{ t.name }}</span>
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<style>
+/* Mobile-only + button inside slots */
+.slot-add{
+  display:none;
+  position:absolute; inset:0;
+  margin:auto; width:42px; height:42px; border-radius:999px;
+  background:var(--panel-3, #1b1f29); color:var(--fg, #eaeef7);
+  border:1px solid var(--line); font-size:1.4rem; line-height:1;
+  opacity:.9; transition:transform .12s ease, opacity .12s ease;
+}
+.slot-add:active{ transform:scale(.96) }
+.rank-slot{ position:relative } /* ensure absolute child centers correctly */
+
+/* Hide desktop controls on small screens */
+@media (max-width: 768px){
+  .rank-controls{ display:none !important; }
+  .slot-add{ display:grid; place-items:center; }
+}
+
+/* Picker dialog */
+.picker.hidden{ display:none; }
+.picker{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(0,0,0,.45);
+  display:grid; place-items:end center;
+}
+.picker__panel{
+  width:100%; max-width:720px; background:var(--panel-2, #10141c);
+  border-top-left-radius:16px; border-top-right-radius:16px;
+  border:1px solid var(--line);
+  padding:12px; box-shadow:0 -10px 30px rgba(0,0,0,.25);
+}
+@media (min-width:769px){
+  .picker{ place-items:center; }
+  .picker__panel{ border-radius:16px; padding:16px 16px 12px; }
+}
+.picker__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.picker__list{
+  max-height:60vh; overflow:auto;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:8px;
+  margin-top:10px;
+}
+.picker__item{
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel-1, #0c111a);
+  border:1px solid var(--line); border-radius:10px;
+  padding:8px 10px; cursor:pointer; text-align:left;
+}
+.picker__item img{ width:28px; height:28px; object-fit:contain; }
+.picker__item:hover{ outline:2px solid rgba(147,197,253,.35); outline-offset:-2px; }
+
+/* Keep your existing colors; this just ensures sticky header isn’t white */
+.vote-bar.sticky{ background:var(--panel-2); border-bottom:1px solid var(--line); }
+</style>
+
 <script>
 (function(){
+  // ---- Config ----
   const MAX_RANK   = {{ MAX_RANK }};
   const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
   const RANK_MAP   = {{ (rank_map or {}) | tojson }};
 
+  // Build a light TEAMS index for the picker and prefill
+  const TEAMS = [
+    {% for t in teams %}
+      { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
+    {% endfor %}
+  ];
+
+  // ---- DOM ----
   const form            = document.getElementById('vote-form');
   const hiddenInputs    = document.getElementById('hidden-inputs');
   const dropzones       = Array.from(document.querySelectorAll('.rank-dropzone'));
@@ -133,19 +224,25 @@
   const clearBtn        = document.getElementById('clear-all');
   const selectionCount  = document.getElementById('selection-count');
 
-  function nextEmptyZone(){
-    return dropzones.find(z => !z.firstElementChild);
-  }
+  const picker          = document.getElementById('team-picker');
+  const pickerSearch    = document.getElementById('picker-search');
+  const pickerList      = document.getElementById('picker-list');
+
+  let pickerTargetRank = null; // which rank we’re editing
+
+  // ---- Helpers ----
   function updateCount(){
     const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
     if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
   }
+
   function removeIfPlaced(teamId){
     dropzones.forEach(z => {
       const kid = z.firstElementChild;
       if (kid && kid.dataset.teamId === String(teamId)) z.innerHTML = '';
     });
   }
+
   function createBadge(teamId, teamName, fileName){
     const div = document.createElement('div');
     div.className = 'badge badge--img-only';
@@ -161,7 +258,7 @@
     img.onerror = () => { img.src = LOGO_BASE + 'default.png'; };
     div.appendChild(img);
 
-    // DnD within ranks (desktop)
+    // Desktop reordering
     div.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
         teamId: div.dataset.teamId, teamName: div.dataset.teamName, file: div.dataset.file || ''
@@ -169,13 +266,23 @@
       e.dataTransfer.effectAllowed = 'move';
     });
 
-    // Remove via double-click (desktop)
+    // Quick remove on desktop
     div.addEventListener('dblclick', () => {
       const slot = div.closest('.rank-dropzone'); if (slot) slot.innerHTML = '';
       updateCount();
     });
+
+    // Tap a filled slot on mobile to re-open picker for that rank
+    div.addEventListener('click', () => {
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        const slot = div.closest('.rank-slot');
+        if (slot) openPickerForRank(slot.dataset.rank);
+      }
+    });
+
     return div;
   }
+
   function placeInZone(zone, data){
     if (!zone) return;
     removeIfPlaced(data.teamId);
@@ -184,7 +291,11 @@
     updateCount();
   }
 
-  // Palette: drag (desktop) + tap to add (mobile + desktop)
+  function nextEmptyZone(){
+    return dropzones.find(z => !z.firstElementChild);
+  }
+
+  // ---- Desktop palette wiring (drag + enter) ----
   document.querySelectorAll('.logo-card').forEach(card => {
     const payload = () => ({
       teamId: card.dataset.teamId,
@@ -197,24 +308,15 @@
       e.dataTransfer.effectAllowed = 'copyMove';
     });
 
-    // tap anywhere on card or on "+ Add" button
-    const add = () => {
-      const target = nextEmptyZone();
-      if (!target) return;
-      placeInZone(target, payload());
-      // gentle scroll to the slot on mobile
-      if (window.matchMedia('(max-width: 768px)').matches) {
-        target.closest('.rank-cell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const target = nextEmptyZone(); if (!target) return;
+        placeInZone(target, payload());
       }
-    };
-    card.addEventListener('click', (e) => {
-      const isAddBtn = (e.target && e.target.matches('[data-act="add"]'));
-      if (isAddBtn || !window.matchMedia('(pointer: fine)').matches) add();
     });
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
   });
 
-  // Drop handling (desktop)
+  // ---- Desktop DnD drop targets ----
   document.addEventListener('dragover', function(e){
     const slot = e.target.closest('.rank-slot'); if (!slot) return;
     const zone = slot.querySelector('.rank-dropzone'); if (!zone) return;
@@ -234,7 +336,7 @@
     placeInZone(zone, data);
   });
 
-  // Rank-cell quick controls (mobile & desktop)
+  // ---- Desktop inline controls (kept; hidden on mobile via CSS) ----
   rankCells.forEach(cell => {
     const zone = cell.querySelector('.rank-dropzone');
     const up   = cell.querySelector('[data-act="up"]');
@@ -246,7 +348,7 @@
       const to   = from + delta;
       if (to < 1 || to > MAX_RANK) return;
       const toZone = document.querySelector('.rank-dropzone[data-rank="'+to+'"]');
-      if (!zone.firstElementChild) return; // nothing to move
+      if (!zone.firstElementChild) return;
       const data = {
         teamId: zone.firstElementChild.dataset.teamId,
         teamName: zone.firstElementChild.dataset.teamName,
@@ -257,23 +359,68 @@
       toZone.closest('.rank-cell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // show controls on tap/focus when filled
-    cell.addEventListener('click', () => {
-      cell.classList.toggle('open', !!zone.firstElementChild);
-    });
-    cell.addEventListener('focusin', () => {
-      if (zone.firstElementChild) cell.classList.add('open');
-    });
-    cell.addEventListener('focusout', () => {
-      setTimeout(() => cell.classList.remove('open'), 150);
-    });
-
     up?.addEventListener('click', () => move(-1));
     down?.addEventListener('click', () => move(1));
     x?.addEventListener('click', () => { zone.innerHTML = ''; updateCount(); });
   });
 
-  // Filter palette
+  // ---- Mobile picker logic ----
+  function openPickerForRank(rankStr){
+    pickerTargetRank = String(rankStr);
+    picker.classList.remove('hidden');
+    pickerSearch.value = '';
+    filterPicker('');
+    // focus search for fast typing
+    setTimeout(() => pickerSearch.focus(), 0);
+  }
+  function closePicker(){
+    picker.classList.add('hidden');
+    pickerTargetRank = null;
+  }
+
+  // Open from “+” buttons
+  document.querySelectorAll('[data-open-picker]').forEach(btn => {
+    btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank));
+  });
+
+  // Close
+  document.querySelectorAll('[data-close-picker]').forEach(btn => {
+    btn.addEventListener('click', closePicker);
+  });
+  picker.addEventListener('click', (e) => {
+    if (e.target === picker) closePicker(); // click backdrop
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !picker.classList.contains('hidden')) closePicker();
+  });
+
+  // Filter inside picker
+  function filterPicker(q){
+    const qq = (q || '').toLowerCase().trim();
+    pickerList.querySelectorAll('.picker__item').forEach(item => {
+      const name = (item.dataset.teamName || '').toLowerCase();
+      item.style.display = name.includes(qq) ? '' : 'none';
+    });
+  }
+  pickerSearch.addEventListener('input', (e) => filterPicker(e.target.value));
+
+  // Choose team from picker
+  pickerList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.picker__item');
+    if (!btn || !pickerTargetRank) return;
+    const zone = document.querySelector('.rank-dropzone[data-rank="'+ pickerTargetRank +'"]');
+    if (!zone) return;
+    placeInZone(zone, {
+      teamId: btn.dataset.teamId,
+      teamName: btn.dataset.teamName,
+      file: btn.dataset.file || ''
+    });
+    closePicker();
+    document.querySelector('.rank-cell[data-rank="'+ pickerTargetRank +'"]')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  // ---- Palette filter (desktop section) ----
   function filterPalette(){
     const q = (filterInput?.value || '').toLowerCase().trim();
     palette.querySelectorAll('.logo-card').forEach(c => {
@@ -283,29 +430,30 @@
   }
   filterInput?.addEventListener('input', filterPalette);
 
-  // Clear all
+  // ---- Clear all ----
   clearBtn?.addEventListener('click', () => {
     dropzones.forEach(z => z.innerHTML = '');
     updateCount();
   });
 
-  // Prefill existing ballot
+  // ---- Prefill existing ballot ----
   (function prefill(){
     if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
     const index = {};
-    document.querySelectorAll('.logo-card').forEach(c => {
-      index[String(c.dataset.teamId)] = { id:c.dataset.teamId, name:c.dataset.teamName, file:c.dataset.file || '' };
-    });
+    TEAMS.forEach(t => index[String(t.id)] = t);
     Object.keys(RANK_MAP).forEach(rank => {
       const teamId = String(RANK_MAP[rank]);
       const meta = index[teamId];
       const zone = document.querySelector('.rank-dropzone[data-rank="'+ rank +'"]');
-      if (zone && meta) { zone.innerHTML = ''; zone.appendChild(createBadge(meta.id, meta.name, meta.file)); }
+      if (zone && meta) {
+        zone.innerHTML = '';
+        zone.appendChild(createBadge(meta.id, meta.name, meta.file));
+      }
     });
     updateCount();
   }());
 
-  // Submit hidden inputs
+  // ---- Submit -> hidden inputs ----
   form?.addEventListener('submit', () => {
     hiddenInputs.innerHTML = '';
     dropzones.forEach(z => {
@@ -313,7 +461,9 @@
       const kid  = z.firstElementChild;
       if (kid && rank) {
         const inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = 'rank_' + rank; inp.value = kid.dataset.teamId;
+        inp.type = 'hidden';
+        inp.name = 'rank_' + rank;
+        inp.value = kid.dataset.teamId;
         hiddenInputs.appendChild(inp);
       }
     });

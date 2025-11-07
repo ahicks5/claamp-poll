@@ -198,6 +198,17 @@
 
 /* Keep your existing colors; this just ensures sticky header isn’t white */
 .vote-bar.sticky{ background:var(--panel-2); border-bottom:1px solid var(--line); }
+
+/* Subtle by default on mobile */
+.slot-add{ opacity:.55; transition:opacity .12s ease, transform .12s ease; z-index:1; }
+.badge{ position:relative; z-index:2; } /* ensure logo sits above the + if overlapping */
+
+/* When the slot has a team, hide the + */
+.rank-slot.filled .slot-add{
+  opacity:0;
+  pointer-events:none;
+}
+
 </style>
 
 <script>
@@ -207,7 +218,6 @@
   const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
   const RANK_MAP   = {{ (rank_map or {}) | tojson }};
 
-  // Build a light TEAMS index for the picker and prefill
   const TEAMS = [
     {% for t in teams %}
       { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
@@ -228,9 +238,20 @@
   const pickerSearch    = document.getElementById('picker-search');
   const pickerList      = document.getElementById('picker-list');
 
-  let pickerTargetRank = null; // which rank we’re editing
+  let pickerTargetRank = null;
 
   // ---- Helpers ----
+  function slotFromZone(zone){
+    return zone?.closest('.rank-slot') || null;
+  }
+
+  function updateSlotState(slot){
+    if (!slot) return;
+    const zone = slot.querySelector('.rank-dropzone');
+    if (zone?.firstElementChild) slot.classList.add('filled');
+    else slot.classList.remove('filled');
+  }
+
   function updateCount(){
     const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
     if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
@@ -239,7 +260,10 @@
   function removeIfPlaced(teamId){
     dropzones.forEach(z => {
       const kid = z.firstElementChild;
-      if (kid && kid.dataset.teamId === String(teamId)) z.innerHTML = '';
+      if (kid && kid.dataset.teamId === String(teamId)) {
+        z.innerHTML = '';
+        updateSlotState(slotFromZone(z));
+      }
     });
   }
 
@@ -258,7 +282,6 @@
     img.onerror = () => { img.src = LOGO_BASE + 'default.png'; };
     div.appendChild(img);
 
-    // Desktop reordering
     div.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
         teamId: div.dataset.teamId, teamName: div.dataset.teamName, file: div.dataset.file || ''
@@ -266,13 +289,15 @@
       e.dataTransfer.effectAllowed = 'move';
     });
 
-    // Quick remove on desktop
     div.addEventListener('dblclick', () => {
-      const slot = div.closest('.rank-dropzone'); if (slot) slot.innerHTML = '';
+      const slot = div.closest('.rank-dropzone');
+      if (slot) {
+        slot.innerHTML = '';
+        updateSlotState(slotFromZone(slot));
+      }
       updateCount();
     });
 
-    // Tap a filled slot on mobile to re-open picker for that rank
     div.addEventListener('click', () => {
       if (window.matchMedia('(max-width: 768px)').matches) {
         const slot = div.closest('.rank-slot');
@@ -288,6 +313,7 @@
     removeIfPlaced(data.teamId);
     zone.innerHTML = '';
     zone.appendChild(createBadge(data.teamId, data.teamName, data.file || ''));
+    updateSlotState(slotFromZone(zone));
     updateCount();
   }
 
@@ -295,7 +321,7 @@
     return dropzones.find(z => !z.firstElementChild);
   }
 
-  // ---- Desktop palette wiring (drag + enter) ----
+  // ---- Desktop palette ----
   document.querySelectorAll('.logo-card').forEach(card => {
     const payload = () => ({
       teamId: card.dataset.teamId,
@@ -316,7 +342,7 @@
     });
   });
 
-  // ---- Desktop DnD drop targets ----
+  // ---- Desktop DnD ----
   document.addEventListener('dragover', function(e){
     const slot = e.target.closest('.rank-slot'); if (!slot) return;
     const zone = slot.querySelector('.rank-dropzone'); if (!zone) return;
@@ -336,7 +362,7 @@
     placeInZone(zone, data);
   });
 
-  // ---- Desktop inline controls (kept; hidden on mobile via CSS) ----
+  // ---- Desktop rank controls ----
   rankCells.forEach(cell => {
     const zone = cell.querySelector('.rank-dropzone');
     const up   = cell.querySelector('[data-act="up"]');
@@ -355,22 +381,26 @@
         file: zone.firstElementChild.dataset.file || ''
       };
       zone.innerHTML = '';
+      updateSlotState(slotFromZone(zone));
       placeInZone(toZone, data);
       toZone.closest('.rank-cell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     up?.addEventListener('click', () => move(-1));
     down?.addEventListener('click', () => move(1));
-    x?.addEventListener('click', () => { zone.innerHTML = ''; updateCount(); });
+    x?.addEventListener('click', () => {
+      zone.innerHTML = '';
+      updateSlotState(slotFromZone(zone));
+      updateCount();
+    });
   });
 
-  // ---- Mobile picker logic ----
+  // ---- Mobile picker ----
   function openPickerForRank(rankStr){
     pickerTargetRank = String(rankStr);
     picker.classList.remove('hidden');
     pickerSearch.value = '';
     filterPicker('');
-    // focus search for fast typing
     setTimeout(() => pickerSearch.focus(), 0);
   }
   function closePicker(){
@@ -378,23 +408,21 @@
     pickerTargetRank = null;
   }
 
-  // Open from “+” buttons
   document.querySelectorAll('[data-open-picker]').forEach(btn => {
     btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank));
   });
 
-  // Close
   document.querySelectorAll('[data-close-picker]').forEach(btn => {
     btn.addEventListener('click', closePicker);
   });
+
   picker.addEventListener('click', (e) => {
-    if (e.target === picker) closePicker(); // click backdrop
+    if (e.target === picker) closePicker();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !picker.classList.contains('hidden')) closePicker();
   });
 
-  // Filter inside picker
   function filterPicker(q){
     const qq = (q || '').toLowerCase().trim();
     pickerList.querySelectorAll('.picker__item').forEach(item => {
@@ -404,7 +432,6 @@
   }
   pickerSearch.addEventListener('input', (e) => filterPicker(e.target.value));
 
-  // Choose team from picker
   pickerList.addEventListener('click', (e) => {
     const btn = e.target.closest('.picker__item');
     if (!btn || !pickerTargetRank) return;
@@ -420,7 +447,7 @@
       ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
-  // ---- Palette filter (desktop section) ----
+  // ---- Palette filter ----
   function filterPalette(){
     const q = (filterInput?.value || '').toLowerCase().trim();
     palette.querySelectorAll('.logo-card').forEach(c => {
@@ -432,15 +459,19 @@
 
   // ---- Clear all ----
   clearBtn?.addEventListener('click', () => {
-    dropzones.forEach(z => z.innerHTML = '');
+    dropzones.forEach(z => {
+      z.innerHTML = '';
+      updateSlotState(slotFromZone(z));
+    });
     updateCount();
   });
 
-  // ---- Prefill existing ballot ----
+  // ---- Prefill ----
   (function prefill(){
     if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
     const index = {};
     TEAMS.forEach(t => index[String(t.id)] = t);
+
     Object.keys(RANK_MAP).forEach(rank => {
       const teamId = String(RANK_MAP[rank]);
       const meta = index[teamId];
@@ -448,12 +479,15 @@
       if (zone && meta) {
         zone.innerHTML = '';
         zone.appendChild(createBadge(meta.id, meta.name, meta.file));
+        updateSlotState(slotFromZone(zone));
       }
     });
+
+    dropzones.forEach(z => updateSlotState(slotFromZone(z)));
     updateCount();
   }());
 
-  // ---- Submit -> hidden inputs ----
+  // ---- Submit ----
   form?.addEventListener('submit', () => {
     hiddenInputs.innerHTML = '';
     dropzones.forEach(z => {
@@ -468,7 +502,9 @@
       }
     });
   });
+
 })();
 </script>
+
 
 {% endblock %}

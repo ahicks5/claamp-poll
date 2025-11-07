@@ -157,7 +157,7 @@
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
-                  {% for r in stats.team_consistency|reverse|list()[:10] %}
+                  {% for r in (stats.team_consistency | reverse | list)[:10] %}
                     <tr>
                       <td>{{ r.team }}</td>
                       <td class="num">{{ "%.2f"|format(r.stddev) }}</td>

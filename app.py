@@ -32,18 +32,15 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(poll_bp)
 
 
-# --- TEMP DIAGNOSTIC ENDPOINTS (remove after we stabilize) ---
+# ---------------- TEMP DIAGNOSTICS: remove after we stabilize ----------------
 import os, sys
-from sqlalchemy import inspect
 from flask import jsonify
+from sqlalchemy import inspect
+from sqlalchemy.exc import ProgrammingError, OperationalError
 
 @app.get("/healthz")
 def healthz():
     return "ok", 200
-
-@app.get("/debug/version")
-def debug_version():
-    return jsonify(python=sys.version, executable=sys.executable)
 
 @app.get("/debug/routes")
 def debug_routes():
@@ -51,19 +48,18 @@ def debug_routes():
 
 @app.get("/debug/files")
 def debug_files():
-    def listdir_safe(path):
+    def safe_ls(path):
         try:
             return sorted(os.listdir(path))
         except Exception as e:
             return f"ERR: {e.__class__.__name__}: {e}"
-
     return jsonify(
         cwd=os.getcwd(),
         has_procfile=os.path.isfile("Procfile"),
-        templates_dir=app.template_folder,
-        static_dir=app.static_folder,
-        templates=listdir_safe(app.template_folder),
-        static=listdir_safe(app.static_folder)
+        template_folder=app.template_folder,
+        static_folder=app.static_folder,
+        templates=safe_ls(app.template_folder),
+        static=safe_ls(app.static_folder),
     )
 
 @app.get("/debug/db")
@@ -73,11 +69,16 @@ def debug_db():
         from models import User
         insp = inspect(engine)
         with SessionLocal() as s:
-            cnt = s.query(User).count()
-        return jsonify(db_url=str(engine.url), tables=sorted(insp.get_table_names()), user_count=cnt)
+            users = s.query(User).count()
+        return jsonify(db=str(engine.url), tables=sorted(insp.get_table_names()), users=users)
     except Exception as e:
         return jsonify(error=f"{e.__class__.__name__}: {e}"), 500
-# --- END TEMP DIAGNOSTIC ---
+
+# Hard-wire a minimal root so we never 404 while debugging
+@app.get("/")
+def root_health_only():
+    return "app root reachable", 200
+# ---------------------------------------------------------------------------
 
 
 if __name__ == "__main__":

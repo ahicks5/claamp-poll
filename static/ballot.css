@@ -1,16 +1,142 @@
 /* =====================
-Ballot grid & slots
+Ballot grid & slots (theme-friendly)
 ===================== */
-.rank-rows{ display:grid; gap:14px }
-.rank-grid{ display:grid; grid-template-columns:repeat(var(--cols,9), minmax(0,1fr)); gap:10px }
-.rank-cell{ display:grid; grid-template-rows:auto 1fr; gap:6px }
-.rank-num{ text-align:center; font-weight:700; color:var(--muted); font-size:.9rem; line-height:1; }
+.rank-rows { display: grid; gap: 14px; }
 
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 9), minmax(0, 1fr));
+  gap: 10px;
+}
 
-.rank-slot{ position:relative; min-height:110px; border:1px dashed var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
-.rank-dropzone{ display:grid; place-items:center; padding:16px; box-sizing:border-box; }
-.rank-dropzone--hover{ outline:2px solid #93c5fd; outline-offset:-2px; background:rgba(147,197,253,.12) }
+/* room for the small control row on mobile */
+.rank-cell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+}
 
+.rank-num {
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1;
+}
 
-@media (max-width:900px){ .rank-grid{ grid-template-columns:repeat(5,minmax(0,1fr)) } }
-@media (max-width:640px){ .rank-grid{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+/* slots match your panel/line palette */
+.rank-slot {
+  position: relative;
+  min-height: 96px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.rank-dropzone {
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.rank-dropzone--hover {
+  outline: 2px solid var(--focus, #93c5fd);
+  outline-offset: -2px;
+  background: color-mix(in oklab, var(--focus, #93c5fd) 12%, transparent);
+}
+
+/* logo badge inside a slot */
+.badge--img-only {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 72px;
+}
+
+.badge-logo {
+  max-height: 68px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* quick controls row (mobile-first) */
+.rank-controls {
+  display: none;               /* hidden on desktop by default */
+  gap: 6px;
+  justify-content: center;
+}
+
+.rc {
+  font-size: .9rem;
+  padding: .2rem .5rem;
+  border: 1px solid var(--line);
+  background: var(--panel-1, #fff);
+  color: var(--text, inherit);
+  border-radius: .35rem;
+}
+
+/* make controls appear when cell is opened or on small screens */
+.rank-cell.open .rank-controls { display: flex; }
+
+/* =====================
+Palette (keeps your theme)
+===================== */
+.logo-palette {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.logo-card {
+  border: 1px solid var(--line);
+  background: var(--panel-1, #fff);
+  border-radius: 10px;
+  padding: .5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  align-items: center;
+}
+
+.logo-card img {
+  height: 60px;
+  object-fit: contain;
+}
+
+/* mobile-only “+ Add” button on cards */
+.add-btn-mobile {
+  display: none;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--panel-1, #fff);
+  color: var(--text, inherit);
+  border-radius: .35rem;
+  padding: .35rem .5rem;
+}
+
+/* =====================
+Responsive tweaks
+===================== */
+@media (max-width: 900px) {
+  .rank-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .logo-palette { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .rank-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rank-slot { min-height: 84px; }
+  .badge--img-only { height: 64px; }
+  .badge-logo { max-height: 60px; }
+  .rank-controls { display: flex; }          /* always show on small screens */
+  .add-btn-mobile { display: block; }        /* show the + Add button on cards */
+}
+
+/* optional: sticky top bar without changing colors */
+.vote-bar.sticky {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--panel-1, #fff);
+}

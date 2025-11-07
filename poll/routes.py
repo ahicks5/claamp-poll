@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import os
-from flask import render_template, request, redirect, url_for, flash, abort, current_app
+from flask import render_template, request, redirect, url_for, flash, abort, current_app, jsonify
 from datetime import datetime, timezone
 
 from flask_login import login_required, current_user
-from sqlalchemy import select, asc, func
+from sqlalchemy import select, asc, func, or_
 from sqlalchemy.exc import IntegrityError
 
 from db import SessionLocal
@@ -225,23 +225,37 @@ def vote_form():
         # Teams for palette
         teams = s.execute(select(Team).order_by(asc(Team.name))).scalars().all()
 
-        # Build rank map inside the session to avoid detachment
+        # Build rank map for the user's existing ballot
         items = s.execute(
             select(BallotItem).where(BallotItem.ballot_id == ballot.id)
         ).scalars().all()
         rank_map = {it.rank: it.team_id for it in items}
 
-    # Build logo map from /static/logos
-    logos_dir = os.path.join(current_app.static_folder, "logos")
+        # ---- NEW: fetch committee defaults (prefer poll-specific, else global) ----
+        defaults_rows = s.execute(
+            select(DefaultBallot)
+            .where(
+                or_(
+                    DefaultBallot.poll_id == poll.id,
+                    DefaultBallot.poll_id.is_(None),
+                )
+            )
+            .order_by(DefaultBallot.rank.asc())
+        ).scalars().all()
 
+        default_rank_map = {row.rank: row.team_id for row in defaults_rows}
+
+    # Build logo map from /static/logos (you already import logo_map)
     return render_template(
         "poll_vote.html",
         poll=poll,
         teams=teams,
         rank_map=rank_map,
+        default_rank_map=default_rank_map,   # <-- pass it in
         MAX_RANK=MAX_RANK,
         logo_map=logo_map
     )
+
 
 
 @bp.post("/vote")

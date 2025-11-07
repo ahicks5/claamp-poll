@@ -4,31 +4,27 @@
 
 <section class="container">
 
-  <header class="vote-bar sticky">
+  <header class="vote-bar sticky vote-bar--responsive">
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
-      <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a>
-      <!-- IMPORTANT: id must be 'autofill-defaults' -->
-      <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>Insert CFP Default</button>
+      {# Uncomment if you want Back again: #}
+      {# <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a> #}
+      <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>+ Default</button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
     </div>
   </header>
 
   <div class="vote-subbar">
-    <span class="muted">
-      Drag on desktop. On mobile: tap “+” in a slot to search and add a team.
-    </span>
+    <span class="muted">Drag on desktop. On mobile: tap “+” in a slot to search and add a team.</span>
     <span class="muted" id="selection-count">0 of {{ MAX_RANK }} selected</span>
   </div>
-
-  <!-- Small on-page debug banner -->
-  <div id="debug-banner" class="debug-banner" hidden></div>
 
   <form id="vote-form" class="vote-stack" method="post" action="{{ url_for('poll.submit_vote') }}">
 
     <!-- BALLOT -->
     <section class="card ballot">
+      {# Keep original ranges but we’ll collapse their wrappers on mobile so all cells flow into one 3-col grid #}
       {% set row1 = range(1, 10) %}
       {% set row2 = range(10, 18) %}
       {% set row3 = range(18, MAX_RANK + 1) %}
@@ -99,11 +95,7 @@
       <div id="palette" class="logo-palette" aria-label="Teams">
         {% for t in teams %}
           {% set fname = logo_map.get(t.name) %}
-          {% if fname %}
-            {% set img_src = url_for('static', filename='logos/' ~ fname) %}
-          {% else %}
-            {% set img_src = url_for('static', filename='logos/default.png') %}
-          {% endif %}
+          {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
           <div
             class="logo-card"
             draggable="true"
@@ -124,14 +116,14 @@
   </form>
 </section>
 
-<!-- Lightweight searchable picker (mobile-first) -->
+<!-- Mobile picker -->
 <div id="team-picker" class="picker hidden" role="dialog" aria-modal="true" aria-labelledby="picker-title">
   <div class="picker__panel">
     <div class="picker__head">
       <h3 id="picker-title">Choose a team</h3>
       <button class="btn btn-ghost sm" type="button" data-close-picker>Close</button>
     </div>
-    <input id="picker-search" class="input" type="text" placeholder="Search teams…" aria-label="Search teams">
+    <input id="picker-search" class="input picker__search" type="text" placeholder="Search teams…" aria-label="Search teams">
     <div id="picker-list" class="picker__list">
       {% for t in teams %}
         {% set fname = logo_map.get(t.name) %}
@@ -149,10 +141,43 @@
 </div>
 
 <style>
-/* Debug banner */
-.debug-banner{margin:.5rem 0;padding:.5rem .75rem;border:1px dashed #888;border-radius:8px;font-size:.9rem}
-.debug-banner--warn{background:#201a00;color:#ffd37a;border-color:#b88}
-.debug-banner--ok{background:#001a09;color:#9ff0b4;border-color:#7b8}
+/* --- Responsive header layout --- */
+.vote-bar--responsive{
+  display:flex; flex-direction:column; gap:10px; padding:10px 12px;
+}
+.vote-bar--responsive .vote-title{ font-size:1.1rem; line-height:1.2; }
+.vote-bar--responsive .vote-actions{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+}
+@media (min-width: 769px){
+  .vote-bar--responsive{ flex-direction:row; align-items:center; justify-content:space-between; }
+  .vote-bar--responsive .vote-title{ font-size:1.25rem; }
+  .vote-bar--responsive .vote-actions{ flex-wrap:nowrap; }
+}
+
+/* Strikethrough when disabled (no tooltips/warnings) */
+.btn.line-through { text-decoration: line-through; text-decoration-thickness: 2px; opacity:.6; }
+
+/* --- Mobile grid: ALWAYS 3 per row to the end --- */
+@media (max-width: 768px){
+  /* Flatten the three sub-grids so all .rank-cell children flow in one grid */
+  .rank-rows{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .rank-grid{ display:contents; } /* collapses wrappers so children join one grid */
+}
+
+/* Keep desktop layout (your original look uses .rank-grid with inline --cols) */
+@media (min-width: 769px){
+  .rank-rows{ display:flex; flex-direction:column; gap:12px; }
+  .rank-grid{
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr));
+    gap: 10px;
+  }
+}
 
 /* Mobile-only + button inside slots */
 .slot-add{
@@ -166,34 +191,33 @@
 .slot-add:active{ transform:scale(.96) }
 .rank-slot{ position:relative }
 
-/* Hide desktop controls on small screens */
 @media (max-width: 768px){
   .rank-controls{ display:none !important; }
   .slot-add{ display:grid; place-items:center; }
 }
 
-/* Picker dialog */
+/* Picker anchored to TOP (so keyboard doesn’t hide the list) */
 .picker.hidden{ display:none; }
 .picker{
   position:fixed; inset:0; z-index:50;
   background:rgba(0,0,0,.45);
-  display:grid; place-items:end center;
+  display:grid; place-items:start center; /* top instead of bottom */
+  padding-top: max(8px, env(safe-area-inset-top));
 }
 .picker__panel{
   width:100%; max-width:720px; background:var(--panel-2, #10141c);
-  border-top-left-radius:16px; border-top-right-radius:16px;
+  border-radius:16px;
   border:1px solid var(--line);
-  padding:12px; box-shadow:0 -10px 30px rgba(0,0,0,.25);
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  max-height:100dvh; /* respect mobile keyboard viewport */
+  display:flex; flex-direction:column;
 }
-@media (min-width:769px){
-  .picker{ place-items:center; }
-  .picker__panel{ border-radius:16px; padding:16px 16px 12px; }
-}
-.picker__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.picker__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 12px 0 12px; }
+.picker__search{ margin:10px 12px 0 12px; }
 .picker__list{
-  max-height:60vh; overflow:auto;
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:8px;
-  margin-top:10px;
+  overflow:auto; padding:12px; gap:8px;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+  flex:1 1 auto; /* list expands and scrolls, input stays visible at top */
 }
 .picker__item{
   display:flex; align-items:center; gap:10px;
@@ -204,27 +228,29 @@
 .picker__item img{ width:28px; height:28px; object-fit:contain; }
 .picker__item:hover{ outline:2px solid rgba(147,197,253,.35); outline-offset:-2px; }
 
-/* Keep sticky header consistent */
+/* Keep sticky header colored */
 .vote-bar.sticky{ background:var(--panel-2); border-bottom:1px solid var(--line); }
 
-/* Subtle by default on mobile */
+/* Subtle + hides when filled */
 .slot-add{ opacity:.55; transition:opacity .12s ease, transform .12s ease; z-index:1; }
 .badge{ position:relative; z-index:2; }
-
-/* When the slot has a team, hide the + */
-.rank-slot.filled .slot-add{
-  opacity:0;
-  pointer-events:none;
-}
+.rank-slot.filled .slot-add{ opacity:0; pointer-events:none; }
 </style>
 
 <script>
 (function () {
   // ---- Config from server ----
-  const MAX_RANK     = {{ MAX_RANK }};
-  const LOGO_BASE    = "{{ url_for('static', filename='logos/') }}";
-  const RANK_MAP     = {{ (rank_map or {}) | tojson }};           // user's saved ballot (rank -> team_id)
-  const DEFAULT_MAP  = {{ (default_rank_map or {}) | tojson }};   // committee defaults (rank -> team_id)
+  const MAX_RANK   = {{ MAX_RANK }};
+  const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
+  const RANK_MAP   = {{ (rank_map or {}) | tojson }};
+  const DEFAULT_MAP= {{ (default_rank_map or {}) | tojson }};
+
+  // Flat team index
+  const TEAMS = [
+    {% for t in teams %}
+      { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
+    {% endfor %}
+  ].reduce((acc,t)=>{ acc[String(t.id)] = t; return acc; }, {});
 
   // ---- DOM ----
   const form           = document.getElementById('vote-form');
@@ -239,38 +265,27 @@
   const pickerSearch   = document.getElementById('picker-search');
   const pickerList     = document.getElementById('picker-list');
   const autofillBtn    = document.getElementById('autofill-defaults');
-  const debugBanner    = document.getElementById('debug-banner');
 
-  // ---- Build flat team index (id -> {id,name,file})
-  const TEAMS = [
-    {% for t in teams %}
-      { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
-    {% endfor %}
-  ].reduce((acc,t)=>{ acc[String(t.id)] = t; return acc; }, {});
-
-  // ---- Dev console dump ----
-  console.group('%cVotePage Init','color:#9ef');
-  console.log('MAX_RANK:', MAX_RANK);
-  console.log('RANK_MAP (saved ballot):', RANK_MAP);
-  console.log('DEFAULT_MAP (committee):', DEFAULT_MAP);
-  console.log('TEAMS count:', Object.keys(TEAMS).length);
-  console.groupEnd();
+  let pickerTargetRank = null;
 
   // ---- Helpers ----
-  function banner(msg, ok=false){
-    if (!debugBanner) return;
-    debugBanner.textContent = msg;
-    debugBanner.className = 'debug-banner ' + (ok ? 'debug-banner--ok' : 'debug-banner--warn');
-    debugBanner.hidden = false;
-    console[ok ? 'info' : 'warn']('[banner]', msg);
+  function slotFromZone(zone){ return zone?.closest('.rank-slot') || null; }
+  function isBallotEmpty(){ return dropzones.every(z => !z.firstElementChild); }
+
+  function updateAutofillState(){
+    if (!autofillBtn) return;
+    const hasDefaults = DEFAULT_MAP && Object.keys(DEFAULT_MAP).length > 0;
+    const canUse = hasDefaults && isBallotEmpty();
+    autofillBtn.disabled = !canUse;
+    // visual only: strike when disabled, no title/warning
+    autofillBtn.classList.toggle('line-through', !canUse);
+    autofillBtn.setAttribute('aria-disabled', String(!canUse));
   }
 
-  function slotFromZone(zone){ return zone?.closest('.rank-slot') || null; }
-
-  function isBallotEmpty(){
-    const empty = dropzones.every(z => !z.firstElementChild);
-    console.debug('isBallotEmpty ->', empty);
-    return empty;
+  function updateCount(){
+    const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
+    if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
+    updateAutofillState();
   }
 
   function updateSlotState(slot){
@@ -278,25 +293,6 @@
     const zone = slot.querySelector('.rank-dropzone');
     if (zone?.firstElementChild) slot.classList.add('filled');
     else slot.classList.remove('filled');
-  }
-
-  function updateCount(){
-    const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
-    if (selectionCount) selectionCount.textContent = `${selected} of ${MAX_RANK} selected`;
-    updateAutofillState();
-  }
-
-  function updateAutofillState(){
-    const hasDefaults = DEFAULT_MAP && Object.keys(DEFAULT_MAP).length > 0;
-    const canUse = hasDefaults && isBallotEmpty();
-    if (autofillBtn){
-      autofillBtn.disabled = !canUse;
-      autofillBtn.setAttribute('aria-disabled', String(!canUse));
-      console.debug('updateAutofillState -> hasDefaults:', hasDefaults, 'canUse:', canUse);
-      if (!hasDefaults) banner('No committee defaults found (default_rank_map is empty?)');
-      else if (!isBallotEmpty()) banner('Autofill is disabled because your ballot is not empty');
-      else banner('Autofill is available', true);
-    }
   }
 
   function removeIfPlaced(teamId){
@@ -324,7 +320,7 @@
     img.onerror = () => { img.src = LOGO_BASE + 'default.png'; };
     div.appendChild(img);
 
-    // Drag start (desktop reordering)
+    // Drag start
     div.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
         teamId: div.dataset.teamId, teamName: div.dataset.teamName, file: div.dataset.file || ''
@@ -332,17 +328,17 @@
       e.dataTransfer.effectAllowed = 'move';
     });
 
-    // Quick remove (desktop)
+    // Double click remove
     div.addEventListener('dblclick', () => {
       const slot = div.closest('.rank-dropzone');
       if (slot) {
         slot.innerHTML = '';
         updateSlotState(slotFromZone(slot));
-        updateCount();
       }
+      updateCount();
     });
 
-    // Mobile tap to reopen picker
+    // Mobile: tap to reopen picker for that rank
     div.addEventListener('click', () => {
       if (window.matchMedia('(max-width: 768px)').matches) {
         const slot = div.closest('.rank-slot');
@@ -362,24 +358,17 @@
     updateCount();
   }
 
-  function nextEmptyZone(){
-    return dropzones.find(z => !z.firstElementChild);
-  }
+  function nextEmptyZone(){ return dropzones.find(z => !z.firstElementChild); }
 
-  // ---- Desktop palette support ----
+  // Palette drag + keyboard add
   document.querySelectorAll('.logo-card').forEach(card => {
-    const payload = () => ({
-      teamId: card.dataset.teamId,
-      teamName: card.dataset.teamName,
-      file: card.dataset.file || ''
-    });
+    const payload = () => ({ teamId: card.dataset.teamId, teamName: card.dataset.teamName, file: card.dataset.file || '' });
 
     card.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify(payload()));
       e.dataTransfer.effectAllowed = 'copyMove';
     });
 
-    // Enter to add to first empty
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const target = nextEmptyZone(); if (!target) return;
@@ -388,7 +377,7 @@
     });
   });
 
-  // ---- Desktop DnD targets ----
+  // DnD targets
   document.addEventListener('dragover', function(e){
     const slot = e.target.closest('.rank-slot'); if (!slot) return;
     const zone = slot.querySelector('.rank-dropzone'); if (!zone) return;
@@ -408,7 +397,7 @@
     placeInZone(zone, data);
   });
 
-  // ---- Inline rank controls (desktop) ----
+  // Inline rank controls
   rankCells.forEach(cell => {
     const zone = cell.querySelector('.rank-dropzone');
     const up   = cell.querySelector('[data-act="up"]');
@@ -441,35 +430,25 @@
     });
   });
 
-  // ---- Mobile picker ----
+  // Picker
   function openPickerForRank(rankStr){
-    if (!picker) return;
+    pickerTargetRank = String(rankStr);
     picker.classList.remove('hidden');
-    picker.dataset.rank = String(rankStr);
+    // make sure panel is at top and focused
     if (pickerSearch) {
       pickerSearch.value = '';
       filterPicker('');
-      setTimeout(() => pickerSearch.focus(), 0);
+      setTimeout(()=>{ pickerSearch.focus(); window.scrollTo({top:0, behavior:'smooth'}); }, 0);
     }
   }
   function closePicker(){
-    if (!picker) return;
     picker.classList.add('hidden');
-    delete picker.dataset.rank;
+    pickerTargetRank = null;
   }
-
-  document.querySelectorAll('[data-open-picker]').forEach(btn => {
-    btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank));
-  });
-  document.querySelectorAll('[data-close-picker]').forEach(btn => {
-    btn.addEventListener('click', closePicker);
-  });
-  picker?.addEventListener('click', (e) => {
-    if (e.target === picker) closePicker();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && picker && !picker.classList.contains('hidden')) closePicker();
-  });
+  document.querySelectorAll('[data-open-picker]').forEach(btn => btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank)));
+  document.querySelectorAll('[data-close-picker]').forEach(btn => btn.addEventListener('click', closePicker));
+  picker.addEventListener('click', (e) => { if (e.target === picker) closePicker(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !picker.classList.contains('hidden')) closePicker(); });
 
   function filterPicker(q){
     const qq = (q || '').toLowerCase().trim();
@@ -479,24 +458,17 @@
     });
   }
   pickerSearch?.addEventListener('input', (e) => filterPicker(e.target.value));
-
   pickerList?.addEventListener('click', (e) => {
     const btn = e.target.closest('.picker__item');
-    const targetRank = picker?.dataset.rank;
-    if (!btn || !targetRank) return;
-    const zone = document.querySelector('.rank-dropzone[data-rank="'+ targetRank +'"]');
+    if (!btn || !pickerTargetRank) return;
+    const zone = document.querySelector('.rank-dropzone[data-rank="'+ pickerTargetRank +'"]');
     if (!zone) return;
-    placeInZone(zone, {
-      teamId: btn.dataset.teamId,
-      teamName: btn.dataset.teamName,
-      file: btn.dataset.file || ''
-    });
+    placeInZone(zone, { teamId: btn.dataset.teamId, teamName: btn.dataset.teamName, file: btn.dataset.file || '' });
     closePicker();
-    document.querySelector('.rank-cell[data-rank="'+ targetRank +'"]')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelector('.rank-cell[data-rank="'+ pickerTargetRank +'"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
-  // ---- Palette filter ----
+  // Palette filter
   function filterPalette(){
     const q = (filterInput?.value || '').toLowerCase().trim();
     palette?.querySelectorAll('.logo-card').forEach(c => {
@@ -506,55 +478,27 @@
   }
   filterInput?.addEventListener('input', filterPalette);
 
-  // ---- Clear all ----
+  // Clear all
   clearBtn?.addEventListener('click', () => {
-    dropzones.forEach(z => {
-      z.innerHTML = '';
-      updateSlotState(slotFromZone(z));
-    });
+    dropzones.forEach(z => { z.innerHTML = ''; updateSlotState(slotFromZone(z)); });
     updateCount();
   });
 
-  // ---- Apply committee defaults (only when empty) ----
+  // Autofill defaults
   function applyDefaults(){
-    if (!DEFAULT_MAP) {
-      console.warn('applyDefaults: DEFAULT_MAP is null/undefined');
-      banner('Cannot apply defaults: DEFAULT_MAP missing');
-      return;
-    }
-    if (!isBallotEmpty()){
-      console.warn('applyDefaults: ballot not empty');
-      banner('Clear your ballot before applying defaults');
-      return;
-    }
-    let placed = 0, missingIds = [];
+    if (!DEFAULT_MAP || !isBallotEmpty()) return;
     for (let r = 1; r <= MAX_RANK; r++){
-      const teamId = DEFAULT_MAP[String(r)] ?? DEFAULT_MAP[r];
+      const teamId = DEFAULT_MAP[String(r)] || DEFAULT_MAP[r];
       if (!teamId) continue;
-      const meta = TEAMS[String(teamId)];
+      const team = TEAMS[String(teamId)];
       const zone = document.querySelector('.rank-dropzone[data-rank="'+ r +'"]');
-      if (!meta || !zone){
-        missingIds.push({rank:r, teamId});
-        continue;
-      }
-      placeInZone(zone, { teamId: meta.id, teamName: meta.name, file: meta.file || '' });
-      placed++;
-    }
-    console.log('applyDefaults -> placed', placed, 'missing', missingIds);
-    if (missingIds.length){
-      banner(`Applied ${placed}, but some team IDs were not found on page: ` + missingIds.map(m => `${m.teamId}@${m.rank}`).join(', '));
-    } else {
-      banner(`Applied ${placed} defaults`, true);
+      if (!team || !zone) continue;
+      placeInZone(zone, { teamId: team.id, teamName: team.name, file: team.file || '' });
     }
   }
+  autofillBtn?.addEventListener('click', () => { if (isBallotEmpty()) applyDefaults(); });
 
-  autofillBtn?.addEventListener('click', () => {
-    console.debug('autofill click. disabled?', autofillBtn.disabled);
-    applyDefaults();
-    updateAutofillState();
-  });
-
-  // ---- Prefill existing saved ballot ----
+  // Prefill saved ballot
   (function prefill(){
     if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
     Object.keys(RANK_MAP).forEach(rank => {
@@ -571,7 +515,7 @@
     updateCount();
   }());
 
-  // ---- Submit hidden inputs ----
+  // Submit -> hidden inputs
   form?.addEventListener('submit', () => {
     hiddenInputs.innerHTML = '';
     dropzones.forEach(z => {
@@ -587,8 +531,12 @@
     });
   });
 
-  // Final state check at load
-  updateAutofillState();
+  // Logs for quick sanity
+  console.log('VotePage Init');
+  console.log('MAX_RANK:', MAX_RANK);
+  console.log('RANK_MAP (saved ballot):', RANK_MAP);
+  console.log('DEFAULT_MAP (committee):', DEFAULT_MAP);
+  console.log('TEAMS count:', Object.keys(TEAMS).length);
 })();
 </script>
 

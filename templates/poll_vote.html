@@ -8,7 +8,7 @@
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
       <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a>
-      <button id="use-default" class="btn btn-ghost sm" type="button" disabled>Insert CFP Default</button>
+      <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>Insert CFP Default</button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
     </div>

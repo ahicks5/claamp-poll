@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}CLAAMP Poll{% endblock %}
+{% block content %}
+<section class="container stack">
+
+  <div class="card">
+    <h1>Friends AP Poll</h1>
+
+    {% if open_poll %}
+      <h2>Current: {{ open_poll.title }} ({{ open_poll.season }} • Week {{ open_poll.week }})</h2>
+
+      {% if user_ballot and user_ballot.submitted_at %}
+        <p class="muted">You submitted a ballot.</p>
+        <div class="flex gap-2">
+          <a class="btn" href="{{ url_for('poll.vote_form') }}">Edit Ballot</a>
+          <a class="btn btn-primary" href="{{ url_for('poll.results') }}">See Results</a>
+        </div>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('poll.vote_form') }}">Vote Now</a>
+      {% endif %}
+
+    {% else %}
+      <p class="muted">No open poll.</p>
+    {% endif %}
+  </div>
+
+  {% if latest_past_poll %}
+    <div class="card">
+      <h3>Most Recent Results</h3>
+      <p>{{ latest_past_poll.title }}</p>
+      <a class="btn" href="{{ url_for('poll.results') }}">View Results</a>
+    </div>
+  {% endif %}
+
+  {% if current_user.is_admin %}
+    <div class="card">
+      <h3>Admin</h3>
+
+      <form method="post" action="{{ url_for('poll.admin_new_poll') }}" class="form-grid mt-2">
+        <div>
+          <label class="label">Season</label>
+          <input name="season" type="number" placeholder="2025" required>
+        </div>
+        <div>
+          <label class="label">Week</label>
+          <input name="week" type="number" placeholder="12" required>
+        </div>
+        <div>
+          <label class="label">Title</label>
+          <input name="title" type="text" placeholder="Week 12 AP (Friends) Poll" required>
+        </div>
+
+        <div style="grid-column:1/-1; display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn btn-primary">Open Poll</button>
+          <a class="btn" href="{{ url_for('poll.admin_panel') }}">Admin Panel</a>
+          <form method="post" action="{{ url_for('poll.admin_seed_teams') }}">
+            <button class="btn">Seed Teams</button>
+          </form>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+</section>
+{% endblock %}

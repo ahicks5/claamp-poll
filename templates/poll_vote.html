@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Vote – {{ poll.title }}{% endblock %}
+{% block content %}
+
+<section class="container">
+
+  <!-- Compact header bar -->
+  <header class="vote-bar">
+    <h1 class="vote-title">{{ poll.title }}</h1>
+    <div class="vote-actions">
+      <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a>
+      <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
+      <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
+    </div>
+  </header>
+
+  <!-- tiny helper row -->
+  <div class="vote-subbar">
+    <span class="muted">Drag logos into slots. Reorder by dragging between slots.</span>
+    <span class="muted" id="selection-count">0 of {{ MAX_RANK }} selected</span>
+  </div>
+
+  <form id="vote-form" class="vote-stack" method="post" action="{{ url_for('poll.submit_vote') }}">
+    <!-- BALLOT (top) -->
+    <section class="card ballot">
+      {# Build three rows (9 / 8 / 8) without row headers #}
+      {% set row1 = range(1, 10) %}
+      {% set row2 = range(10, 18) %}
+      {% set row3 = range(18, MAX_RANK + 1) %}
+
+      <div class="rank-rows">
+
+        <div class="rank-grid" style="--cols:9;">
+          {% for r in row1 %}
+          <div class="rank-cell">
+            <div class="rank-num">#{{ r }}</div>
+            <div class="rank-slot" data-rank="{{ r }}" aria-label="Rank {{ r }}">
+              <div class="rank-dropzone" data-rank="{{ r }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="rank-grid" style="--cols:8;">
+          {% for r in row2 %}
+          <div class="rank-cell">
+            <div class="rank-num">#{{ r }}</div>
+            <div class="rank-slot" data-rank="{{ r }}" aria-label="Rank {{ r }}">
+              <div class="rank-dropzone" data-rank="{{ r }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="rank-grid" style="--cols:8;">
+          {% for r in row3 %}
+          <div class="rank-cell">
+            <div class="rank-num">#{{ r }}</div>
+            <div class="rank-slot" data-rank="{{ r }}" aria-label="Rank {{ r }}">
+              <div class="rank-dropzone" data-rank="{{ r }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- Hidden inputs generated on submit -->
+      <div id="hidden-inputs"></div>
+    </section>
+
+    <!-- PALETTE (below) -->
+    <section class="card palette">
+      <div class="palette-header">
+        <h2 class="palette-title">Teams</h2>
+        <input id="team-filter" class="input" type="text" placeholder="Filter teams…" aria-label="Filter teams" />
+      </div>
+
+      <div id="palette" class="logo-palette" aria-label="Draggable teams">
+        {% for t in teams %}
+          {% set fname = logo_map.get(t.name) %}
+          {% if fname %}
+            {% set img_src = url_for('static', filename='logos/' ~ fname) %}
+          {% else %}
+            {% set img_src = url_for('static', filename='logos/default.png') %}
+          {% endif %}
+          <div
+            class="logo-card"
+            draggable="true"
+            data-team-id="{{ t.id }}"
+            data-team-name="{{ t.name }}"
+            data-file="{{ fname or '' }}"
+            tabindex="0"
+            aria-grabbed="false"
+          >
+            <img src="{{ img_src }}" alt="{{ t.name }} logo" onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+            <div class="logo-name">{{ t.name }}</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <p class="muted tip">Tip: double-click a placed team to remove it.</p>
+    </section>
+  </form>
+</section>
+
+<script>
+(function(){
+  // ---- Config from server ----
+  const MAX_RANK   = {{ MAX_RANK }};
+  const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
+  const RANK_MAP   = {{ (rank_map or {}) | tojson }};
+
+  // ---- DOM ----
+  const form            = document.getElementById('vote-form');
+  const hiddenInputs    = document.getElementById('hidden-inputs');
+  const dropzones       = Array.from(document.querySelectorAll('.rank-dropzone'));
+  const palette         = document.getElementById('palette');
+  const filterInput     = document.getElementById('team-filter');
+  const clearBtn        = document.getElementById('clear-all');
+  const selectionCount  = document.getElementById('selection-count');
+
+  // ---- Helpers ----
+  function updateCount(){
+    const selected = dropzones.reduce((n, z) => n + (z.firstElementChild ? 1 : 0), 0);
+    if (selectionCount) selectionCount.textContent = selected + ' of ' + MAX_RANK + ' selected';
+  }
+
+  function removeIfPlaced(teamId){
+    dropzones.forEach(z => {
+      const kid = z.firstElementChild;
+      if (kid && kid.dataset.teamId === String(teamId)) z.innerHTML = '';
+    });
+  }
+
+  // Logo-only badge for slots
+  function createBadge(teamId, teamName, fileName){
+    const div = document.createElement('div');
+    div.className = 'badge badge--img-only';
+    div.setAttribute('draggable', 'true');
+    div.dataset.teamId = String(teamId);
+    div.dataset.teamName = teamName;   // kept for submit/debug
+    if (fileName) div.dataset.file = fileName;
+
+    const img = document.createElement('img');
+    img.className = 'badge-logo';
+    if (fileName) {
+      img.src = LOGO_BASE + fileName;
+      img.alt = teamName + ' logo';
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+    }
+
+    div.appendChild(img);
+
+    // Remove with double-click
+    div.addEventListener('dblclick', () => {
+      const slot = div.closest('.rank-dropzone');
+      if (slot) slot.innerHTML = '';
+      updateCount();
+    });
+
+    // Drag from a slot to another
+    div.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        teamId: div.dataset.teamId,
+        teamName: div.dataset.teamName,
+        file: div.dataset.file || ''
+      }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    // Keyboard remove
+    div.addEventListener('keydown', (e) => {
+      if ((e.key === 'Backspace' || e.key === 'Delete') && div.closest('.rank-dropzone')) {
+        div.closest('.rank-dropzone').innerHTML = '';
+        updateCount();
+      }
+    });
+
+    return div;
+  }
+
+  function placeInZone(zone, data){
+    if (!zone) return;
+    removeIfPlaced(data.teamId);     // de-dupe
+    zone.innerHTML = '';
+    zone.appendChild(createBadge(data.teamId, data.teamName, data.file || ''));
+    updateCount();
+  }
+
+  // ---- Palette wiring ----
+  document.querySelectorAll('.logo-card').forEach(card => {
+    card.addEventListener('dragstart', function(e){
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        teamId: card.dataset.teamId,
+        teamName: card.dataset.teamName,
+        file: card.dataset.file || ''
+      }));
+      e.dataTransfer.effectAllowed = 'copyMove';
+    });
+
+    // Keyboard add: Enter -> first empty slot
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const data = {
+          teamId: card.dataset.teamId,
+          teamName: card.dataset.teamName,
+          file: card.dataset.file || ''
+        };
+        const firstEmpty = dropzones.find(z => !z.firstElementChild);
+        if (firstEmpty) placeInZone(firstEmpty, data);
+      }
+    });
+  });
+
+  // Filter palette
+  function filterPalette(){
+    const q = (filterInput?.value || '').toLowerCase().trim();
+    palette.querySelectorAll('.logo-card').forEach(c => {
+      const name = (c.dataset.teamName || '').toLowerCase();
+      c.style.display = name.includes(q) ? '' : 'none';
+    });
+  }
+  if (filterInput) filterInput.addEventListener('input', filterPalette);
+
+  // Clear all
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    dropzones.forEach(z => z.innerHTML = '');
+    updateCount();
+  });
+
+  // ---- Big-target DnD (anywhere in the slot) ----
+  document.addEventListener('dragover', function(e){
+    const slot = e.target.closest('.rank-slot');
+    if (!slot) return;
+    const zone = slot.querySelector('.rank-dropzone');
+    if (!zone) return;
+    e.preventDefault();
+    zone.classList.add('rank-dropzone--hover');
+  });
+
+  document.addEventListener('dragleave', function(e){
+    const slot = e.target.closest('.rank-slot');
+    if (!slot) return;
+    const zone = slot.querySelector('.rank-dropzone');
+    if (!zone) return;
+    if (!slot.contains(e.relatedTarget)) {
+      zone.classList.remove('rank-dropzone--hover');
+    }
+  });
+
+  document.addEventListener('drop', function(e){
+    const slot = e.target.closest('.rank-slot');
+    if (!slot) return;
+    const zone = slot.querySelector('.rank-dropzone');
+    if (!zone) return;
+    e.preventDefault();
+    zone.classList.remove('rank-dropzone--hover');
+
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch(_) {}
+    if (!data || !data.teamId) return;
+    placeInZone(zone, data);
+  });
+
+  // ---- Prefill existing ballot ----
+  (function prefill(){
+    if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
+    const index = {};
+    document.querySelectorAll('.logo-card').forEach(c => {
+      index[String(c.dataset.teamId)] = {
+        id: c.dataset.teamId,
+        name: c.dataset.teamName,
+        file: c.dataset.file || ''
+      };
+    });
+    Object.keys(RANK_MAP).forEach(rank => {
+      const teamId = String(RANK_MAP[rank]);
+      const meta = index[teamId];
+      const zone = document.querySelector('.rank-dropzone[data-rank="'+ rank +'"]');
+      if (zone && meta) {
+        zone.innerHTML = '';
+        zone.appendChild(createBadge(meta.id, meta.name, meta.file));
+      }
+    });
+    updateCount();
+  }());
+
+  // ---- Submit -> hidden inputs rank_1..rank_25 ----
+  if (form) {
+    form.addEventListener('submit', () => {
+      if (!hiddenInputs) return;
+      hiddenInputs.innerHTML = '';
+      dropzones.forEach(z => {
+        const rank = z.dataset.rank;
+        const kid = z.firstElementChild;
+        if (kid && rank) {
+          const inp = document.createElement('input');
+          inp.type = 'hidden';
+          inp.name = 'rank_' + rank;
+          inp.value = kid.dataset.teamId;
+          hiddenInputs.appendChild(inp);
+        }
+      });
+    });
+  }
+
+  filterPalette(); // initial
+})();
+</script>
+
+{% endblock %}

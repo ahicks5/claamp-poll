@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login – CLAAMP{% endblock %}
+{% block content %}
+  <section class="container">
+    <div class="card" style="max-width:520px; margin:0 auto;">
+      <h1>Login</h1>
+      <form method="post" class="stack mt-2" autocomplete="on">
+        <label class="label" for="user">Username</label>
+        <input id="user" name="username" required>
+
+        <label class="label" for="pass">Password</label>
+        <input id="pass" type="password" name="password" required>
+
+        <div class="flex space-between mt-2">
+          <a class="btn btn-ghost" href="{{ url_for('auth.register') }}">Create account</a>
+          <button class="btn btn-primary" type="submit">Login</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}

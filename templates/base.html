@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CLAAMP Poll{% endblock %}</title>
+
+  <!-- CSS bundle -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='nav.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cards.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='tables.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ballot.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='palette.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='utilities.css') }}">
+</head>
+
+<body>
+  <nav class="nav">
+    <div class="nav-inner container">
+      <a class="brand" href="{{ url_for('poll.dashboard') }}">
+        <span class="dot"></span>
+        <span>CLAAMP • Poll</span>
+      </a>
+      <div class="nav-links">
+        <a href="{{ url_for('poll.dashboard') }}">Poll</a>
+        <a href="{{ url_for('poll.results') }}">Results</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        <div class="alerts">
+          {% for cat,msg in msgs %}
+            <div class="alert"><strong>{{cat}}:</strong> {{msg}}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

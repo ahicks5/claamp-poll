@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Admin – CLAAMP{% endblock %}
+{% block content %}
+<section class="container stack">
+
+  <div class="card">
+    <h1>AP Poll Admin</h1>
+    <p class="muted">Teams in DB: {{ team_count }}</p>
+
+    <form method="post" action="{{ url_for('poll.admin_new_poll') }}" class="form-grid mt-2">
+      <div>
+        <label class="label">Season</label>
+        <input name="season" type="number" required>
+      </div>
+      <div>
+        <label class="label">Week</label>
+        <input name="week" type="number" required>
+      </div>
+      <div>
+        <label class="label">Title</label>
+        <input name="title" type="text" required>
+      </div>
+
+      <div style="grid-column:1/-1; text-align:right;">
+        <button class="btn btn-primary" type="submit">Open Poll</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Existing Polls</h2>
+
+    <div class="table-wrap mt-2">
+      <table class="table">
+        <thead>
+          <tr><th>Season</th><th>Week</th><th>Title</th><th>Open?</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for p in polls %}
+          <tr>
+            <td>{{ p.season }}</td>
+            <td>{{ p.week }}</td>
+            <td>{{ p.title }}</td>
+            <td>{{ "Yes" if p.is_open else "No" }}</td>
+            <td>
+              {% if p.is_open %}
+              <form method="post" action="{{ url_for('poll.admin_close_poll', poll_id=p.id) }}">
+                <button class="btn sm" type="submit">Close</button>
+              </form>
+              {% else %}
+              <em class="muted">closed</em>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</section>
+{% endblock %}

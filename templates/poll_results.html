@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Results – {{ poll.title }}{% endblock %}
+{% block content %}
+
+<section class="container" style="display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; align-items:start;">
+
+  <!-- LEFT: Top 25 with logos -->
+  <div class="card">
+    <h1>Results: {{ poll.title }}</h1>
+
+    {% if top25 and top25|length > 0 %}
+      <div class="table-wrap mt-2">
+        <table class="table table-results">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th class="num">Points</th>
+              <th class="num">1st</th>
+              <th class="num">Ballots</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in top25 %}
+              {% set fname = logo_map.get(r.team) %}
+              {% if fname %}
+                {% set img_src = url_for('static', filename='logos/' ~ fname) %}
+              {% else %}
+                {% set img_src = url_for('static', filename='logos/default.png') %}
+              {% endif %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td class="team-cell">
+                  <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
+                       onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+                  <span class="team-name">{{ r.team }}</span>
+                </td>
+                <td class="num">{{ r.points }}</td>
+                <td class="num">{{ r.firsts }}</td>
+                <td class="num">{{ r.appearances }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if others and others|length > 0 %}
+        <p class="muted" style="font-style:italic; margin-top:12px;">
+          <strong>Others receiving votes:</strong>
+          {% for o in others %}
+            {{ o.team }} ({{ o.points }}){% if not loop.last %},{% endif %}
+          {% endfor %}
+        </p>
+      {% endif %}
+    {% else %}
+      <p class="muted">No ballots yet.</p>
+    {% endif %}
+
+    <h3 class="mt-3">Submitted by</h3>
+    <p>{{ submitters|default([],true)|join(", ") or "—" }}</p>
+  </div>
+
+  <!-- RIGHT: Stats & Fun Stuff -->
+  <aside class="card">
+    <h2>Poll Stats</h2>
+
+    {% if stats %}
+      <div class="mt-2">
+        <h3>Most deviant ballots</h3>
+        <p class="muted" style="margin-top:6px;">(Higher distance = more deviant from consensus)</p>
+        <div class="table-wrap mt-2">
+          <table class="table">
+            <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
+            <tbody>
+              {% for row in stats.deviant_ballots[:5] %}
+                <tr><td>{{ row.voter_name }}</td><td class="num">{{ row.deviation }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h3>Biggest rank discrepancies</h3>
+        <p class="muted" style="margin-top:6px;">(Highest difference between any voter’s max and min rank)</p>
+        <div class="table-wrap mt-2">
+          <table class="table">
+            <thead><tr><th>Team</th><th class="num">Max</th><th class="num">Min</th><th class="num">Spread</th></tr></thead>
+            <tbody>
+              {% for row in stats.rank_spread[:10] %}
+                <tr>
+                  <td>{{ row.team }}</td>
+                  <td class="num">{{ row.max_rank }}</td>
+                  <td class="num">{{ row.min_rank }}</td>
+                  <td class="num">{{ row.spread }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h3>Most volatile teams</h3>
+        <p class="muted" style="margin-top:6px;">(Highest standard deviation of rank)</p>
+        <div class="table-wrap mt-2">
+          <table class="table">
+            <thead><tr><th>Team</th><th class="num">Std Dev</th></tr></thead>
+            <tbody>
+              {% for row in stats.rank_stddev[:10] %}
+                <tr>
+                  <td>{{ row.team }}</td>
+                  <td class="num">{{ "%.2f"|format(row.stddev) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if stats.extra and stats.extra|length %}
+        <div class="mt-3">
+          <h3>Fun notes</h3>
+          <ul class="mt-2">
+            {% for note in stats.extra %}
+              <li>{{ note }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="muted">Stats will appear once ballots are in.</p>
+    {% endif %}
+  </aside>
+</section>
+
+{% endblock %}

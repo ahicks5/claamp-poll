@@ -2,50 +2,77 @@
 {% block title %}Results – {{ poll.title }}{% endblock %}
 {% block content %}
 
-<section class="container" style="display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; align-items:start;">
+<section class="container results-container">
 
-  <!-- LEFT: Top 25 with logos -->
   <div class="card">
-    <h1>Results: {{ poll.title }}</h1>
+    <header class="results-head">
+      <h1 class="results-title">Results: {{ poll.title }}</h1>
+      <div class="results-meta">
+        <span class="muted">Submitted by: {{ submitters|default([],true)|join(", ") or "—" }}</span>
+      </div>
+    </header>
 
-    {% if top25 and top25|length > 0 %}
+    {% if top_rows and top_rows|length %}
       <div class="table-wrap mt-2">
-        <table class="table table-results">
+        <table class="table table-results wide">
           <thead>
             <tr>
-              <th>#</th>
+              <th class="num">#</th>
               <th>Team</th>
-              <th class="num">Points</th>
-              <th class="num">1st</th>
-              <th class="num">Ballots</th>
+              <th class="num hide-sm">Pts</th>
+              <th class="num hide-sm">1st</th>
+              <th class="num">Default</th>
+              <th class="num">Δ</th>
+              <th class="num">Min</th>
+              <th class="num">Max</th>
             </tr>
           </thead>
           <tbody>
-            {% for r in top25 %}
+            {% for r in top_rows %}
               {% set fname = logo_map.get(r.team) %}
-              {% if fname %}
-                {% set img_src = url_for('static', filename='logos/' ~ fname) %}
-              {% else %}
-                {% set img_src = url_for('static', filename='logos/default.png') %}
-              {% endif %}
+              {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
               <tr>
-                <td>{{ loop.index }}</td>
+                <td class="num">{{ r.group_rank }}</td>
                 <td class="team-cell">
                   <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
                        onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
                   <span class="team-name">{{ r.team }}</span>
+                  <!-- On very small screens, show Pts/1st beneath the name -->
+                  <div class="row-sub hide-md">
+                    <span class="chip">Pts: {{ r.points }}</span>
+                    <span class="chip">1st: {{ r.firsts }}</span>
+                  </div>
                 </td>
-                <td class="num">{{ r.points }}</td>
-                <td class="num">{{ r.firsts }}</td>
-                <td class="num">{{ r.appearances }}</td>
+                <td class="num hide-sm">{{ r.points }}</td>
+                <td class="num hide-sm">{{ r.firsts }}</td>
+
+                <td class="num">{{ r.default_rank or "—" }}</td>
+
+                {% set d = r.delta_vs_default %}
+                <td class="num">
+                  {% if d is not none %}
+                    {% if d > 0 %}
+                      <span class="delta up">↑ {{ d }}</span>
+                    {% elif d < 0 %}
+                      <span class="delta down">↓ {{ (0 - d) }}</span>
+                    {% else %}
+                      <span class="delta flat">—</span>
+                    {% endif %}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+
+                <td class="num">{{ r.min_rank or "—" }}</td>
+                <td class="num">{{ r.max_rank or "—" }}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
 
-      {% if others and others|length > 0 %}
-        <p class="muted" style="font-style:italic; margin-top:12px;">
+      {% if others and others|length %}
+        <p class="muted others mt-2">
           <strong>Others receiving votes:</strong>
           {% for o in others %}
             {{ o.team }} ({{ o.points }}){% if not loop.last %},{% endif %}
@@ -55,20 +82,17 @@
     {% else %}
       <p class="muted">No ballots yet.</p>
     {% endif %}
-
-    <h3 class="mt-3">Submitted by</h3>
-    <p>{{ submitters|default([],true)|join(", ") or "—" }}</p>
   </div>
 
-  <!-- RIGHT: Stats & Fun Stuff -->
-  <aside class="card">
+  <!-- Stats BELOW the table -->
+  <div class="card mt-3">
     <h2>Poll Stats</h2>
 
-    {% if stats %}
-      <div class="mt-2">
+    <div class="stats-grid">
+      <section>
         <h3>Most deviant ballots</h3>
-        <p class="muted" style="margin-top:6px;">(Higher distance = more deviant from consensus)</p>
-        <div class="table-wrap mt-2">
+        <p class="muted small">(Higher distance = farther from consensus)</p>
+        <div class="table-wrap mt-1">
           <table class="table">
             <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
             <tbody>
@@ -78,60 +102,162 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <div class="mt-3">
-        <h3>Biggest rank discrepancies</h3>
-        <p class="muted" style="margin-top:6px;">(Highest difference between any voter’s max and min rank)</p>
-        <div class="table-wrap mt-2">
-          <table class="table">
-            <thead><tr><th>Team</th><th class="num">Max</th><th class="num">Min</th><th class="num">Spread</th></tr></thead>
-            <tbody>
-              {% for row in stats.rank_spread[:10] %}
-                <tr>
-                  <td>{{ row.team }}</td>
-                  <td class="num">{{ row.max_rank }}</td>
-                  <td class="num">{{ row.min_rank }}</td>
-                  <td class="num">{{ row.spread }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <section>
+        <h3>Most different pair</h3>
+        {% if stats.most_different_pair %}
+          {% set p = stats.most_different_pair %}
+          <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
+          <div class="table-wrap mt-1">
+            <table class="table">
+              <thead><tr><th>Team</th><th class="num">Rank ({{ p.a }})</th><th class="num">Rank ({{ p.b }})</th><th class="num">Δ</th></tr></thead>
+              <tbody>
+                {% for d in stats.pair_differences %}
+                  <tr>
+                    <td>{{ d.team }}</td>
+                    <td class="num">{{ d.rank_a or "—" }}</td>
+                    <td class="num">{{ d.rank_b or "—" }}</td>
+                    <td class="num">{{ d.abs_diff }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">Not enough ballots to compare.</p>
+        {% endif %}
+      </section>
+
+      <section class="span-2">
+        <h3>Most consistent / most volatile</h3>
+        <p class="muted small">(Std dev over submitted ballots; smaller = more consistent)</p>
+        <div class="split-cols">
+          <div>
+            <h4>Steadiest (top 10)</h4>
+            <div class="table-wrap mt-1">
+              <table class="table">
+                <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
+                <tbody>
+                  {% for r in stats.team_consistency[:10] %}
+                    <tr>
+                      <td>{{ r.team }}</td>
+                      <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
+                      <td class="num">{{ r.min_rank or "—" }}</td>
+                      <td class="num">{{ r.max_rank or "—" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h4>Most volatile (top 10)</h4>
+            <div class="table-wrap mt-1">
+              <table class="table">
+                <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
+                <tbody>
+                  {% for r in stats.team_consistency|reverse|list()[:10] %}
+                    <tr>
+                      <td>{{ r.team }}</td>
+                      <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
+                      <td class="num">{{ r.min_rank or "—" }}</td>
+                      <td class="num">{{ r.max_rank or "—" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+    </div>
+  </div>
 
-      <div class="mt-3">
-        <h3>Most volatile teams</h3>
-        <p class="muted" style="margin-top:6px;">(Highest standard deviation of rank)</p>
-        <div class="table-wrap mt-2">
-          <table class="table">
-            <thead><tr><th>Team</th><th class="num">Std Dev</th></tr></thead>
-            <tbody>
-              {% for row in stats.rank_stddev[:10] %}
-                <tr>
-                  <td>{{ row.team }}</td>
-                  <td class="num">{{ "%.2f"|format(row.stddev) }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {% if stats.extra and stats.extra|length %}
-        <div class="mt-3">
-          <h3>Fun notes</h3>
-          <ul class="mt-2">
-            {% for note in stats.extra %}
-              <li>{{ note }}</li>
+  <!-- AP-style ballot grid -->
+  <div class="card mt-3">
+    <h2>Ballot Grid</h2>
+    <p class="muted small">Each row is a voter; columns are ranks 1–{{ MAX_RANK or 25 }}. Scroll → on mobile.</p>
+    <div class="ballot-grid-wrap">
+      <table class="ballot-grid">
+        <thead>
+          <tr>
+            <th>Voter</th>
+            {% for r in range(1, (MAX_RANK or 25) + 1) %}
+              <th class="num">{{ r }}</th>
             {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-    {% else %}
-      <p class="muted">Stats will appear once ballots are in.</p>
-    {% endif %}
-  </aside>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in voter_grid %}
+            <tr>
+              <td class="voter-name">{{ row.voter_name }}</td>
+              {% for cell in row.ranks %}
+                <td class="grid-cell">
+                  {% if cell.team_id %}
+                    {% set file = cell.file or "default.png" %}
+                    <img src="{{ url_for('static', filename='logos/' ~ file) }}"
+                         alt="{{ cell.team }} logo"
+                         onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </section>
+
+<style>
+.results-container { display:block; }
+
+/* Table responsiveness */
+.table-results.wide { width:100%; }
+.table-results .team-cell { display:flex; align-items:center; gap:10px; }
+.team-logo { width:28px; height:28px; object-fit:contain; }
+.team-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.delta { font-weight:700; }
+.delta.up { color:#16a34a; }      /* green */
+.delta.down { color:#dc2626; }    /* red */
+.delta.flat { color:#94a3b8; }
+
+.row-sub { margin-top:4px; display:flex; gap:8px; }
+.chip { background:var(--panel-1,#0c111a); border:1px solid var(--line); padding:2px 6px; border-radius:999px; font-size:.85em; color:var(--fg); }
+
+/* Hide some columns on very small screens */
+.hide-sm { display:table-cell; }
+.hide-md { display:none; }
+@media (max-width: 768px){
+  .hide-sm { display:none; }
+  .hide-md { display:block; }
+}
+
+/* Stats grid */
+.stats-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+.stats-grid .span-2 { grid-column: 1 / -1; }
+.split-cols { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.small { font-size:.9em; }
+
+@media (max-width: 900px){
+  .stats-grid { grid-template-columns: 1fr; }
+  .split-cols { grid-template-columns: 1fr; }
+}
+
+/* Ballot grid */
+.ballot-grid-wrap { overflow:auto; border:1px solid var(--line); border-radius:10px; }
+.ballot-grid { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+.ballot-grid th, .ballot-grid td { padding:6px 8px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); }
+.ballot-grid th:first-child, .ballot-grid td:first-child { position:sticky; left:0; background:var(--panel-2,#10141c); z-index:1; }
+.ballot-grid thead th { position:sticky; top:0; background:var(--panel-2,#10141c); z-index:2; }
+.ballot-grid .grid-cell { text-align:center; }
+.ballot-grid .grid-cell img { width:22px; height:22px; object-fit:contain; display:block; margin:0 auto; }
+.voter-name { white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+</style>
 
 {% endblock %}

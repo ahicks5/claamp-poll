@@ -540,7 +540,8 @@ def results():
                     diffs.sort(key=lambda x: (-x["abs_diff"], x["team"]))
                     pair_differences = diffs[:10]
 
-        # ---------- Team consistency leaderboard (by stddev ascending) ----------
+        # ---------- Team consistency (low stddev is steadiest) ----------
+        MIN_APPS = 2  # or 3+
         team_consistency = [
             {
                 "team_id": r["team_id"],
@@ -549,9 +550,12 @@ def results():
                 "min_rank": r["min_rank"],
                 "max_rank": r["max_rank"],
             }
-            for r in enriched if r["appearances"] > 0
+            for r in enriched if r["appearances"] > MIN_APPS
         ]
+        # Steadiest: ascending
         team_consistency.sort(key=lambda x: x["stddev"])
+        # Most volatile: descending
+        team_volatile = sorted(team_consistency, key=lambda x: x["stddev"], reverse=True)
 
         # ---------- AP-style ballot grid payload ----------
         # voter_grid = [ { "voter_name": str, "ranks": [ {rank, team_id, team, file}, ... len=MAX_RANK ] } ]
@@ -581,7 +585,8 @@ def results():
             "deviant_ballots": deviant_ballots,
             "most_different_pair": most_different_pair,
             "pair_differences": pair_differences,
-            "team_consistency": team_consistency,
+            "team_consistency": team_consistency,  # steadiest (asc)
+            "team_volatile": team_volatile,  # most volatile (desc)
         },
         voter_grid=voter_grid
     )

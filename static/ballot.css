@@ -135,8 +135,10 @@ Responsive tweaks
   .add-btn-mobile { display: block; }        /* show the + Add button on cards */
 }
 
-/* optional: sticky top bar without changing colors */
 .vote-bar.sticky {
-  position: sticky; top: 0; z-index: 10;
-  background: var(--panel-1, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--panel-2);   /* darker surface */
+  border-bottom: 1px solid var(--line);
 }

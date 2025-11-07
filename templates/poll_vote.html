@@ -4,10 +4,11 @@
 
 <section class="container">
 
-  <header class="vote-bar sticky" id="vote-header">
+  <!-- Sticky header that collapses while picker is open -->
+  <header class="vote-bar sticky vote-bar--responsive" id="vote-header">
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
-      <!-- Removed Back -->
+      <!-- Back removed -->
       <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>+ Default</button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
@@ -23,7 +24,7 @@
 
     <!-- BALLOT -->
     <section class="card ballot">
-      {# Keep original ranges but we’ll collapse their wrappers on mobile so all cells flow into one 3-col grid #}
+      {# we’ll flatten all cells into one 3-col grid on mobile; keep original ranges for desktop #}
       {% set row1 = range(1, 10) %}
       {% set row2 = range(10, 18) %}
       {% set row3 = range(18, MAX_RANK + 1) %}
@@ -115,7 +116,7 @@
   </form>
 </section>
 
-<!-- Mobile picker -->
+<!-- Picker (mobile-first) -->
 <div id="team-picker" class="picker hidden" role="dialog" aria-modal="true" aria-labelledby="picker-title">
   <div class="picker__panel">
     <div class="picker__head">
@@ -140,7 +141,7 @@
 </div>
 
 <style>
-/* --- Responsive header layout --- */
+/* ---------- Header: responsive layout ---------- */
 .vote-bar--responsive{
   display:flex; flex-direction:column; gap:10px; padding:10px 12px;
 }
@@ -154,31 +155,32 @@
   .vote-bar--responsive .vote-actions{ flex-wrap:nowrap; }
 }
 
-/* Strikethrough when disabled (no tooltips/warnings) */
-.btn.line-through { text-decoration: line-through; text-decoration-thickness: 2px; opacity:.6; }
+/* Hide the sticky header entirely while picker is open */
+.picker-open #vote-header{ display:none; }
 
-/* --- Mobile grid: ALWAYS 3 per row to the end --- */
+/* strike-through look when “+ Default” is disabled */
+.btn.line-through{ text-decoration:line-through; text-decoration-thickness:2px; opacity:.6; }
+
+/* ---------- Ballot layout ---------- */
 @media (max-width: 768px){
-  /* Flatten the three sub-grids so all .rank-cell children flow in one grid */
+  /* Flatten all children into a single 3-col grid so 1..25 flow with no gaps */
   .rank-rows{
     display:grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
-  .rank-grid{ display:contents; } /* collapses wrappers so children join one grid */
+  .rank-grid{ display:contents; } /* collapse wrappers */
 }
-
-/* Keep desktop layout (your original look uses .rank-grid with inline --cols) */
 @media (min-width: 769px){
   .rank-rows{ display:flex; flex-direction:column; gap:12px; }
   .rank-grid{
-    display: grid;
-    grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr));
-    gap: 10px;
+    display:grid;
+    grid-template-columns: repeat(var(--cols, 8), minmax(0,1fr));
+    gap:10px;
   }
 }
 
-/* Mobile-only + button inside slots */
+/* slot add button */
 .slot-add{
   display:none;
   position:absolute; inset:0;
@@ -189,26 +191,24 @@
 }
 .slot-add:active{ transform:scale(.96) }
 .rank-slot{ position:relative }
-
 @media (max-width: 768px){
   .rank-controls{ display:none !important; }
   .slot-add{ display:grid; place-items:center; }
 }
 
-/* Picker anchored to TOP (so keyboard doesn’t hide the list) */
+/* ---------- Picker anchored to TOP ---------- */
 .picker.hidden{ display:none; }
 .picker{
   position:fixed; inset:0; z-index:50;
   background:rgba(0,0,0,.45);
-  display:grid; place-items:start center; /* top instead of bottom */
-  padding-top: max(8px, env(safe-area-inset-top));
+  display:grid; place-items:start center;
+  padding-top:max(8px, env(safe-area-inset-top));
 }
 .picker__panel{
   width:100%; max-width:720px; background:var(--panel-2, #10141c);
-  border-radius:16px;
-  border:1px solid var(--line);
+  border-radius:16px; border:1px solid var(--line);
   box-shadow:0 10px 30px rgba(0,0,0,.25);
-  max-height:100dvh; /* respect mobile keyboard viewport */
+  max-height:100dvh;
   display:flex; flex-direction:column;
 }
 .picker__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 12px 0 12px; }
@@ -216,7 +216,7 @@
 .picker__list{
   overflow:auto; padding:12px; gap:8px;
   display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
-  flex:1 1 auto; /* list expands and scrolls, input stays visible at top */
+  flex:1 1 auto;
 }
 .picker__item{
   display:flex; align-items:center; gap:10px;
@@ -230,26 +230,26 @@
 /* Keep sticky header colored */
 .vote-bar.sticky{ background:var(--panel-2); border-bottom:1px solid var(--line); }
 
-/* Subtle + hides when filled */
+/* subtle + hides when filled */
 .slot-add{ opacity:.55; transition:opacity .12s ease, transform .12s ease; z-index:1; }
 .badge{ position:relative; z-index:2; }
 .rank-slot.filled .slot-add{ opacity:0; pointer-events:none; }
 </style>
 
 <script>
-(function () {
+(function(){
   // ---- Config from server ----
-  const MAX_RANK   = {{ MAX_RANK }};
-  const LOGO_BASE  = "{{ url_for('static', filename='logos/') }}";
-  const RANK_MAP   = {{ (rank_map or {}) | tojson }};
-  const DEFAULT_MAP= {{ (default_rank_map or {}) | tojson }};
+  const MAX_RANK    = {{ MAX_RANK }};
+  const LOGO_BASE   = "{{ url_for('static', filename='logos/') }}";
+  const RANK_MAP    = {{ (rank_map or {}) | tojson }};
+  const DEFAULT_MAP = {{ (default_rank_map or {}) | tojson }};
 
   // Flat team index
   const TEAMS = [
     {% for t in teams %}
       { id: {{ t.id }}, name: {{ t.name|tojson }}, file: {{ (logo_map.get(t.name) or '')|tojson }} },
     {% endfor %}
-  ].reduce((acc,t)=>{ acc[String(t.id)] = t; return acc; }, {});
+  ].reduce((a,t)=>{ a[String(t.id)] = t; return a; }, {});
 
   // ---- DOM ----
   const form           = document.getElementById('vote-form');
@@ -268,7 +268,7 @@
   let pickerTargetRank = null;
 
   // ---- Helpers ----
-  function slotFromZone(zone){ return zone?.closest('.rank-slot') || null; }
+  function slotFromZone(z){ return z?.closest('.rank-slot') || null; }
   function isBallotEmpty(){ return dropzones.every(z => !z.firstElementChild); }
 
   function updateAutofillState(){
@@ -276,7 +276,6 @@
     const hasDefaults = DEFAULT_MAP && Object.keys(DEFAULT_MAP).length > 0;
     const canUse = hasDefaults && isBallotEmpty();
     autofillBtn.disabled = !canUse;
-    // visual only: strike when disabled, no title/warning
     autofillBtn.classList.toggle('line-through', !canUse);
     autofillBtn.setAttribute('aria-disabled', String(!canUse));
   }
@@ -290,8 +289,7 @@
   function updateSlotState(slot){
     if (!slot) return;
     const zone = slot.querySelector('.rank-dropzone');
-    if (zone?.firstElementChild) slot.classList.add('filled');
-    else slot.classList.remove('filled');
+    zone?.firstElementChild ? slot.classList.add('filled') : slot.classList.remove('filled');
   }
 
   function removeIfPlaced(teamId){
@@ -319,7 +317,6 @@
     img.onerror = () => { img.src = LOGO_BASE + 'default.png'; };
     div.appendChild(img);
 
-    // Drag start
     div.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', JSON.stringify({
         teamId: div.dataset.teamId, teamName: div.dataset.teamName, file: div.dataset.file || ''
@@ -327,7 +324,6 @@
       e.dataTransfer.effectAllowed = 'move';
     });
 
-    // Double click remove
     div.addEventListener('dblclick', () => {
       const slot = div.closest('.rank-dropzone');
       if (slot) {
@@ -337,7 +333,7 @@
       updateCount();
     });
 
-    // Mobile: tap to reopen picker for that rank
+    // mobile: tap to re-open picker for that rank
     div.addEventListener('click', () => {
       if (window.matchMedia('(max-width: 768px)').matches) {
         const slot = div.closest('.rank-slot');
@@ -359,7 +355,7 @@
 
   function nextEmptyZone(){ return dropzones.find(z => !z.firstElementChild); }
 
-  // Palette drag + keyboard add
+  // palette drag + keyboard
   document.querySelectorAll('.logo-card').forEach(card => {
     const payload = () => ({ teamId: card.dataset.teamId, teamName: card.dataset.teamName, file: card.dataset.file || '' });
 
@@ -396,7 +392,7 @@
     placeInZone(zone, data);
   });
 
-  // Inline rank controls
+  // inline rank controls
   rankCells.forEach(cell => {
     const zone = cell.querySelector('.rank-dropzone');
     const up   = cell.querySelector('[data-act="up"]');
@@ -417,7 +413,7 @@
       zone.innerHTML = '';
       updateSlotState(slotFromZone(zone));
       placeInZone(toZone, data);
-      toZone.closest('.rank-cell')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toZone.closest('.rank-cell')?.scrollIntoView({ behavior:'smooth', block:'center' });
     }
 
     up?.addEventListener('click', () => move(-1));
@@ -429,19 +425,23 @@
     });
   });
 
-  // Picker
+  // ----- Picker (hide sticky header while open) -----
   function openPickerForRank(rankStr){
     pickerTargetRank = String(rankStr);
+    document.documentElement.classList.add('picker-open');  // hides header
     picker.classList.remove('hidden');
-    // make sure panel is at top and focused
     if (pickerSearch) {
       pickerSearch.value = '';
       filterPicker('');
-      setTimeout(()=>{ pickerSearch.focus(); window.scrollTo({top:0, behavior:'smooth'}); }, 0);
+      setTimeout(()=>{
+        pickerSearch.focus();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 0);
     }
   }
   function closePicker(){
     picker.classList.add('hidden');
+    document.documentElement.classList.remove('picker-open');
     pickerTargetRank = null;
   }
   document.querySelectorAll('[data-open-picker]').forEach(btn => btn.addEventListener('click', () => openPickerForRank(btn.dataset.rank)));
@@ -457,6 +457,7 @@
     });
   }
   pickerSearch?.addEventListener('input', (e) => filterPicker(e.target.value));
+
   pickerList?.addEventListener('click', (e) => {
     const btn = e.target.closest('.picker__item');
     if (!btn || !pickerTargetRank) return;
@@ -464,10 +465,10 @@
     if (!zone) return;
     placeInZone(zone, { teamId: btn.dataset.teamId, teamName: btn.dataset.teamName, file: btn.dataset.file || '' });
     closePicker();
-    document.querySelector('.rank-cell[data-rank="'+ pickerTargetRank +'"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelector('.rank-cell[data-rank="'+ pickerTargetRank +'"]')?.scrollIntoView({ behavior:'smooth', block:'center' });
   });
 
-  // Palette filter
+  // palette filter
   function filterPalette(){
     const q = (filterInput?.value || '').toLowerCase().trim();
     palette?.querySelectorAll('.logo-card').forEach(c => {
@@ -477,13 +478,13 @@
   }
   filterInput?.addEventListener('input', filterPalette);
 
-  // Clear all
+  // clear all
   clearBtn?.addEventListener('click', () => {
     dropzones.forEach(z => { z.innerHTML = ''; updateSlotState(slotFromZone(z)); });
     updateCount();
   });
 
-  // Autofill defaults
+  // autofill defaults
   function applyDefaults(){
     if (!DEFAULT_MAP || !isBallotEmpty()) return;
     for (let r = 1; r <= MAX_RANK; r++){
@@ -497,7 +498,7 @@
   }
   autofillBtn?.addEventListener('click', () => { if (isBallotEmpty()) applyDefaults(); });
 
-  // Prefill saved ballot
+  // prefill saved ballot
   (function prefill(){
     if (!RANK_MAP || typeof RANK_MAP !== 'object') { updateCount(); return; }
     Object.keys(RANK_MAP).forEach(rank => {
@@ -514,7 +515,7 @@
     updateCount();
   }());
 
-  // Submit -> hidden inputs
+  // submit -> hidden inputs
   form?.addEventListener('submit', () => {
     hiddenInputs.innerHTML = '';
     dropzones.forEach(z => {
@@ -530,12 +531,12 @@
     });
   });
 
-  // Logs for quick sanity
-  console.log('VotePage Init');
-  console.log('MAX_RANK:', MAX_RANK);
-  console.log('RANK_MAP (saved ballot):', RANK_MAP);
-  console.log('DEFAULT_MAP (committee):', DEFAULT_MAP);
-  console.log('TEAMS count:', Object.keys(TEAMS).length);
+  // logs
+  console.log('[VotePage] init');
+  console.log('[VotePage] MAX_RANK:', MAX_RANK);
+  console.log('[VotePage] RANK_MAP:', RANK_MAP);
+  console.log('[VotePage] DEFAULT_MAP:', DEFAULT_MAP);
+  console.log('[VotePage] TEAMS count:', Object.keys(TEAMS).length);
 })();
 </script>
 

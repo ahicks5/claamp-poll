@@ -4,11 +4,10 @@
 
 <section class="container">
 
-  <header class="vote-bar sticky vote-bar--responsive">
+  <header class="vote-bar sticky" id="vote-header">
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
-      {# Uncomment if you want Back again: #}
-      {# <a class="btn btn-ghost sm" href="{{ url_for('poll.dashboard') }}">Back</a> #}
+      <!-- Removed Back -->
       <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>+ Default</button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>

@@ -1,0 +1,15 @@
+/* =====================
+Cards / Surfaces
+===================== */
+.card{ background:linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; box-shadow: var(--shadow-1); }
+.stack{ display:grid; gap:14px; }
+
+
+/* Header bars on vote page */
+.vote-bar{
+display:flex; align-items:center; justify-content:space-between; gap:12px;
+padding:8px 12px; border:1px solid var(--line); border-radius:12px; background:var(--panel);
+}
+.vote-title{ margin:0; font-size:1.1rem; font-weight:700 }
+.vote-actions{ display:flex; align-items:center; gap:8px }
+.vote-subbar{ margin:10px 2px 16px; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:var(--fs-2); }

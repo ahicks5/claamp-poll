@@ -1,0 +1,24 @@
+/* =====================
+Forms & Alerts
+===================== */
+.input, input[type="text"], input[type="number"], input[type="email"], input[type="password"], select{
+width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+background:var(--panel); color:var(--text); outline:none;
+}
+.input:focus, input:focus, select:focus{ box-shadow: var(--focus); }
+
+
+.form-row{ display:grid; gap:10px; }
+.form-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+@media (max-width:800px){ .form-grid{ grid-template-columns:1fr; } }
+
+
+.label{ font-size:var(--fs-2); color:var(--muted); margin-bottom:6px; display:block; }
+
+
+/* Flash messages */
+.alerts{ display:grid; gap:8px; margin: 0 0 var(--gap-3); }
+.alert{
+padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2);
+}
+.alert strong{ color:var(--brand); }

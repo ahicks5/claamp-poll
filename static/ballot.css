@@ -1,0 +1,16 @@
+/* =====================
+Ballot grid & slots
+===================== */
+.rank-rows{ display:grid; gap:14px }
+.rank-grid{ display:grid; grid-template-columns:repeat(var(--cols,9), minmax(0,1fr)); gap:10px }
+.rank-cell{ display:grid; grid-template-rows:auto 1fr; gap:6px }
+.rank-num{ text-align:center; font-weight:700; color:var(--muted); font-size:.9rem; line-height:1; }
+
+
+.rank-slot{ position:relative; min-height:110px; border:1px dashed var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
+.rank-dropzone{ display:grid; place-items:center; padding:16px; box-sizing:border-box; }
+.rank-dropzone--hover{ outline:2px solid #93c5fd; outline-offset:-2px; background:rgba(147,197,253,.12) }
+
+
+@media (max-width:900px){ .rank-grid{ grid-template-columns:repeat(5,minmax(0,1fr)) } }
+@media (max-width:640px){ .rank-grid{ grid-template-columns:repeat(3,minmax(0,1fr)) } }

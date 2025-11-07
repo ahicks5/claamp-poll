@@ -1,0 +1,15 @@
+/* =====================
+Top Navigation
+===================== */
+.nav{
+position:sticky; top:0; z-index:100;
+backdrop-filter: blur(6px);
+background: linear-gradient(180deg, rgba(17,20,24,.8), rgba(17,20,24,.6));
+border-bottom:1px solid var(--line);
+}
+.nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:var(--gap-2); padding:10px 16px; }
+.brand{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+.brand .dot{ width:8px; height:8px; border-radius:999px; background:var(--brand); box-shadow:0 0 0 3px rgba(110,231,255,.18); }
+.nav-links{ display:flex; align-items:center; gap:10px; }
+.nav a{ padding:8px 10px; border-radius:10px; border:1px solid transparent; }
+.nav a:hover{ border-color:var(--line); background:rgba(255,255,255,.02); text-decoration:none; }

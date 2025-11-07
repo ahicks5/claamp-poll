@@ -1,0 +1,37 @@
+/* =====================
+Buttons & chips
+===================== */
+.btn{
+display:inline-flex; align-items:center; justify-content:center; gap:8px;
+padding:8px 12px; border-radius:10px; border:1px solid var(--line);
+background:var(--panel); color:var(--text); cursor:pointer; text-decoration:none;
+transition: transform var(--anim-fast), box-shadow var(--anim-fast), border-color var(--anim-fast);
+}
+.btn:hover{ transform:translateY(-1px); border-color:rgba(110,231,255,.35) }
+.btn:active{ transform:translateY(0) }
+.btn.sm{ padding:6px 10px; font-size:.92rem }
+.btn-lg{ padding:10px 14px; }
+.btn-primary{
+background:linear-gradient(180deg, rgba(110,231,255,.9), rgba(124,255,183,.9));
+color:#0b0d10; border-color:transparent;
+}
+.btn-ghost{ background:transparent }
+
+
+/* Draggable chip (palette card keeps separate) */
+.badge{
+display:inline-grid; grid-auto-flow:column; align-items:center; gap:10px;
+padding:10px 12px; border-radius:999px; background:rgba(110,231,255,.10);
+border:1px solid rgba(110,231,255,.35); cursor:grab; user-select:none;
+}
+.badge:active{ cursor:grabbing }
+.badge img{ width:28px; height:28px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,.06) }
+.badge span{ font-weight:600 }
+
+
+/* Logo-only badge for slots */
+.badge.badge--img-only{ padding:6px; border-radius:12px; background:transparent; border:none; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+.badge.badge--img-only .badge-logo{
+width:64px; height:64px; object-fit:contain; border-radius:10px; background:rgba(255,255,255,.06); display:block; margin:auto;
+}
+@media (max-width:640px){ .badge.badge--img-only .badge-logo{ width:54px; height:54px; } }

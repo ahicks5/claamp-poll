@@ -1,0 +1,44 @@
+
+/* =====================
+Design tokens
+===================== */
+:root{
+/* Brand palette */
+--bg:#0b0d10;
+--panel:#111418;
+--panel-2:#161a20;
+--text:#e9edf2;
+--muted:#9aa6b2;
+--brand:#6ee7ff;
+--accent:#7cffb7;
+--line:rgba(255,255,255,.12);
+
+
+/* Radii & spacing */
+--r-lg:14px;
+--r-md:12px;
+--r-sm:10px;
+--gap-1:8px;
+--gap-2:12px;
+--gap-3:16px;
+--gap-4:24px;
+
+
+/* Typography */
+--font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+--fs-1: .85rem;
+--fs-2: .95rem;
+--fs-3: 1rem;
+--fs-4: 1.125rem;
+--fs-5: 1.375rem;
+
+
+/* Shadows */
+--shadow-1: 0 1px 2px rgba(0,0,0,.25);
+--focus: 0 0 0 3px rgba(110,231,255,.35);
+}
+
+
+@media (prefers-reduced-motion:no-preference){
+:root{ --anim-fast:.12s; --anim-med:.18s; }
+}

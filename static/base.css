@@ -1,0 +1,32 @@
+/* =====================
+Base / Reset / Layout
+===================== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body{
+margin:0; font-family:var(--font); color:var(--text); background:var(--bg); line-height:1.5;
+}
+
+
+img{ max-width:100%; display:block; }
+a{ color:#8ab4ff; text-decoration:none }
+a:hover{ text-decoration:underline }
+
+
+.container{ max-width: 1100px; margin: 0 auto; padding: var(--gap-4) var(--gap-3); }
+
+
+main.main{ max-width:1100px; margin: 0 auto; padding: var(--gap-4) var(--gap-3); }
+
+
+h1,h2,h3{ margin:0 0 var(--gap-2); }
+h1{ font-size: var(--fs-5); }
+h2{ font-size: var(--fs-4); color: var(--brand); }
+h3{ font-size: 1.05rem; color: var(--muted); }
+
+
+.muted{ color:var(--muted); }
+.tip{ color:var(--muted); margin-top:6px; font-size:var(--fs-2); }
+
+
+hr.rule{ border:0; height:1px; background:var(--line); margin: var(--gap-3) 0; }

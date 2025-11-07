@@ -1,0 +1,16 @@
+/* =====================
+Team palette grid
+===================== */
+.palette-title{ margin:0 0 8px; font-size:1rem; color:var(--brand) }
+.palette-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px }
+.logo-palette{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; max-height:70vh; overflow:auto; padding-right:4px; }
+
+
+.logo-card{
+display:grid; gap:6px; justify-items:center; padding:8px; border:1px solid var(--line); border-radius:12px; background:var(--panel);
+cursor:grab; transition: transform var(--anim-fast), border-color var(--anim-fast);
+}
+.logo-card:hover{ transform:translateY(-1px); border-color:rgba(110,231,255,.35) }
+.logo-card:active{ cursor:grabbing }
+.logo-card img{ width:64px; height:64px; object-fit:contain; background:rgba(255,255,255,.06); border-radius:8px }
+.logo-name{ font-size:.85rem; text-align:center; font-weight:600 }

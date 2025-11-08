@@ -354,3 +354,40 @@ html, body {
     font-size: 0.86rem;
   }
 }
+
+/* ---------------------------------------------------------
+   Wide Desktop Table Column Refinements
+   Targeting only the results big table.
+   --------------------------------------------------------- */
+
+.table-results.wide {
+  table-layout: fixed;
+}
+
+/* Rank column: keep it *tight* */
+.table-results.wide th.num:first-child,
+.table-results.wide td.num:first-child {
+  width: 32px;            /* very small */
+  max-width: 32px;
+  min-width: 28px;
+  text-align: right;
+  padding-right: 6px;
+}
+
+/* Team column: give it breathing room */
+.table-results.wide th:nth-child(2),
+.table-results.wide td:nth-child(2) {
+  width: auto;            /* let it expand naturally */
+  min-width: 200px;       /* still safe on desktop */
+}
+
+/* Numeric stats columns: compact, uniform */
+.table-results.wide th.num,
+.table-results.wide td.num {
+  width: 56px;
+  max-width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+

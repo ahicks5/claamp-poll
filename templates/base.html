@@ -1,51 +1,91 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="no-js" data-color-scheme="auto">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Polls{% endblock %}</title>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0c111a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
-  <!-- CSS bundle -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='nav.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='cards.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='tables.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='ballot.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='palette.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='utilities.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='results.css') }}">
+  <title>{% block title %}CLAAMP{% endblock %}</title>
+
+  <!-- System UI font stack for speed & crispness -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    :root {
+      --app-max: 1200px;
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color-scheme: light dark;
+      background: #0c111a;
+      color: #eaeef7;
+      font: 400 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+    }
+    /* noscript basic guard so content isn't hidden if JS toggles classes */
+    .no-js body { opacity: 1 !important; }
+  </style>
+
+  <!-- Global app stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+  {% block head %}{% endblock %}
 </head>
 
 <body>
-  <nav class="nav">
-    <div class="nav-inner container">
-      <a class="brand" href="{{ url_for('poll.dashboard') }}">
-        <span class="dot"></span>
-        <span>CLAAMPoll</span>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- App header / nav (mobile-first) -->
+  <header class="site-header" role="banner">
+    <div class="site-header__inner">
+      <a class="brand" href="{{ url_for('poll.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+        <span class="brand__dot"></span>
+        <span class="brand__text">CLAAMP</span>
       </a>
-      <div class="nav-links">
-        <a href="{{ url_for('poll.dashboard') }}">Poll</a>
-        <a href="{{ url_for('poll.results') }}">Results</a>
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
-      </div>
+
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">
+        <span class="nav-toggle__bar"></span>
+        <span class="sr-only">Menu</span>
+      </button>
+
+      <nav id="site-nav" class="site-nav" aria-label="Primary">
+        <ul class="site-nav__list">
+          {% if current_user.is_authenticated %}
+            <li><a class="site-nav__link" href="{{ url_for('poll.dashboard') }}">Dashboard</a></li>
+            <li><a class="site-nav__link" href="{{ url_for('poll.vote_form') }}">Vote</a></li>
+            <li><a class="site-nav__link" href="{{ url_for('poll.results') }}">Results</a></li>
+            {% if getattr(current_user, 'is_admin', False) %}
+              <li><a class="site-nav__link" href="{{ url_for('poll.admin_panel') }}">Admin</a></li>
+            {% endif %}
+            <li><a class="site-nav__link" href="{{ url_for('auth.logout') }}">Logout</a></li>
+          {% else %}
+            <li><a class="site-nav__link" href="{{ url_for('auth.login') }}">Login</a></li>
+            <li><a class="site-nav__link" href="{{ url_for('auth.register') }}">Register</a></li>
+          {% endif %}
+        </ul>
+      </nav>
     </div>
-  </nav>
+  </header>
 
-  <main class="main">
-    {% with msgs = get_flashed_messages(with_categories=true) %}
-      {% if msgs %}
-        <div class="alerts">
-          {% for cat,msg in msgs %}
-            <div class="alert"><strong>{{cat}}:</strong> {{msg}}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
+  <!-- Main content -->
+  <main id="main" class="site-main" role="main">
     {% block content %}{% endblock %}
   </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <small class="muted">© {{  (now() or None).year if callable(now) else '' }} CLAAMP</small>
+    </div>
+  </footer>
+
+  <script>
+    document.documentElement.classList.remove('no-js');
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

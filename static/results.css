@@ -1,0 +1,105 @@
+/* ============================
+Results page (desktop + mobile)
+============================ */
+:root { --sticky-offset: 56px; } /* match your nav height if different */
+
+/* Layout headers */
+.results-container { display: block; }
+.results-head { display: flex; flex-direction: column; gap: 6px; }
+.results-title { font-size: 1.375rem; line-height: 1.2; }
+.results-meta { font-size: .95rem; }
+
+/* Hide/show helpers */
+.hide-on-mobile { display: block; }
+.show-on-mobile { display: none; }
+@media (max-width: 768px){
+  .hide-on-mobile { display: none; }
+  .show-on-mobile { display: block; }
+}
+
+/* ---------- Desktop table tweaks ---------- */
+.table-results.wide { width: 100%; table-layout: fixed; }
+.table-results.wide th,
+.table-results.wide td { white-space: nowrap; }
+.table-results.wide th:nth-child(2),
+.table-results.wide td:nth-child(2) { min-width: 240px; }
+
+/* Team cell (augmenting tables.css) */
+.table-results .team-name {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------- Mobile card list ---------- */
+.mobile-list { display: grid; gap: 10px; }
+.mob-row{
+  display: grid; grid-template-columns: auto 1fr; gap: 10px;
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px;
+  background: var(--panel);
+}
+.mob-left{ display: flex; flex-direction: column; align-items: center; gap: 6px; width: 56px; }
+.mob-rank{ font-weight: 700; font-variant-numeric: tabular-nums; }
+.mob-logo{ width: 34px; height: 34px; object-fit: contain; background: rgba(255,255,255,.06); border-radius: 6px; }
+.mob-main{ min-width: 0; }
+.mob-team{ font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mob-meta{ display: flex; gap: 6px; margin: 4px 0 6px; flex-wrap: wrap; }
+
+.mob-grid{
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.mob-grid > div{
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.mob-grid .muted{ display:block; font-size:.8em; }
+
+/* Chips / deltas */
+.chip {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: .85em;
+  color: var(--text);
+}
+.delta { font-weight: 700; }
+.delta.up { color: #16a34a; }     /* green */
+.delta.down { color: #dc2626; }   /* red */
+.delta.flat { color: #94a3b8; }
+
+/* ---------- Stats grid ---------- */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stats-grid .span-2 { grid-column: 1 / -1; }
+.split-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.small { font-size: .9em; }
+.h-scroll { overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.h-scroll table { min-width: 420px; } /* prevent over-squish */
+
+@media (max-width: 900px){
+  .stats-grid { grid-template-columns: 1fr; }
+  .split-cols { grid-template-columns: 1fr; }
+}
+
+/* ---------- Ballot grid (sticky headers & cells) ---------- */
+.ballot-grid-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.ballot-grid { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+.ballot-grid th, .ballot-grid td { padding: 6px 8px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+.ballot-grid th:first-child, .ballot-grid td:first-child {
+  position: sticky; left: 0; background: var(--panel-2); z-index: 1;
+}
+.ballot-grid thead th {
+  position: sticky; top: var(--sticky-offset); background: var(--panel-2); z-index: 2;
+}
+.ballot-grid .grid-cell { text-align: center; }
+.ballot-grid .grid-cell img { width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto; }
+.voter-name { white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 768px){
+  .ballot-grid thead th { top: calc(var(--sticky-offset) + 0px); }
+  .ballot-grid .grid-cell img { width: 18px; height: 18px; }
+}
+
+/* Others line tightening */
+.others { line-height: 1.5; }

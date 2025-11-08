@@ -1,102 +1,147 @@
-/* =========================
-   Results page layout
-   ========================= */
-.results-container { display:block; }
-.results-head { display:flex; flex-direction:column; gap:6px; }
-.results-title { font-size:1.4rem; line-height:1.2; }
-.results-meta { font-size:.95rem; }
+/* ===========================
+   Results page overrides
+   =========================== */
 
-/* One responsive table for all viewports */
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+/* 1) Wider container on desktop, comfortable gutters on mobile */
+.results-container {
+  /* Inherit base container spacing but allow a wider max */
+  max-width: 1280px; /* was likely ~960; increase width per your request */
+  margin: 0 auto;
+  padding-inline: 16px;
 }
-.table-scroll > .table {
-  width: max-content;            /* prevents squish; enables smooth horizontal scroll on mobile */
-  min-width: 100%;               /* fills desktop width nicely */
+
+/* 2) Header block */
+.results-head { display: flex; flex-direction: column; gap: 6px; }
+.results-title { font-size: clamp(1.25rem, 1.2rem + 0.5vw, 1.6rem); line-height: 1.2; }
+.results-meta { font-size: .95rem; }
+
+/* 3) A reusable scroller that NEVER overflows the card */
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+.h-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Give scrollers “breathing room” so box shadows/borders aren’t clipped */
+.card .h-scroll { border: 1px solid var(--line); border-radius: 10px; }
+.card .h-scroll > .table,
+.card .h-scroll > table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 640px; /* ensures sensible minimum without exploding past card */
+}
+
+/* 4) Results table layout – stays table on mobile, but scrolls horizontally */
+.table-results {
+  width: 100%;
   table-layout: fixed;
 }
-.table-results th, .table-results td { white-space: nowrap; }
-.team-cell { display:flex; align-items:center; gap:10px; min-width:0; }
-.team-logo { width:28px; height:28px; object-fit:contain; }
-.team-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.table-results th, .table-results td { white-space: nowrap; padding: 10px 12px; }
+.table-results th:nth-child(2), .table-results td:nth-child(2) { min-width: 260px; }
 
-.chip { background:var(--panel-2,#10141c); border:1px solid var(--line); padding:2px 8px; border-radius:999px; font-size:.85em; color:var(--fg); }
-.delta { font-weight:700; }
-.delta.up { color:#16a34a; }
-.delta.down { color:#dc2626; }
-.delta.flat { color:#94a3b8; }
+.team-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.team-logo { width: 28px; height: 28px; object-fit: contain; }
+.team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Stats grid and tables */
-.stats-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+/* Deltas */
+.delta { font-weight: 700; }
+.delta.up   { color: #16a34a; } /* green */
+.delta.down { color: #dc2626; } /* red */
+.delta.flat { color: #94a3b8; }
+
+/* 5) Stats grid that won’t overflow */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .stats-grid .span-2 { grid-column: 1 / -1; }
-.split-cols { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-.small { font-size:.9em; }
 
-@media (max-width: 900px){
+@media (max-width: 1000px) {
   .stats-grid { grid-template-columns: 1fr; }
+}
+
+.split-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) {
   .split-cols { grid-template-columns: 1fr; }
 }
 
-/* Re-usable scroll wrapper for all small stat tables */
-.table-scroll .table { border-collapse: separate; border-spacing: 0; }
-.table-scroll .table th, .table-scroll .table td { padding: 8px 10px; }
-
-/* Ballot grid */
-.ballot-grid-wrap {
-  position: relative;
+/* Ensure inner tables play nicely with the scroller wrapper */
+.card .table-wrap .table,
+.card .table-wrap table {
   width: 100%;
-  overflow: auto;                /* scrolling happens here */
+}
+
+/* Optional: keep very small stat tables readable without wrapping to two lines */
+.card .table-wrap thead th,
+.card .table-wrap tbody td {
+  white-space: nowrap;
+}
+
+/* 6) Ballot grid – fix sticky header location & keep inside card */
+.ballot-grid-wrap {
+  position: relative;          /* needed for sticky children to respect this scroll box */
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
-  max-height: 65vh;              /* so header stickiness is visible */
+  max-width: 100%;
 }
+
 .ballot-grid {
-  width: max-content;
-  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  width: max-content; /* allows horizontal scroll to see all ranks */
+  min-width: 100%;    /* but fill card on wide screens */
 }
+
+/* Cells */
 .ballot-grid th, .ballot-grid td {
   padding: 6px 8px;
   border-bottom: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  background: var(--panel-1, #0c111a);
 }
+
+/* Sticky first column (voter) */
+.ballot-grid th:first-child,
+.ballot-grid td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--panel-2, #10141c);
+  z-index: 2; /* below header row, above cells */
+}
+
+/* Sticky header row – stick to TOP OF THE GRID, not offset mid-table */
 .ballot-grid thead th {
   position: sticky;
-  top: 0;                        /* <-- fixes header being offset in the middle */
-  z-index: 5;
+  top: 0; /* ← key change: was using a site header offset; remove so it pins to grid top */
   background: var(--panel-2, #10141c);
-  backdrop-filter: saturate(120%) blur(2px);
+  z-index: 3; /* above sticky first column */
 }
-.ballot-grid .sticky-left {
-  position: sticky;
-  left: 0;                       /* sticky first column */
-  z-index: 6;                    /* above header row cells when crossing */
-  background: var(--panel-2, #10141c);
+
+/* Images in cells */
+.ballot-grid .grid-cell { text-align: center; }
+.ballot-grid .grid-cell img {
+  width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto;
 }
-.ballot-grid .grid-cell { text-align:center; }
-.ballot-grid .grid-cell img { width:22px; height:22px; object-fit:contain; display:block; margin:0 auto; }
-.voter-name { white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+.voter-name { white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 768px){
-  .table-results th, .table-results td { padding: 8px 10px; }
-  .team-logo { width:24px; height:24px; }
-  .ballot-grid .grid-cell img { width:18px; height:18px; }
-  .ballot-grid-wrap { max-height: 55vh; }
+  .ballot-grid .grid-cell img { width: 18px; height: 18px; }
 }
 
-/* Defensive utilities so “mobile list” cannot leak onto desktop if legacy markup remains */
-.show-on-mobile { display: none !important; }
-.hide-on-mobile { display: block !important; }
-@media (max-width: 768px){
-  .show-on-mobile { display: block !important; }
-  .hide-on-mobile { display: none !important; }
-}
-
-/* Others text */
+/* 7) “Others receiving votes” readability */
 .others { line-height: 1.5; }
+
+/* 8) Small utility that helps tables not smash against card edges on very narrow phones */
+@media (max-width: 420px) {
+  .results-container { padding-inline: 10px; }
+}
+
+/* 9) Make the whole page willing to scroll horizontally on small devices rather than over-compressing */
+html, body {
+  overflow-x: hidden;
+}
+.container, .card, .table-wrap, .h-scroll {
+  max-width: 100%;
+}

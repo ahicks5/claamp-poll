@@ -2,6 +2,8 @@
 {% block title %}Results – {{ poll.title }}{% endblock %}
 {% block content %}
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
+
 <section class="container results-container">
 
   <div class="card">
@@ -13,8 +15,9 @@
     </header>
 
     {% if top_rows and top_rows|length %}
-      {# Single responsive table for ALL viewports (desktop + mobile) #}
-      <div class="table-scroll mt-2">
+
+      <!-- Unified responsive table (desktop & mobile) -->
+      <div class="table-wrap mt-2 h-scroll">
         <table class="table table-results">
           <thead>
             <tr>
@@ -75,7 +78,7 @@
     {% endif %}
   </div>
 
-  <!-- Stats BELOW the table -->
+  <!-- Poll Stats -->
   <div class="card mt-3">
     <h2>Poll Stats</h2>
 
@@ -83,7 +86,7 @@
       <section>
         <h3>Most deviant ballots</h3>
         <p class="muted small">(Higher distance = farther from consensus)</p>
-        <div class="table-scroll mt-1">
+        <div class="table-wrap mt-1 h-scroll">
           <table class="table">
             <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
             <tbody>
@@ -100,7 +103,7 @@
         {% if stats.most_different_pair %}
           {% set p = stats.most_different_pair %}
           <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
-          <div class="table-scroll mt-1">
+          <div class="table-wrap mt-1 h-scroll">
             <table class="table">
               <thead><tr><th>Team</th><th class="num">Rank ({{ p.a }})</th><th class="num">Rank ({{ p.b }})</th><th class="num">Δ</th></tr></thead>
               <tbody>
@@ -130,7 +133,7 @@
         <div class="split-cols">
           <div>
             <h4>Steadiest (top 10)</h4>
-            <div class="table-scroll mt-1">
+            <div class="table-wrap mt-1 h-scroll">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
@@ -148,7 +151,7 @@
           </div>
           <div>
             <h4>Most volatile (top 10)</h4>
-            <div class="table-scroll mt-1">
+            <div class="table-wrap mt-1 h-scroll">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
@@ -178,7 +181,7 @@
       <table class="ballot-grid">
         <thead>
           <tr>
-            <th class="sticky-left">Voter</th>
+            <th>Voter</th>
             {% for r in range(1, (MAX_RANK or 25) + 1) %}
               <th class="num">{{ r }}</th>
             {% endfor %}
@@ -187,7 +190,7 @@
         <tbody>
           {% for row in voter_grid %}
             <tr>
-              <td class="voter-name sticky-left">{{ row.voter_name }}</td>
+              <td class="voter-name">{{ row.voter_name }}</td>
               {% for cell in row.ranks %}
                 <td class="grid-cell">
                   {% if cell.team_id %}

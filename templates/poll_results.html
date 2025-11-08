@@ -2,19 +2,20 @@
 {% block title %}Results – {{ poll.title }}{% endblock %}
 {% block content %}
 
-<section class="container results-container" aria-labelledby="results-heading">
+<section class="container results-container">
+
   <div class="card">
     <header class="results-head">
-      <h1 id="results-heading" class="results-title">Results: {{ poll.title }}</h1>
+      <h1 class="results-title">Results: {{ poll.title }}</h1>
       <div class="results-meta">
         <span class="muted">Submitted by: {{ submitters|default([],true)|join(", ") or "—" }}</span>
       </div>
     </header>
 
     {% if top_rows and top_rows|length %}
-      {# ---------- Desktop/Large: Wide Table ---------- #}
-      <div class="table-wrap mt-2 hide-on-mobile" role="region" aria-label="Top 25 table">
-        <table class="table table-results wide">
+      {# Single responsive table for ALL viewports (desktop + mobile) #}
+      <div class="table-scroll mt-2">
+        <table class="table table-results">
           <thead>
             <tr>
               <th class="num">#</th>
@@ -28,69 +29,37 @@
             </tr>
           </thead>
           <tbody>
-          {% for r in top_rows %}
-            {% set fname = logo_map.get(r.team) %}
-            {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
-            {% set d = r.delta_vs_default %}
-            <tr>
-              <td class="num">{{ r.group_rank }}</td>
-              <td class="team-cell">
-                <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
-                     onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
-                <span class="team-name">{{ r.team }}</span>
-              </td>
-              <td class="num">{{ r.points }}</td>
-              <td class="num">{{ r.firsts }}</td>
-              <td class="num">{{ r.default_rank or "—" }}</td>
-              <td class="num">
-                {% if d is not none %}
-                  {% if d > 0 %}<span class="delta up">↑ {{ d }}</span>
-                  {% elif d < 0 %}<span class="delta down">↓ {{ (0 - d) }}</span>
-                  {% else %}<span class="delta flat">—</span>{% endif %}
-                {% else %}—{% endif %}
-              </td>
-              <td class="num">{{ r.min_rank or "—" }}</td>
-              <td class="num">{{ r.max_rank or "—" }}</td>
-            </tr>
-          {% endfor %}
+            {% for r in top_rows %}
+              {% set fname = logo_map.get(r.team) %}
+              {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+              <tr>
+                <td class="num">{{ r.group_rank }}</td>
+                <td class="team-cell">
+                  <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
+                       onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+                  <span class="team-name">{{ r.team }}</span>
+                </td>
+                <td class="num">{{ r.points }}</td>
+                <td class="num">{{ r.firsts }}</td>
+                <td class="num">{{ r.default_rank or "—" }}</td>
+                {% set d = r.delta_vs_default %}
+                <td class="num">
+                  {% if d is not none %}
+                    {% if d > 0 %}
+                      <span class="delta up">↑ {{ d }}</span>
+                    {% elif d < 0 %}
+                      <span class="delta down">↓ {{ (0 - d) }}</span>
+                    {% else %}
+                      <span class="delta flat">—</span>
+                    {% endif %}
+                  {% else %} — {% endif %}
+                </td>
+                <td class="num">{{ r.min_rank or "—" }}</td>
+                <td class="num">{{ r.max_rank or "—" }}</td>
+              </tr>
+            {% endfor %}
           </tbody>
         </table>
-      </div>
-
-      {# ---------- Mobile: Card List ---------- #}
-      <div class="mobile-list show-on-mobile" role="list" aria-label="Top 25 mobile list">
-        {% for r in top_rows %}
-          {% set fname = logo_map.get(r.team) %}
-          {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
-          {% set d = r.delta_vs_default %}
-          <article class="mob-row" role="listitem">
-            <div class="mob-left">
-              <div class="mob-rank">#{{ r.group_rank }}</div>
-              <img class="mob-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
-                   onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
-            </div>
-            <div class="mob-main">
-              <div class="mob-team">{{ r.team }}</div>
-              <div class="mob-meta">
-                <span class="chip">Pts {{ r.points }}</span>
-                <span class="chip">1st {{ r.firsts }}</span>
-              </div>
-              <div class="mob-grid">
-                <div><span class="muted">CFP</span><strong>{{ r.default_rank or "—" }}</strong></div>
-                <div>
-                  <span class="muted">Δ</span>
-                  {% if d is not none %}
-                    {% if d > 0 %}<strong class="delta up">↑ {{ d }}</strong>
-                    {% elif d < 0 %}<strong class="delta down">↓ {{ (0 - d) }}</strong>
-                    {% else %}<strong class="delta flat">—</strong>{% endif %}
-                  {% else %}<strong>—</strong>{% endif %}
-                </div>
-                <div><span class="muted">Min</span><strong>{{ r.min_rank or "—" }}</strong></div>
-                <div><span class="muted">Max</span><strong>{{ r.max_rank or "—" }}</strong></div>
-              </div>
-            </div>
-          </article>
-        {% endfor %}
       </div>
 
       {% if others and others|length %}
@@ -106,7 +75,7 @@
     {% endif %}
   </div>
 
-  {# ---------- Stats BELOW the table ---------- #}
+  <!-- Stats BELOW the table -->
   <div class="card mt-3">
     <h2>Poll Stats</h2>
 
@@ -114,7 +83,7 @@
       <section>
         <h3>Most deviant ballots</h3>
         <p class="muted small">(Higher distance = farther from consensus)</p>
-        <div class="table-wrap mt-1 h-scroll" role="region" aria-label="Most deviant ballots">
+        <div class="table-scroll mt-1">
           <table class="table">
             <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
             <tbody>
@@ -131,7 +100,7 @@
         {% if stats.most_different_pair %}
           {% set p = stats.most_different_pair %}
           <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
-          <div class="table-wrap mt-1 h-scroll" role="region" aria-label="Most different pair details">
+          <div class="table-scroll mt-1">
             <table class="table">
               <thead><tr><th>Team</th><th class="num">Rank ({{ p.a }})</th><th class="num">Rank ({{ p.b }})</th><th class="num">Δ</th></tr></thead>
               <tbody>
@@ -161,7 +130,7 @@
         <div class="split-cols">
           <div>
             <h4>Steadiest (top 10)</h4>
-            <div class="table-wrap mt-1 h-scroll" role="region" aria-label="Steadiest teams">
+            <div class="table-scroll mt-1">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
@@ -177,10 +146,9 @@
               </table>
             </div>
           </div>
-
           <div>
             <h4>Most volatile (top 10)</h4>
-            <div class="table-wrap mt-1 h-scroll" role="region" aria-label="Most volatile teams">
+            <div class="table-scroll mt-1">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
@@ -201,15 +169,16 @@
     </div>
   </div>
 
-  {# ---------- AP-style ballot grid ---------- #}
+  <!-- AP-style ballot grid -->
   <div class="card mt-3">
     <h2>Ballot Grid</h2>
     <p class="muted small">Each row is a voter; columns are ranks 1–{{ MAX_RANK or 25 }}. Scroll → on mobile.</p>
-    <div class="ballot-grid-wrap" role="region" aria-label="Ballot grid">
+
+    <div class="ballot-grid-wrap">
       <table class="ballot-grid">
         <thead>
           <tr>
-            <th>Voter</th>
+            <th class="sticky-left">Voter</th>
             {% for r in range(1, (MAX_RANK or 25) + 1) %}
               <th class="num">{{ r }}</th>
             {% endfor %}
@@ -218,7 +187,7 @@
         <tbody>
           {% for row in voter_grid %}
             <tr>
-              <td class="voter-name">{{ row.voter_name }}</td>
+              <td class="voter-name sticky-left">{{ row.voter_name }}</td>
               {% for cell in row.ranks %}
                 <td class="grid-cell">
                   {% if cell.team_id %}
@@ -237,5 +206,6 @@
       </table>
     </div>
   </div>
+
 </section>
 {% endblock %}

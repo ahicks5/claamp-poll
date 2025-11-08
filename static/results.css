@@ -297,3 +297,60 @@ html, body {
   top: 0;                      /* sticky within the wrapper, not page */
   z-index: 1;
 }
+
+/* ---------------------------------------------------------
+   MOBILE FONT SCALE for Results Page
+   Applies only under the results container.
+   --------------------------------------------------------- */
+@media (max-width: 768px) {
+  .results-container {
+    font-size: 0.92rem;            /* slight global downshift */
+    line-height: 1.35;
+  }
+
+  .results-container h1 {
+    font-size: 1.3rem;
+  }
+
+  .results-container h2 {
+    font-size: 1.15rem;
+  }
+
+  .results-container h3 {
+    font-size: 1.05rem;
+  }
+
+  .results-container h4 {
+    font-size: 0.98rem;
+  }
+
+  .results-container .small,
+  .results-container .muted {
+    font-size: 0.85rem;
+  }
+
+  /* Ensure tables remain crisp but compact */
+  .results-container th,
+  .results-container td {
+    font-size: 0.88rem;
+    padding: 6px 8px;
+  }
+
+  /* Mobile card list items benefit from a small reduction too */
+  .mobile-list .mob-team {
+    font-size: 0.95rem;
+  }
+
+  .mobile-list .chip {
+    font-size: 0.78rem;
+  }
+
+  .mobile-list .mob-grid strong {
+    font-size: 0.88rem;
+  }
+
+  .stats-card .stats-table th,
+  .stats-card .stats-table td {
+    font-size: 0.86rem;
+  }
+}

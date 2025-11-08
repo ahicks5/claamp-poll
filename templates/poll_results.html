@@ -13,14 +13,16 @@
     </header>
 
     {% if top_rows and top_rows|length %}
-      <div class="table-wrap mt-2">
+
+      {# -------- Desktop/Large: Wide Table -------- #}
+      <div class="table-wrap mt-2 hide-on-mobile">
         <table class="table table-results wide">
           <thead>
             <tr>
               <th class="num">#</th>
               <th>Team</th>
-              <th class="num hide-sm">Pts</th>
-              <th class="num hide-sm">1st</th>
+              <th class="num">Pts</th>
+              <th class="num">1st</th>
               <th class="num">CFP Rank</th>
               <th class="num">Δ</th>
               <th class="num">Min</th>
@@ -37,17 +39,10 @@
                   <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
                        onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
                   <span class="team-name">{{ r.team }}</span>
-                  <!-- On very small screens, show Pts/1st beneath the name -->
-                  <div class="row-sub hide-md">
-                    <span class="chip">Pts: {{ r.points }}</span>
-                    <span class="chip">1st: {{ r.firsts }}</span>
-                  </div>
                 </td>
-                <td class="num hide-sm">{{ r.points }}</td>
-                <td class="num hide-sm">{{ r.firsts }}</td>
-
+                <td class="num">{{ r.points }}</td>
+                <td class="num">{{ r.firsts }}</td>
                 <td class="num">{{ r.default_rank or "—" }}</td>
-
                 {% set d = r.delta_vs_default %}
                 <td class="num">
                   {% if d is not none %}
@@ -58,17 +53,50 @@
                     {% else %}
                       <span class="delta flat">—</span>
                     {% endif %}
-                  {% else %}
-                    —
-                  {% endif %}
+                  {% else %} — {% endif %}
                 </td>
-
                 <td class="num">{{ r.min_rank or "—" }}</td>
                 <td class="num">{{ r.max_rank or "—" }}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
+      </div>
+
+      {# -------- Mobile: Card List -------- #}
+      <div class="mobile-list show-on-mobile">
+        {% for r in top_rows %}
+          {% set fname = logo_map.get(r.team) %}
+          {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+          <article class="mob-row">
+            <div class="mob-left">
+              <div class="mob-rank">#{{ r.group_rank }}</div>
+              <img class="mob-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
+                   onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+            </div>
+            <div class="mob-main">
+              <div class="mob-team">{{ r.team }}</div>
+              <div class="mob-meta">
+                <span class="chip">Pts {{ r.points }}</span>
+                <span class="chip">1st {{ r.firsts }}</span>
+              </div>
+              <div class="mob-grid">
+                <div><span class="muted">CFP</span><strong>{{ r.default_rank or "—" }}</strong></div>
+                <div>
+                  <span class="muted">Δ</span>
+                  {% set d = r.delta_vs_default %}
+                  {% if d is not none %}
+                    {% if d > 0 %}<strong class="delta up">↑ {{ d }}</strong>
+                    {% elif d < 0 %}<strong class="delta down">↓ {{ (0 - d) }}</strong>
+                    {% else %}<strong class="delta flat">—</strong>{% endif %}
+                  {% else %}<strong>—</strong>{% endif %}
+                </div>
+                <div><span class="muted">Min</span><strong>{{ r.min_rank or "—" }}</strong></div>
+                <div><span class="muted">Max</span><strong>{{ r.max_rank or "—" }}</strong></div>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
       </div>
 
       {% if others and others|length %}
@@ -92,7 +120,7 @@
       <section>
         <h3>Most deviant ballots</h3>
         <p class="muted small">(Higher distance = farther from consensus)</p>
-        <div class="table-wrap mt-1">
+        <div class="table-wrap mt-1 h-scroll">
           <table class="table">
             <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
             <tbody>
@@ -109,7 +137,7 @@
         {% if stats.most_different_pair %}
           {% set p = stats.most_different_pair %}
           <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
-          <div class="table-wrap mt-1">
+          <div class="table-wrap mt-1 h-scroll">
             <table class="table">
               <thead><tr><th>Team</th><th class="num">Rank ({{ p.a }})</th><th class="num">Rank ({{ p.b }})</th><th class="num">Δ</th></tr></thead>
               <tbody>
@@ -132,14 +160,19 @@
       <section class="span-2">
         <h3>Most consistent / most volatile</h3>
         <p class="muted small">(Std dev over submitted ballots; smaller = more consistent)</p>
+
+        {# If backend didn't supply team_volatile, fall back to reversed team_consistency #}
+        {% set _steady = (stats.team_consistency or []) %}
+        {% set _volatile = (stats.team_volatile if stats.team_volatile is defined and stats.team_volatile else (_steady|reverse)) %}
+
         <div class="split-cols">
           <div>
             <h4>Steadiest (top 10)</h4>
-            <div class="table-wrap mt-1">
+            <div class="table-wrap mt-1 h-scroll">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
-                  {% for r in (stats.team_consistency | list)[:10] %}
+                  {% for r in (_steady | list)[:10] %}
                     <tr>
                       <td>{{ r.team }}</td>
                       <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
@@ -153,11 +186,11 @@
           </div>
           <div>
             <h4>Most volatile (top 10)</h4>
-            <div class="table-wrap mt-1">
+            <div class="table-wrap mt-1 h-scroll">
               <table class="table">
                 <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
                 <tbody>
-                  {% for r in (stats.team_volatile | list)[:10] %}
+                  {% for r in (_volatile | list)[:10] %}
                     <tr>
                       <td>{{ r.team }}</td>
                       <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
@@ -214,35 +247,69 @@
 </section>
 
 <style>
-.results-container { display:block; }
+:root{ --sticky-offset: 56px; } /* adjust if your site header is taller */
 
-/* Table responsiveness */
-.table-results.wide { width:100%; }
-.table-results .team-cell { display:flex; align-items:center; gap:10px; }
+/* Layout wrappers */
+.results-container { display:block; }
+.results-head { display:flex; flex-direction:column; gap:6px; }
+.results-title { font-size:1.4rem; line-height:1.2; }
+.results-meta { font-size:.95rem; }
+
+/* Hide/show helpers */
+.hide-on-mobile { display:block; }
+.show-on-mobile { display:none; }
+@media (max-width: 768px){
+  .hide-on-mobile { display:none; }
+  .show-on-mobile { display:block; }
+}
+
+/* DESKTOP TABLE */
+.table-results.wide { width:100%; table-layout:fixed; }
+.table-results.wide th, .table-results.wide td { white-space:nowrap; }
+.table-results.wide th:nth-child(2), .table-results.wide td:nth-child(2) { min-width: 260px; }
+.table-results.wide th, .table-results.wide td { padding:10px 12px; }
+
+.team-cell { display:flex; align-items:center; gap:10px; min-width:0; }
 .team-logo { width:28px; height:28px; object-fit:contain; }
 .team-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+/* Mobile CARD LIST */
+.mobile-list { display:flex; flex-direction:column; gap:10px; }
+.mob-row{
+  display:grid; grid-template-columns: auto 1fr; gap:10px;
+  border:1px solid var(--line); border-radius:12px; padding:10px;
+  background:var(--panel-1,#0c111a);
+}
+.mob-left{ display:flex; flex-direction:column; align-items:center; gap:6px; width:56px; }
+.mob-rank{ font-weight:700; font-variant-numeric:tabular-nums; }
+.mob-logo{ width:34px; height:34px; object-fit:contain; }
+.mob-main{ min-width:0; }
+.mob-team{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mob-meta{ display:flex; gap:6px; margin:4px 0 6px; flex-wrap:wrap; }
+.mob-grid{
+  display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px;
+  font-variant-numeric:tabular-nums;
+}
+.mob-grid > div{ background:var(--panel-0,#090e16); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+.mob-grid .muted{ display:block; font-size:.8em; }
+
+/* Chips / deltas */
+.chip {
+  background:var(--panel-2,#10141c); border:1px solid var(--line);
+  padding:2px 8px; border-radius:999px; font-size:.85em; color:var(--fg);
+}
 .delta { font-weight:700; }
 .delta.up { color:#16a34a; }      /* green */
 .delta.down { color:#dc2626; }    /* red */
 .delta.flat { color:#94a3b8; }
-
-.row-sub { margin-top:4px; display:flex; gap:8px; }
-.chip { background:var(--panel-1,#0c111a); border:1px solid var(--line); padding:2px 6px; border-radius:999px; font-size:.85em; color:var(--fg); }
-
-/* Hide some columns on very small screens */
-.hide-sm { display:table-cell; }
-.hide-md { display:none; }
-@media (max-width: 768px){
-  .hide-sm { display:none; }
-  .hide-md { display:block; }
-}
 
 /* Stats grid */
 .stats-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
 .stats-grid .span-2 { grid-column: 1 / -1; }
 .split-cols { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
 .small { font-size:.9em; }
+.h-scroll { overflow:auto; border:1px solid var(--line); border-radius:10px; }
+.h-scroll table { min-width: 420px; } /* avoid crushing tiny tables */
 
 @media (max-width: 900px){
   .stats-grid { grid-template-columns: 1fr; }
@@ -253,11 +320,22 @@
 .ballot-grid-wrap { overflow:auto; border:1px solid var(--line); border-radius:10px; }
 .ballot-grid { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
 .ballot-grid th, .ballot-grid td { padding:6px 8px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); }
-.ballot-grid th:first-child, .ballot-grid td:first-child { position:sticky; left:0; background:var(--panel-2,#10141c); z-index:1; }
-.ballot-grid thead th { position:sticky; top:0; background:var(--panel-2,#10141c); z-index:2; }
+.ballot-grid th:first-child, .ballot-grid td:first-child {
+  position:sticky; left:0; background:var(--panel-2,#10141c); z-index:1;
+}
+.ballot-grid thead th {
+  position:sticky; top:var(--sticky-offset); background:var(--panel-2,#10141c); z-index:2;
+}
 .ballot-grid .grid-cell { text-align:center; }
 .ballot-grid .grid-cell img { width:22px; height:22px; object-fit:contain; display:block; margin:0 auto; }
 .voter-name { white-space:nowrap; max-width:160px; overflow:hidden; text-overflow:ellipsis; }
+
+@media (max-width: 768px){
+  .ballot-grid thead th { top: calc(var(--sticky-offset) + 0px); }
+  .ballot-grid .grid-cell img { width:18px; height:18px; }
+}
+
+.others { line-height:1.5; }
 </style>
 
 {% endblock %}

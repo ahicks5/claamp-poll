@@ -77,39 +77,61 @@
       <p class="muted">No ballots yet.</p>
     {% endif %}
   </div>
-
   <!-- Poll Stats -->
-  <div class="card mt-3">
-    <h2>Poll Stats</h2>
+  <div class="card stats-card mt-3">
+    <header class="stats-card__header">
+      <h2 class="stats-card__title">Poll Stats</h2>
+      <p class="muted small">All stats are contained within this card. Scroll inside tables when needed →</p>
+    </header>
 
-    <div class="stats-grid">
-      <section>
-        <h3>Most deviant ballots</h3>
+    <div class="stats-grid" role="region" aria-label="Poll statistics">
+      <!-- Most deviant ballots -->
+      <section class="stats-section">
+        <h3 class="stats-section__title">Most deviant ballots</h3>
         <p class="muted small">(Higher distance = farther from consensus)</p>
-        <div class="table-wrap mt-1 h-scroll">
-          <table class="table">
-            <thead><tr><th>Voter</th><th class="num">Deviation</th></tr></thead>
+
+        <div class="stat-table-wrap" tabindex="0">
+          <table class="table stats-table">
+            <thead>
+              <tr>
+                <th>Voter</th>
+                <th class="num">Deviation</th>
+              </tr>
+            </thead>
             <tbody>
               {% for row in stats.deviant_ballots[:5] %}
-                <tr><td>{{ row.voter_name }}</td><td class="num">{{ row.deviation }}</td></tr>
+                <tr>
+                  <td class="truncate">{{ row.voter_name }}</td>
+                  <td class="num">{{ row.deviation }}</td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </section>
 
-      <section>
-        <h3>Most different pair</h3>
+      <!-- Most different pair -->
+      <section class="stats-section">
+        <h3 class="stats-section__title">Most different pair</h3>
+
         {% if stats.most_different_pair %}
           {% set p = stats.most_different_pair %}
           <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
-          <div class="table-wrap mt-1 h-scroll">
-            <table class="table">
-              <thead><tr><th>Team</th><th class="num">Rank ({{ p.a }})</th><th class="num">Rank ({{ p.b }})</th><th class="num">Δ</th></tr></thead>
+
+          <div class="stat-table-wrap" tabindex="0">
+            <table class="table stats-table">
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th class="num">Rank ({{ p.a }})</th>
+                  <th class="num">Rank ({{ p.b }})</th>
+                  <th class="num">Δ</th>
+                </tr>
+              </thead>
               <tbody>
                 {% for d in stats.pair_differences %}
                   <tr>
-                    <td>{{ d.team }}</td>
+                    <td class="truncate">{{ d.team }}</td>
                     <td class="num">{{ d.rank_a or "—" }}</td>
                     <td class="num">{{ d.rank_b or "—" }}</td>
                     <td class="num">{{ d.abs_diff }}</td>
@@ -123,23 +145,29 @@
         {% endif %}
       </section>
 
-      <section class="span-2">
-        <h3>Most consistent / most volatile</h3>
+      <!-- Steadiest / Most volatile -->
+      <section class="stats-section stats-section--span2">
+        <h3 class="stats-section__title">Most consistent / most volatile</h3>
         <p class="muted small">(Std dev over submitted ballots; smaller = more consistent)</p>
 
-        {% set _steady = (stats.team_consistency or []) %}
-        {% set _volatile = (stats.team_volatile if stats.team_volatile is defined and stats.team_volatile else (_steady|reverse)) %}
-
         <div class="split-cols">
-          <div>
-            <h4>Steadiest (top 10)</h4>
-            <div class="table-wrap mt-1 h-scroll">
-              <table class="table">
-                <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
+          <!-- Steadiest -->
+          <div class="stats-subsection">
+            <h4 class="stats-subsection__title">Steadiest (top 10)</h4>
+            <div class="stat-table-wrap" tabindex="0">
+              <table class="table stats-table">
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th class="num">StdDev</th>
+                    <th class="num">Min</th>
+                    <th class="num">Max</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {% for r in (_steady | list)[:10] %}
+                  {% for r in (stats.team_consistency | list)[:10] %}
                     <tr>
-                      <td>{{ r.team }}</td>
+                      <td class="truncate">{{ r.team }}</td>
                       <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
                       <td class="num">{{ r.min_rank or "—" }}</td>
                       <td class="num">{{ r.max_rank or "—" }}</td>
@@ -149,15 +177,24 @@
               </table>
             </div>
           </div>
-          <div>
-            <h4>Most volatile (top 10)</h4>
-            <div class="table-wrap mt-1 h-scroll">
-              <table class="table">
-                <thead><tr><th>Team</th><th class="num">StdDev</th><th class="num">Min</th><th class="num">Max</th></tr></thead>
+
+          <!-- Most volatile -->
+          <div class="stats-subsection">
+            <h4 class="stats-subsection__title">Most volatile (top 10)</h4>
+            <div class="stat-table-wrap" tabindex="0">
+              <table class="table stats-table">
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th class="num">StdDev</th>
+                    <th class="num">Min</th>
+                    <th class="num">Max</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {% for r in (_volatile | list)[:10] %}
+                  {% for r in (stats.team_volatile | list)[:10] %}
                     <tr>
-                      <td>{{ r.team }}</td>
+                      <td class="truncate">{{ r.team }}</td>
                       <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
                       <td class="num">{{ r.min_rank or "—" }}</td>
                       <td class="num">{{ r.max_rank or "—" }}</td>
@@ -171,6 +208,7 @@
       </section>
     </div>
   </div>
+
 
   <!-- AP-style ballot grid -->
   <div class="card mt-3">

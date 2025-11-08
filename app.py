@@ -1,6 +1,7 @@
 # app.py
 import os
-from flask import Flask, redirect, url_for
+from datetime import datetime
+from flask import Flask, redirect, url_for, jsonify
 from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,28 +14,33 @@ from poll import bp as poll_bp
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-override")
 
+# ---- Flask-Login ----
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.init_app(app)
 
 @login_manager.user_loader
-def load_user(user_id:str):
+def load_user(user_id: str):
     with SessionLocal() as s:
         return s.get(User, int(user_id))
 
-@app.route("/")
+# ---- Global template context (e.g., footer year) ----
+@app.context_processor
+def inject_globals():
+    return {"current_year": datetime.utcnow().year}
+
+# ---- Root: redirect based on auth ----
+@app.get("/")
 def root():
     if current_user.is_authenticated:
         return redirect(url_for("poll.dashboard"))
     return redirect(url_for("auth.login"))
 
+# ---- Blueprints ----
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(poll_bp)
 
-
-# ---------------- TEMP DIAGNOSTICS: remove after we stabilize ----------------
-import os, sys
-from flask import jsonify
+# ---------------- TEMP DIAGNOSTICS: keep while stabilizing ----------------
 from sqlalchemy import inspect
 from sqlalchemy.exc import ProgrammingError, OperationalError
 
@@ -73,14 +79,7 @@ def debug_db():
         return jsonify(db=str(engine.url), tables=sorted(insp.get_table_names()), users=users)
     except Exception as e:
         return jsonify(error=f"{e.__class__.__name__}: {e}"), 500
-
-# Hard-wire a minimal root so we never 404 while debugging
-@app.get("/")
-def root_health_only():
-    return "app root reachable", 200
 # ---------------------------------------------------------------------------
 
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5057)
-
+    app.run(debug=False, port=5057)

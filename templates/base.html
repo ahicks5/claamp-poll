@@ -13,9 +13,7 @@
   <!-- System UI font stack for speed & crispness -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    :root {
-      --app-max: 1200px;
-    }
+    :root { --app-max: 1200px; }
     html { -webkit-text-size-adjust: 100%; }
     html, body { height: 100%; }
     body {
@@ -25,11 +23,10 @@
       color: #eaeef7;
       font: 400 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
     }
-    /* noscript basic guard so content isn't hidden if JS toggles classes */
     .no-js body { opacity: 1 !important; }
   </style>
 
-  <!-- Global app stylesheet -->
+  <!-- Global app stylesheet bundle -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
   {% block head %}{% endblock %}
@@ -57,7 +54,7 @@
             <li><a class="site-nav__link" href="{{ url_for('poll.dashboard') }}">Dashboard</a></li>
             <li><a class="site-nav__link" href="{{ url_for('poll.vote_form') }}">Vote</a></li>
             <li><a class="site-nav__link" href="{{ url_for('poll.results') }}">Results</a></li>
-            {% if getattr(current_user, 'is_admin', False) %}
+            {% if current_user.is_admin %}
               <li><a class="site-nav__link" href="{{ url_for('poll.admin_panel') }}">Admin</a></li>
             {% endif %}
             <li><a class="site-nav__link" href="{{ url_for('auth.logout') }}">Logout</a></li>
@@ -78,13 +75,11 @@
   <!-- Footer -->
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <small class="muted">© {{  (now() or None).year if callable(now) else '' }} CLAAMP</small>
+      <small class="muted">© {{ current_year }} CLAAMP</small>
     </div>
   </footer>
 
-  <script>
-    document.documentElement.classList.remove('no-js');
-  </script>
+  <script>document.documentElement.classList.remove('no-js');</script>
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

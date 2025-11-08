@@ -1,149 +1,45 @@
-/* mobile.css — non-destructive, loaded LAST. Improves mobile UX without changing your existing class names. */
+/* Mobile-first tweaks & safe-area handling */
 
-/* 1) Core mobile viewport scaling */
 :root {
-  /* Typographic scale that adapts across phones to small tablets */
-  --mobile-font-min: 15px;
-  --mobile-font-max: 18px;
-
-  /* Comfortable tap-target sizing and spacing */
-  --tap-min: 44px;
-  --space-1: 6px;
-  --space-2: 10px;
-  --space-3: 14px;
-  --radius-1: 10px;
-  --radius-2: 14px;
-
-  /* Fallback colors in case tokens aren’t present */
-  --panel-1: #0c111a;
-  --panel-2: #10141c;
-  --panel-3: #1b1f29;
-  --line: rgba(148,163,184,.22);
-  --fg: #eaeef7;
-  --muted: #9aa4b2;
-  --focus-ring: rgba(147,197,253,.45);
+  /* fluid type/scales tuned for phones */
+  --step--1: clamp(0.85rem, 0.82rem + 0.3vw, 0.95rem);
+  --step-0: clamp(0.95rem, 0.90rem + 0.4vw, 1.05rem);
+  --step-1: clamp(1.05rem, 0.98rem + 0.6vw, 1.25rem);
+  --step-2: clamp(1.25rem, 1.10rem + 1.1vw, 1.5rem);
 }
 
-/* Respect iOS safe areas */
-html {
-  font-size: clamp(var(--mobile-font-min), 1.2vw + 12px, var(--mobile-font-max));
-  -webkit-text-size-adjust: 100%;
-}
-body {
-  padding-left: max(0px, env(safe-area-inset-left));
-  padding-right: max(0px, env(safe-area-inset-right));
-  background: var(--panel-1);
-}
-
-/* 2) Container & card hygiene on small screens */
-@media (max-width: 768px) {
-  .container {
-    width: 100%;
-    max-width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-  .card {
-    border-radius: var(--radius-2) !important;
-    overflow: hidden; /* keep children inside the box */
-  }
-  .card > *:first-child { margin-top: 10px; }
-  .card > *:last-child  { margin-bottom: 10px; }
-}
-
-/* 3) Typography polish */
-h1, h2, h3, h4 {
-  line-height: 1.2;
-  letter-spacing: -.01em;
-}
-h1 { font-size: clamp(1.25rem, 2.6vw + 1rem, 1.6rem); }
-h2 { font-size: clamp(1.10rem, 2.1vw + .95rem, 1.35rem); }
-h3 { font-size: clamp(1.00rem, 1.6vw + .9rem, 1.2rem); }
-
-.muted { color: var(--muted); }
-
-/* 4) Tap targets (buttons, inputs, links-as-buttons) */
-button, .btn, input[type="submit"] {
-  min-height: var(--tap-min);
-  padding: 10px 14px;
-  border-radius: 999px;
-}
-.input, input, select, textarea {
-  min-height: 42px;
-  border-radius: 10px;
-}
-
-/* 5) Scrolling tables that never overflow horizontally */
-.h-scroll,
-.table-wrap,
-.stat-table-wrap,
-.ballot-grid-wrap {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-.table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.table th, .table td { padding: 10px 12px; white-space: nowrap; }
-.table thead th {
-  position: sticky; top: 0; z-index: 2;
-  background: var(--panel-2); /* readable when header sticks */
-  border-bottom: 1px solid var(--line);
-}
-
-/* Narrow the first ranking column and give “Team” more room on phones */
-@media (max-width: 768px) {
-  .table th.num, .table td.num { width: 1%; text-align: right; }
-  .table th:nth-child(2), .table td:nth-child(2) { min-width: 180px; } /* “Team” */
-}
-
-/* 6) Logos & images scale nicely */
-img, svg, video { max-width: 100%; height: auto; }
-
-/* 7) Vote page: keep everything inside boxes, mobile behaviors first */
-.rank-rows { contain: layout paint; } /* avoids weird overflow during reflow */
-.rank-slot { outline-offset: -2px; }
-.rank-dropzone--hover { outline: 2px solid var(--focus-ring); border-radius: 12px; }
-
-/* Make the plus button comfortably tappable on phones */
-@media (max-width: 768px) {
-  .slot-add {
-    width: 46px; height: 46px;
-    background: var(--panel-3);
-    border: 1px solid var(--line);
-  }
-}
-
-/* 8) Results: stats grid never bleeds; tables scroll inside the card */
-.stats-card,
-.results-container .card {
-  overflow: hidden;
-}
-.stats-grid .stats-section { min-width: 0; }
-.stats-section .stat-table-wrap { max-width: 100%; }
-
-/* 9) Sticky top bars remain visible when the mobile picker opens/closes */
-.vote-bar.sticky {
-  backdrop-filter: saturate(140%) blur(6px);
-}
-html.picker-open body { overflow: hidden; }
-
-/* 10) Focus states (accessible, subtle) */
-:where(a, button, .btn, .logo-card, .picker__item, .rank-slot) :focus-visible,
-:where(a, button, .btn, .logo-card, .picker__item, .rank-slot):focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-  border-radius: 12px;
-}
-
-/* 11) Safe “no horizontal scroll” guard on the page body */
 html, body {
-  overflow-x: hidden;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
-/* 12) Micro-interaction defaults (smooth but subtle) */
-* {
-  scroll-behavior: smooth;
+.site-header,
+.site-footer {
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
 }
-button, .btn, .logo-card, .picker__item, .rank-slot, .table th, .table td {
-  transition: transform .12s ease, opacity .12s ease, background-color .15s ease, border-color .15s ease;
+
+/* Tables: allow horizontal scroll within their wrappers on small screens */
+@media (max-width: 768px) {
+  .table-wrap, .stat-table-wrap, .ballot-grid-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table { min-width: 600px; } /* ensures columns don’t crush */
+}
+
+/* Touch targets */
+button, .btn, .site-nav__link {
+  min-height: 44px;
+}
+
+/* Typography scale on mobile */
+h1 { font-size: var(--step-2); }
+h2 { font-size: var(--step-1); }
+body, p, li { font-size: var(--step-0); }
+small, .small { font-size: var(--step--1); }
+
+/* Prevent any card content from overflowing its box */
+.card, .stats-card, .container {
+  overflow: visible;
 }

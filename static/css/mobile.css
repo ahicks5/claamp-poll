@@ -1,68 +1,160 @@
-/* Mobile-first tweaks & safe-area handling */
+/* Index (dashboard) page styling
+   Mobile-first; complements global app.css + mobile.css */
 
-:root {
-  /* fluid type/scales tuned for phones */
-  --step--1: clamp(0.85rem, 0.82rem + 0.3vw, 0.95rem);
-  --step-0: clamp(0.95rem, 0.90rem + 0.4vw, 1.05rem);
-  --step-1: clamp(1.05rem, 0.98rem + 0.6vw, 1.25rem);
-  --step-2: clamp(1.25rem, 1.10rem + 1.1vw, 1.5rem);
-}
+/* ---------- Layout primitives ---------- */
+.index-hero { position: relative; overflow: hidden; }
 
-html, body {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-.site-header,
-.site-footer {
-  padding-top: calc(8px + env(safe-area-inset-top));
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-
-/* Tables: allow horizontal scroll within their wrappers on small screens */
-@media (max-width: 768px) {
-  .table-wrap, .stat-table-wrap, .ballot-grid-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  table { min-width: 600px; } /* ensures columns don’t crush */
-}
-
-/* Touch targets */
-button, .btn, .site-nav__link {
-  min-height: 44px;
-}
-
-/* Typography scale on mobile */
-h1 { font-size: var(--step-2); }
-h2 { font-size: var(--step-1); }
-body, p, li { font-size: var(--step-0); }
-small, .small { font-size: var(--step--1); }
-
-/* Prevent any card content from overflowing its box */
-.card, .stats-card, .container {
-  overflow: visible;
-}
-
-
-/* Mobile-first spacing & rhythm */
-.index-hero__head { display: grid; gap: 6px; }
-.index-hero__title { margin: 0; font-size: clamp(20px, 4.6vw, 28px); line-height: 1.15; }
-.index-hero__subtitle { margin: 0; font-size: clamp(14px, 3.8vw, 16px); }
-
-.index-actions { margin-top: 12px; display: grid; gap: 10px; }
-.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
-
-.split-row {
+.index-hero__head {
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
-.split-row .mb-0 { margin-bottom: 0; }
-.split-row .mt-0 { margin-top: 0; }
-.align-end { display: flex; justify-content: flex-end; }
 
+.index-hero__titlewrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.index-hero__title {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: clamp(20px, 4.6vw, 28px);
+  line-height: 1.15;
+}
+
+.index-hero__subtitle {
+  margin: 0;
+  font-size: clamp(14px, 3.6vw, 16px);
+}
+
+/* Subtle background flourish */
+.index-hero::after {
+  content: "";
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 140px;
+  background: radial-gradient(120px 60px at 20% 50%, rgba(120,140,255,.18), transparent 60%),
+              radial-gradient(160px 80px at 60% 40%, rgba(88,170,255,.12), transparent 60%),
+              radial-gradient(200px 90px at 90% 50%, rgba(255,140,90,.10), transparent 65%);
+  pointer-events: none;
+  filter: blur(18px);
+}
+
+/* ---------- Pills ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow: inset 0 1px rgba(255,255,255,.06);
+}
+
+.pill-live {
+  color: #d6f5ff;
+  border-color: rgba(120,200,255,.35);
+  background: linear-gradient(180deg, rgba(60,140,255,.22), rgba(40,80,160,.12));
+}
+
+.pill-muted {
+  color: #c9ced8;
+  border-color: rgba(255,255,255,.08);
+}
+
+/* ---------- Action tray (fancy button group) ---------- */
+.action-tray {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 520px) {
+  .action-tray { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+
+.tray-btn {
+  --ring: 0 0 0 0 rgba(99,102,241,.0);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow: inset 0 1px rgba(255,255,255,.05);
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+  outline: none;
+}
+
+.tray-btn:focus-visible {
+  box-shadow: var(--ring), inset 0 1px rgba(255,255,255,.05);
+}
+
+.tray-btn:hover {
+  border-color: rgba(255,255,255,.18);
+  transform: translateY(-1px);
+}
+
+.tray-btn__icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,.06);
+  box-shadow: inset 0 1px rgba(255,255,255,.06);
+  font-size: 16px;
+}
+
+.tray-btn__label {
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+/* Primary emphasis */
+.tray-btn--primary {
+  border-color: rgba(90,130,255,.35);
+  background: linear-gradient(180deg, rgba(80,120,255,.25), rgba(50,80,200,.18));
+}
+
+.tray-btn--primary .tray-btn__icon {
+  background: rgba(255,255,255,.12);
+}
+
+/* Optional “mystique” glow */
+.tray-btn--glow {
+  position: relative;
+}
+.tray-btn--glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(60% 60% at 50% 10%, rgba(120,180,255,.20), transparent 70%);
+  filter: blur(10px);
+  opacity: .6;
+  transition: opacity .25s ease, filter .25s ease;
+  pointer-events: none;
+}
+.tray-btn--glow:hover::after { opacity: .85; filter: blur(6px); }
+
+/* Ghost (quiet secondary) */
+.tray-btn--ghost {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border-color: rgba(255,255,255,.08);
+}
+
+/* ---------- Admin area ---------- */
 .admin-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -70,28 +162,20 @@ small, .small { font-size: var(--step--1); }
   justify-content: flex-end;
 }
 
-/* Form grid refinement on tiny screens */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+/* ---------- Utility spacing ---------- */
+.mb-0 { margin-bottom: 0 !important; }
+.mt-0 { margin-top: 0 !important; }
+
+/* --- Mobile refinements for index page --- */
+
+/* Slightly larger tap targets inside trays on small screens */
+@media (max-width: 480px) {
+  .tray-btn { padding: 14px 16px; }
+  .tray-btn__icon { width: 30px; height: 30px; }
 }
 
-@media (min-width: 520px) {
-  .form-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: end;
-  }
-}
+/* Reduce container side overflow risk on tiny devices */
+.container { overflow-x: clip; }
 
-/* Touch targets and prevent overflow */
-.card .btn,
-.card button,
-.card a.btn {
-  min-height: 40px;
-}
-
-.container {
-  /* ensure no horizontal scroll due to inner elements */
-  overflow-x: clip;
-}
+/* Ensure pills don’t wrap awkwardly */
+.pill { white-space: nowrap; }

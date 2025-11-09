@@ -1,14 +1,21 @@
 {% extends "base.html" %}
 {% block title %}CLAAMP Poll{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/index.css') }}"/>
 
 <section class="container stack">
 
   <!-- Hero / Status Card -->
   <div class="card index-hero">
     <header class="index-hero__head">
-      <h1 class="index-hero__title">Friends AP Poll</h1>
+      <div class="index-hero__titlewrap">
+        <h1 class="index-hero__title">Friends AP Poll</h1>
+        {% if open_poll %}
+          <span class="pill pill-live" aria-label="Poll is open">Open</span>
+        {% else %}
+          <span class="pill pill-muted" aria-label="No open poll">Closed</span>
+        {% endif %}
+      </div>
+
       {% if open_poll %}
         <p class="index-hero__subtitle">
           Current: <strong>{{ open_poll.title }}</strong>
@@ -22,22 +29,43 @@
     {% if open_poll %}
       {% if user_ballot and user_ballot.submitted_at %}
         <div class="index-actions">
-          <p class="muted">You submitted a ballot.</p>
-          <div class="btn-row">
-            <a class="btn" href="{{ url_for('poll.vote_form') }}">Edit Ballot</a>
-            <a class="btn btn-primary" href="{{ url_for('poll.results') }}">See Results</a>
-            <a class="btn sm" href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}"
+          <p class="muted mb-0">Thanks — your ballot is in.</p>
+
+          <!-- Action tray -->
+          <div class="action-tray" role="group" aria-label="Ballot actions">
+            <a class="tray-btn" href="{{ url_for('poll.vote_form') }}">
+              <span class="tray-btn__icon" aria-hidden="true">✏️</span>
+              <span class="tray-btn__label">Edit Ballot</span>
+            </a>
+
+            <a class="tray-btn tray-btn--primary" href="{{ url_for('poll.results') }}">
+              <span class="tray-btn__icon" aria-hidden="true">📊</span>
+              <span class="tray-btn__label">See Results</span>
+            </a>
+
+            <a class="tray-btn tray-btn--ghost"
+               href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}"
                target="_blank" download>
-              Share image
+              <span class="tray-btn__icon" aria-hidden="true">📸</span>
+              <span class="tray-btn__label">Share Image</span>
             </a>
           </div>
         </div>
       {% else %}
         <div class="index-actions">
-          <p class="muted">Cast your ballot to contribute to this week’s rankings.</p>
-          <div class="btn-row">
-            <a class="btn btn-primary" href="{{ url_for('poll.vote_form') }}">Vote Now</a>
-            <a class="btn" href="{{ url_for('poll.results') }}">See Current Results</a>
+          <p class="muted mb-0">Cast your ballot to shape this week’s rankings.</p>
+
+          <!-- Action tray -->
+          <div class="action-tray" role="group" aria-label="Poll actions">
+            <a class="tray-btn tray-btn--primary tray-btn--glow" href="{{ url_for('poll.vote_form') }}">
+              <span class="tray-btn__icon" aria-hidden="true">🗳️</span>
+              <span class="tray-btn__label">Vote Now</span>
+            </a>
+
+            <a class="tray-btn tray-btn--ghost" href="{{ url_for('poll.results') }}">
+              <span class="tray-btn__icon" aria-hidden="true">👀</span>
+              <span class="tray-btn__label">See Current Results</span>
+            </a>
           </div>
         </div>
       {% endif %}
@@ -62,7 +90,8 @@
   <!-- Admin quick-open tools (visible only to admins) -->
   {% if current_user.is_authenticated and current_user.is_admin %}
     <div class="card">
-      <h3>Admin</h3>
+      <h3 class="mb-0">Admin</h3>
+      <p class="muted mt-0 small">Open a new poll or (re)seed teams.</p>
 
       <!-- Open Poll (separate, standalone form) -->
       <form method="post"

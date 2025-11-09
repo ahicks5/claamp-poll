@@ -46,9 +46,10 @@
       <nav id="site-nav" class="site-nav" aria-label="Primary">
         <ul class="site-nav__list">
           {% if current_user.is_authenticated %}
-            <li><a class="site-nav__link" href="{{ url_for('poll.dashboard') }}">Dashboard</a></li>
-            <li><a class="site-nav__link" href="{{ url_for('poll.vote_form') }}">Vote</a></li>
+            <!-- inside <ul class="site-nav__list"> when authenticated -->
+            <li><a class="site-nav__link" href="{{ url_for('poll.poll_list') }}">Polls</a></li>
             <li><a class="site-nav__link" href="{{ url_for('poll.results') }}">Results</a></li>
+            <li><a class="site-nav__link" href="{{ url_for('poll.vote_form') }}">Vote</a></li>
             {% if current_user.is_authenticated and current_user.is_admin %}
               <li><a class="site-nav__link" href="{{ url_for('poll.admin_panel') }}">Admin</a></li>
             {% endif %}

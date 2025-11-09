@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Polls • CLAAMP{% endblock %}
+{% block content %}
+<section class="container stack">
+  <div class="card">
+    <header class="split-row">
+      <h2 class="mb-0">Polls</h2>
+      <a class="btn" href="{{ url_for('poll.dashboard') }}">Back to Dashboard</a>
+    </header>
+
+    {% if polls %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Week</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th class="align-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in polls %}
+              <tr>
+                <td>{{ p.season }}</td>
+                <td>{{ p.week }}</td>
+                <td>{{ p.title }}</td>
+                <td>
+                  {% if p.is_open %}
+                    <span class="pill pill-live">Open</span>
+                  {% else %}
+                    <span class="pill pill-muted">Closed</span>
+                  {% endif %}
+                </td>
+                <td class="align-end">
+                  <a class="btn sm" href="{{ url_for('poll.results', poll_id=p.id) }}">Results</a>
+                  {% if p.is_open %}
+                    <a class="btn sm btn-primary" href="{{ url_for('poll.vote_form', poll_id=p.id) }}">Vote</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No polls yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

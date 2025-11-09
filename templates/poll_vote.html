@@ -182,18 +182,23 @@
 
 /* slot add button */
 .slot-add{
-  display:none;
+  display:grid;
+  place-items:center;
   position:absolute; inset:0;
   margin:auto; width:42px; height:42px; border-radius:999px;
   background:var(--panel-3, #1b1f29); color:var(--fg, #eaeef7);
   border:1px solid var(--line); font-size:1.4rem; line-height:1;
-  opacity:.9; transition:transform .12s ease, opacity .12s ease;
+  opacity:.55;
+  transition:opacity .12s ease, transform .12s ease;
+  cursor:pointer;
+  z-index:1;
 }
+.slot-add:hover{ opacity:.9; }
 .slot-add:active{ transform:scale(.96) }
 .rank-slot{ position:relative }
+.rank-slot.filled .slot-add{ opacity:0; pointer-events:none; }
 @media (max-width: 768px){
   .rank-controls{ display:none !important; }
-  .slot-add{ display:grid; place-items:center; }
 }
 
 /* ---------- Picker anchored to TOP ---------- */
@@ -223,17 +228,17 @@
   background:var(--panel-1, #0c111a);
   border:1px solid var(--line); border-radius:10px;
   padding:8px 10px; cursor:pointer; text-align:left;
+  color:var(--text, #e9edf2);
 }
 .picker__item img{ width:28px; height:28px; object-fit:contain; }
+.picker__item span{ color:#fff; font-weight:500; }
 .picker__item:hover{ outline:2px solid rgba(147,197,253,.35); outline-offset:-2px; }
 
 /* Keep sticky header colored */
 .vote-bar.sticky{ background:var(--panel-2); border-bottom:1px solid var(--line); }
 
-/* subtle + hides when filled */
-.slot-add{ opacity:.55; transition:opacity .12s ease, transform .12s ease; z-index:1; }
+/* Badge appears on top of + button */
 .badge{ position:relative; z-index:2; }
-.rank-slot.filled .slot-add{ opacity:0; pointer-events:none; }
 </style>
 
 <script>

@@ -14,22 +14,14 @@
         <span class="meta-item">{{ submitters|default([],true)|length }} voters</span>
       </div>
     </div>
-    {% if current_user.is_authenticated %}
-      {% set user_ballot = None %}
-      {% for ballot in poll.ballots %}
-        {% if ballot.user_id == current_user.id and ballot.submitted_at %}
-          {% set user_ballot = ballot %}
-        {% endif %}
-      {% endfor %}
-      {% if user_ballot %}
-      <div class="results-header__actions">
-        <a href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}"
-           class="btn btn-ghost sm"
-           target="_blank">
-          📸 Export My Ballot
-        </a>
-      </div>
-      {% endif %}
+    {% if user_ballot %}
+    <div class="results-header__actions">
+      <a href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}"
+         class="btn btn-primary sm"
+         target="_blank">
+        📸 Download My Ballot
+      </a>
+    </div>
     {% endif %}
   </div>
 
@@ -402,25 +394,35 @@
   border: 1px solid var(--line, #1f2633);
   -webkit-overflow-scrolling: touch;
 }
+.table-results {
+  min-width: 600px;
+}
+.table-results th:nth-child(2),
+.table-results td:nth-child(2) {
+  min-width: 200px;
+  max-width: 250px;
+}
 .rank-cell {
   font-weight: 700;
   color: var(--brand, #6ee7ff);
+  width: 50px;
 }
 .team-cell {
   display: flex;
   align-items: center;
   gap: 10px;
   white-space: nowrap;
-  min-width: 180px;
 }
 .team-logo {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   flex-shrink: 0;
 }
 .team-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Delta indicators */
@@ -502,8 +504,9 @@
 }
 .stats-table {
   margin: 0;
-  table-layout: auto;
+  table-layout: fixed;
   width: 100%;
+  min-width: 400px;
 }
 .stats-table th,
 .stats-table td {
@@ -513,15 +516,22 @@
 }
 .stats-table th:first-child,
 .stats-table td:first-child {
-  max-width: 150px;
+  width: 40%;
+  max-width: 180px;
   white-space: normal;
   word-wrap: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stats-table td.truncate {
-  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.stats-table th.num,
+.stats-table td.num {
+  text-align: right;
+  width: auto;
 }
 
 /* Ballot Grid */

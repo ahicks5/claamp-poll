@@ -13,3 +13,16 @@ Utilities
 .mt-3{ margin-top:var(--gap-3); }
 .mb-2{ margin-bottom:var(--gap-2); }
 .hidden{ display:none !important; }
+
+/* Screen reader only - hides visually but keeps for accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

@@ -2,18 +2,14 @@
 <html lang="en" class="no-js" data-color-scheme="auto">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#0c111a" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
   <title>{% block title %}CLAAMP{% endblock %}</title>
 
-  <!-- System UI font stack for speed & crispness -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    :root { --app-max: 1200px; }
     html { -webkit-text-size-adjust: 100%; }
     html, body { height: 100%; }
     body {
@@ -26,9 +22,8 @@
     .no-js body { opacity: 1 !important; }
   </style>
 
-  <!-- Global app stylesheet bundle -->
+  <!-- Master stylesheet that @imports all component CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
   {% block head %}{% endblock %}
 </head>
 

@@ -1,20 +1,145 @@
-/* App bundle: order matters (tokens → base → utilities → components) */
+/* Master bundle for all site styles.
+   Load order: tokens → palette → base → utilities → primitives → components → pages */
 
-/* Design tokens & palettes first */
-@import url("./tokens.css");
-@import url("./palette.css");
+/* Design tokens and palette */
+@import url("tokens.css");
+@import url("palette.css");
 
-/* Base element resets + global layout */
-@import url("./base.css");
-@import url("./utilities.css");
+/* Foundations */
+@import url("base.css");
+@import url("utilities.css");
 
-/* Core UI parts */
-@import url("./nav.css");
-@import url("./cards.css");
-@import url("./tables.css");
-@import url("./forms.css");
-@import url("./buttons.css");
+/* Primitives */
+@import url("buttons.css");
+@import url("forms.css");
+@import url("tables.css");
+@import url("cards.css");
+@import url("nav.css");
 
-/* Feature pages */
-@import url("./ballot.css");
-@import url("./results.css");
+/* Page-specific (can be split later) */
+@import url("results.css");
+@import url("ballot.css");
+
+/* Optional: any new mobile helpers live here */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Sticky header base styles (ensure it actually sticks) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--panel-2, #10141c);
+  border-bottom: 1px solid var(--line, #1f2633);
+  padding-top: calc(var(--safe-top) + 4px);
+}
+.site-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fg, #eaeef7);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.brand__dot {
+  width: 10px; height: 10px; border-radius: 999px;
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* Mobile nav (collapsed by default) */
+.nav-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #223);
+  background: var(--panel-1, #0c111a);
+  color: var(--fg, #eaeef7);
+}
+.nav-toggle__bar {
+  width: 18px; height: 2px;
+  background: currentColor;
+  position: relative; display: block;
+}
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+  content: "";
+  position: absolute; left: 0;
+  width: 18px; height: 2px; background: currentColor;
+}
+.nav-toggle__bar::before { top: -6px; }
+.nav-toggle__bar::after { top: 6px; }
+
+.site-nav {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.site-nav.open { display: block; }
+.site-nav__list {
+  list-style: none;
+  padding: 0; margin: 0;
+  min-width: 220px;
+  display: grid; gap: 4px;
+}
+.site-nav__link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--fg, #eaeef7);
+}
+.site-nav__link:hover { background: rgba(147,197,253,.08); }
+
+/* Desktop breakpoint: show inline menu; hide burger */
+@media (min-width: 900px) {
+  .nav-toggle { display: none; }
+  .site-header { padding-top: var(--safe-top); }
+  .site-nav {
+    position: static;
+    display: block;
+    background: none; border: 0; box-shadow: none; padding: 0;
+  }
+  .site-nav__list {
+    display: flex; gap: 6px; align-items: center;
+    min-width: 0;
+  }
+  .site-nav__link { padding: 8px 10px; }
+}
+
+/* Main container spacing so content never tucks under header */
+.site-main {
+  padding: 12px;
+}
+
+/* Footer */
+.site-footer {
+  margin-top: 24px;
+  padding: 12px 12px calc(12px + var(--safe-bottom));
+  border-top: 1px solid var(--line, #1f2633);
+  background: var(--panel-2, #10141c);
+}
+.site-footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}

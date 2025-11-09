@@ -358,7 +358,6 @@ def poll_list():
         )
     return render_template("poll_list.html", polls=polls)
 
-
 # -------------------------
 # Results (optionally for a specific poll_id)
 # -------------------------

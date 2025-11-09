@@ -5,8 +5,10 @@ Design tokens
 :root{
 /* Brand palette */
 --bg:#0b0d10;
+--panel-1:#0c111a;
 --panel:#111418;
 --panel-2:#161a20;
+--panel-3:#1b1f29;
 --text:#e9edf2;
 --muted:#9aa6b2;
 --brand:#6ee7ff;

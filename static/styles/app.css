@@ -62,18 +62,25 @@
 
 /* Mobile nav (collapsed by default) */
 .nav-toggle {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 40px; height: 40px;
   border-radius: 10px;
   border: 1px solid var(--line, #223);
   background: var(--panel-1, #0c111a);
   color: var(--fg, #eaeef7);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.nav-toggle:hover {
+  background: var(--panel-2, #10141c);
 }
 .nav-toggle__bar {
   width: 18px; height: 2px;
   background: currentColor;
   position: relative; display: block;
+  margin: 8px 0; /* Add vertical spacing to prevent touching edges */
 }
 .nav-toggle__bar::before,
 .nav-toggle__bar::after {
@@ -81,8 +88,8 @@
   position: absolute; left: 0;
   width: 18px; height: 2px; background: currentColor;
 }
-.nav-toggle__bar::before { top: -6px; }
-.nav-toggle__bar::after { top: 6px; }
+.nav-toggle__bar::before { top: -7px; }
+.nav-toggle__bar::after { top: 7px; }
 
 .site-nav {
   display: none;

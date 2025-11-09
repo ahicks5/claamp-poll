@@ -7,21 +7,22 @@
     <h1>AP Poll Admin</h1>
     <p class="muted">Teams in DB: {{ team_count }}</p>
 
-    <form method="post" action="{{ url_for('poll.admin_new_poll') }}" class="form-grid mt-2">
-      <div>
-        <label class="label">Season</label>
-        <input name="season" type="number" required>
+    <form method="post" action="{{ url_for('poll.admin_new_poll') }}" class="admin-form mt-2">
+      <div class="admin-form__fields">
+        <div class="form-field">
+          <label class="label">Season</label>
+          <input name="season" type="number" inputmode="numeric" placeholder="2025" required>
+        </div>
+        <div class="form-field">
+          <label class="label">Week</label>
+          <input name="week" type="number" inputmode="numeric" placeholder="12" required>
+        </div>
+        <div class="form-field">
+          <label class="label">Title</label>
+          <input name="title" type="text" placeholder="Week 12 AP Poll" required>
+        </div>
       </div>
-      <div>
-        <label class="label">Week</label>
-        <input name="week" type="number" required>
-      </div>
-      <div>
-        <label class="label">Title</label>
-        <input name="title" type="text" required>
-      </div>
-
-      <div style="grid-column:1/-1; text-align:right;">
+      <div class="admin-form__actions">
         <button class="btn btn-primary" type="submit">Open Poll</button>
       </div>
     </form>
@@ -31,24 +32,36 @@
     <h2>Existing Polls</h2>
 
     <div class="table-wrap mt-2">
-      <table class="table">
+      <table class="table admin-table">
         <thead>
-          <tr><th>Season</th><th>Week</th><th>Title</th><th>Open?</th><th>Actions</th></tr>
+          <tr>
+            <th>Season</th>
+            <th>Week</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
         </thead>
         <tbody>
           {% for p in polls %}
           <tr>
-            <td>{{ p.season }}</td>
-            <td>{{ p.week }}</td>
-            <td>{{ p.title }}</td>
-            <td>{{ "Yes" if p.is_open else "No" }}</td>
-            <td>
+            <td data-label="Season">{{ p.season }}</td>
+            <td data-label="Week">{{ p.week }}</td>
+            <td data-label="Title">{{ p.title }}</td>
+            <td data-label="Status">
               {% if p.is_open %}
-              <form method="post" action="{{ url_for('poll.admin_close_poll', poll_id=p.id) }}">
-                <button class="btn sm" type="submit">Close</button>
+                <span class="status-badge status-badge--open">Open</span>
+              {% else %}
+                <span class="status-badge status-badge--closed">Closed</span>
+              {% endif %}
+            </td>
+            <td data-label="Actions">
+              {% if p.is_open %}
+              <form method="post" action="{{ url_for('poll.admin_close_poll', poll_id=p.id) }}" style="display: inline;">
+                <button class="btn sm" type="submit">Close Poll</button>
               </form>
               {% else %}
-              <em class="muted">closed</em>
+              <span class="muted">—</span>
               {% endif %}
             </td>
           </tr>
@@ -60,4 +73,110 @@
   </div>
 
 </section>
+
+<style>
+/* Admin Form */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.admin-form__fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.admin-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-badge--open {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+.status-badge--closed {
+  background: rgba(168, 178, 200, 0.1);
+  color: var(--muted, #9aa6b2);
+  border: 1px solid var(--line, #1f2633);
+}
+
+/* Admin Table - Mobile Responsive */
+.admin-table {
+  width: 100%;
+}
+
+/* Responsive: Stack table on mobile */
+@media (max-width: 640px) {
+  .admin-table thead {
+    display: none;
+  }
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+  }
+  .admin-table tr {
+    margin-bottom: 16px;
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--panel-1, #0c111a);
+  }
+  .admin-table td {
+    padding: 8px 0;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--muted, #9aa6b2);
+    margin-right: 12px;
+  }
+  .admin-table td[data-label="Actions"] {
+    padding-top: 12px;
+    border-top: 1px solid var(--line, #1f2633);
+    justify-content: flex-end;
+  }
+  .admin-table td[data-label="Actions"]::before {
+    display: none;
+  }
+}
+
+/* Desktop: Multi-column form */
+@media (min-width: 641px) {
+  .admin-form__fields {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tablet: Two-column form */
+@media (min-width: 481px) and (max-width: 640px) {
+  .admin-form__fields {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
 {% endblock %}

@@ -391,14 +391,20 @@ def results(poll_id: Optional[int] = None):
     with SessionLocal() as s:
         # Resolve poll
         if poll_id is not None:
-            poll = s.get(Poll, poll_id)
+            poll = s.execute(
+                select(Poll)
+                .options(joinedload(Poll.ballots))
+                .where(Poll.id == poll_id)
+            ).scalars().first()
             if not poll:
                 flash("Poll not found.", "warning")
                 return redirect(url_for("poll.poll_list"))
         else:
             poll = (
                 s.execute(
-                    select(Poll).order_by(Poll.is_open.desc(), Poll.season.desc(), Poll.week.desc())
+                    select(Poll)
+                    .options(joinedload(Poll.ballots))
+                    .order_by(Poll.is_open.desc(), Poll.season.desc(), Poll.week.desc())
                 )
                 .scalars()
                 .first()

@@ -47,7 +47,9 @@
 }
 .table-results th, .table-results td { white-space: nowrap; padding: 10px 14px; }
 
-.rank-cell {
+/* Rank column styling - scoped to table to avoid conflicts with ballot page */
+.table-results td.rank-cell,
+.table-results th.rank-cell {
   font-weight: 700;
   color: var(--brand, #6ee7ff);
   width: 1%;

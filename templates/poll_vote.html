@@ -204,20 +204,24 @@
 /* ---------- Picker anchored to TOP ---------- */
 .picker.hidden{ display:none; }
 .picker{
-  position:fixed; inset:0; z-index:50;
+  position:fixed; inset:0; z-index:1100;
   background:rgba(0,0,0,.45);
   display:grid; place-items:start center;
-  padding-top:max(8px, env(safe-area-inset-top));
+  padding-top:max(80px, calc(env(safe-area-inset-top) + 20px));
 }
 .picker__panel{
   width:100%; max-width:720px; background:var(--panel-2, #10141c);
   border-radius:16px; border:1px solid var(--line);
   box-shadow:0 10px 30px rgba(0,0,0,.25);
-  max-height:100dvh;
+  max-height:calc(100dvh - 100px);
   display:flex; flex-direction:column;
 }
 .picker__head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 12px 0 12px; }
-.picker__search{ margin:10px 12px 0 12px; }
+.picker__search{
+  margin:10px 12px 0 12px;
+  font-size:16px;
+  width:calc(100% - 24px);
+}
 .picker__list{
   overflow:auto; padding:12px; gap:8px;
   display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr));

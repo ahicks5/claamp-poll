@@ -609,13 +609,41 @@ def results(poll_id: Optional[int] = None):
         team_consistency.sort(key=lambda x: x["stddev"])
         team_volatile = sorted(team_consistency, key=lambda x: x["stddev"], reverse=True)
 
-        # --- Simple voter grid for the template ---
-        # Each row: {"voter": "name", "ranks": [(1,"Team A"), (2,"Team B"), ...]}
+        # --- Ballot grid for the template ---
+        # Build a proper grid: each row has voter_name and 25 cells (one per rank)
+        # Each cell: {"team_id": int|None, "team": str|None, "file": str|None}
         voter_grid = []
         for vm in voter_maps:
-            pairs = sorted(vm["ranks"].items(), key=lambda kv: kv[1])  # sort by rank asc
-            ranks_list = [(rk, TEAM_NAME.get(tid, f"Team {tid}")) for tid, rk in pairs if rk <= MAX_RANK]
-            voter_grid.append({"voter": vm["voter_name"], "ranks": ranks_list})
+            # Create 25 cells (ranks 1..25)
+            cells = []
+            for rank in range(1, MAX_RANK + 1):
+                # Find which team (if any) this voter put at this rank
+                team_id = None
+                for tid, rk in vm["ranks"].items():
+                    if rk == rank:
+                        team_id = tid
+                        break
+
+                if team_id:
+                    team_name = TEAM_NAME.get(team_id, f"Team {team_id}")
+                    logo_file = logo_map.get(team_name)
+                    cells.append({
+                        "team_id": team_id,
+                        "team": team_name,
+                        "file": logo_file
+                    })
+                else:
+                    # Empty slot
+                    cells.append({
+                        "team_id": None,
+                        "team": None,
+                        "file": None
+                    })
+
+            voter_grid.append({
+                "voter_name": vm["voter_name"],
+                "ranks": cells
+            })
 
     return render_template(
         "poll_results.html",
@@ -624,6 +652,7 @@ def results(poll_id: Optional[int] = None):
         others=others,
         submitters=submitters,
         logo_map=logo_map,
+        MAX_RANK=MAX_RANK,
         stats={
             "deviant_ballots": deviant_ballots,
             "most_different_pair": most_different_pair,
@@ -728,14 +757,14 @@ def _load_font(size:int):
 def _load_team_logo(team_name:str, logo_map:dict, size:int=180) -> Image.Image:
     fname = logo_map.get(team_name)
     if fname:
-        path = os.path.join(current_app.static_folder, "logos", fname)
+        path = os.path.join(current_app.static_folder, "images", "logos", fname)
     else:
-        path = os.path.join(current_app.static_folder, "logos", "default.png")
+        path = os.path.join(current_app.static_folder, "images", "logos", "default.png")
 
     try:
         im = Image.open(path).convert("RGBA")
     except Exception:
-        im = Image.open(os.path.join(current_app.static_folder, "logos", "default.png")).convert("RGBA")
+        im = Image.open(os.path.join(current_app.static_folder, "images", "logos", "default.png")).convert("RGBA")
 
     # fit within size x size preserving aspect
     im.thumbnail((size, size))

@@ -95,7 +95,7 @@
       <div id="palette" class="logo-palette" aria-label="Teams">
         {% for t in teams %}
           {% set fname = logo_map.get(t.name) %}
-          {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+          {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
           <div
             class="logo-card"
             draggable="true"
@@ -105,7 +105,7 @@
             tabindex="0"
             aria-grabbed="false"
           >
-            <img src="{{ img_src }}" alt="{{ t.name }} logo" onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+            <img src="{{ img_src }}" alt="{{ t.name }} logo" onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
             <div class="logo-name">{{ t.name }}</div>
           </div>
         {% endfor %}
@@ -127,12 +127,12 @@
     <div id="picker-list" class="picker__list">
       {% for t in teams %}
         {% set fname = logo_map.get(t.name) %}
-        {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+        {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
         <button class="picker__item" type="button"
                 data-team-id="{{ t.id }}"
                 data-team-name="{{ t.name }}"
                 data-file="{{ fname or '' }}">
-          <img src="{{ img_src }}" alt="" onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+          <img src="{{ img_src }}" alt="" onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
           <span>{{ t.name }}</span>
         </button>
       {% endfor %}
@@ -240,7 +240,7 @@
 (function(){
   // ---- Config from server ----
   const MAX_RANK    = {{ MAX_RANK }};
-  const LOGO_BASE   = "{{ url_for('static', filename='logos/') }}";
+  const LOGO_BASE   = "{{ url_for('static', filename='images/logos/') }}";
   const RANK_MAP    = {{ (rank_map or {}) | tojson }};
   const DEFAULT_MAP = {{ (default_rank_map or {}) | tojson }};
 

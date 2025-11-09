@@ -23,7 +23,7 @@
   </style>
 
   <!-- Master stylesheet that @imports all component CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/app.css') }}" />
   {% block head %}{% endblock %}
 </head>
 
@@ -76,7 +76,7 @@
   </footer>
 
   <script>document.documentElement.classList.remove('no-js');</script>
-  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='scripts/app.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

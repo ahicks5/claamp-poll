@@ -651,6 +651,17 @@ def results(poll_id: Optional[int] = None):
                 "ranks": cells
             })
 
+        # Find current user's ballot for export button
+        user_ballot = None
+        if current_user.is_authenticated:
+            user_ballot = s.execute(
+                select(Ballot).where(
+                    Ballot.poll_id == poll.id,
+                    Ballot.user_id == current_user.id,
+                    Ballot.submitted_at.isnot(None)
+                )
+            ).scalars().first()
+
     return render_template(
         "poll_results.html",
         poll=poll,
@@ -659,6 +670,7 @@ def results(poll_id: Optional[int] = None):
         submitters=submitters,
         logo_map=logo_map,
         MAX_RANK=MAX_RANK,
+        user_ballot=user_ballot,
         stats={
             "deviant_ballots": deviant_ballots,
             "most_different_pair": most_different_pair,

@@ -827,35 +827,55 @@ def share_ballot_png(ballot_id:int):
     # canvas config
     W, H = 1200, 1600                  # tall share card (mobile friendly)
     M = 48                              # outer margin
-    GRID_W, GRID_H = W - 2*M, H - 420   # reserve ~420px for header/footer
+    GRID_W, GRID_H = W - 2*M, H - 440   # reserve ~440px for header/footer
     COLS, ROWS = 5, 5
     CELL_W = GRID_W // COLS
     CELL_H = GRID_H // ROWS
 
-    # create background
-    img = Image.new("RGB", (W, H), (12, 16, 26))  # dark panel
+    # create gradient background (dark to darker)
+    img = Image.new("RGB", (W, H), (11, 13, 16))
+    # Add subtle vertical gradient
+    for y in range(H):
+        opacity = int(8 * (y / H))  # subtle gradient
+        draw_temp = ImageDraw.Draw(img)
+        draw_temp.rectangle((0, y, W, y+1), fill=(11 + opacity, 13 + opacity, 16 + opacity))
+
     draw = ImageDraw.Draw(img)
 
-    # soft header panel
-    header_h = 180
-    draw.rounded_rectangle((M, M, W-M, M+header_h), radius=24, fill=(16, 20, 32))
-    title_font = _load_font(52)
-    sub_font   = _load_font(28)
+    # modern header with accent bar
+    header_h = 200
+    # Header background with subtle gradient feel
+    draw.rounded_rectangle((M, M, W-M, M+header_h), radius=20, fill=(15, 19, 28))
+    # Accent bar at top (brand color)
+    draw.rounded_rectangle((M, M, W-M, M+6), radius=20, fill=(110, 231, 255))
+
+    # Load fonts
+    title_font = _load_font(56)
+    sub_font   = _load_font(30)
+    meta_font  = _load_font(24)
 
     poll_title = poll.title if poll else "Poll"
     user_name  = user.username if user and user.username else f"User {ballot.user_id}"
 
-    # title + subtitle
-    draw.text((M+32, M+30), poll_title, fill=(234, 238, 247), font=title_font)
-    draw.text((M+32, M+100), f"{user_name} • Ballot", fill=(168, 178, 198), font=sub_font)
+    # Title with better positioning
+    draw.text((M+36, M+42), poll_title, fill=(233, 237, 242), font=title_font)
+    # Subtitle with accent color
+    draw.text((M+36, M+115), f"Ballot by {user_name}", fill=(154, 166, 178), font=sub_font)
+    # Date/season info if available
+    season_text = f"{poll.season} • Week {poll.week}" if poll else ""
+    draw.text((M+36, M+158), season_text, fill=(124, 199, 255), font=meta_font)
 
-    # grid background
-    grid_top = M + header_h + 24
-    draw.rounded_rectangle((M, grid_top, W-M, grid_top + GRID_H), radius=18, fill=(14, 18, 28), outline=(40, 48, 64))
+    # grid background with shadow effect
+    grid_top = M + header_h + 32
+    # Shadow layer
+    draw.rounded_rectangle((M+4, grid_top+4, W-M+4, grid_top + GRID_H+4), radius=16, fill=(6, 8, 12))
+    # Actual grid
+    draw.rounded_rectangle((M, grid_top, W-M, grid_top + GRID_H), radius=16, fill=(12, 17, 26), outline=(35, 43, 58), width=2)
 
     # render cells 1..25
-    rank_font = _load_font(28)
-    label_font = _load_font(26)
+    rank_font = _load_font(26)
+    rank_font_bold = _load_font(30)
+    label_font = _load_font(24)
 
     for i in range(ROWS * COLS):
         r = i + 1
@@ -867,43 +887,111 @@ def share_ballot_png(ballot_id:int):
         x1 = x0 + CELL_W
         y1 = y0 + CELL_H
 
-        # cell border
-        draw.rectangle((x0, y0, x1, y1), outline=(40, 48, 64), width=1)
+        # subtle cell background (alternating for visual interest)
+        if (c_idx + r_idx) % 2 == 0:
+            draw.rectangle((x0, y0, x1, y1), fill=(14, 19, 28))
 
-        # rank bubble
-        bubble_r = 26
-        bx = x0 + 20
-        by = y0 + 18
-        draw.ellipse((bx-bubble_r, by-bubble_r, bx+bubble_r, by+bubble_r), fill=(29, 36, 54))
-        rw = draw.textlength(str(r), font=rank_font)
-        draw.text((bx - rw/2, by - 18), str(r), fill=(200, 210, 230), font=rank_font)
+        # cell border
+        draw.rectangle((x0, y0, x1, y1), outline=(28, 35, 48), width=1)
+
+        # modern rank badge (pill-style)
+        rank_str = str(r)
+        rank_w = draw.textlength(rank_str, font=rank_font_bold)
+        badge_w = int(rank_w + 28)
+        badge_h = 32
+        badge_x = x0 + 16
+        badge_y = y0 + 14
+
+        # Badge background with gradient-like effect (darker to brand)
+        if r <= 5:
+            # Top 5 get accent color
+            badge_color = (110, 231, 255)  # brand cyan
+            text_color = (12, 17, 26)  # dark text
+        elif r <= 10:
+            # Top 10 get subtle brand
+            badge_color = (75, 180, 200)
+            text_color = (240, 242, 245)
+        else:
+            # Others get muted
+            badge_color = (35, 43, 58)
+            text_color = (180, 190, 205)
+
+        draw.rounded_rectangle(
+            (badge_x, badge_y, badge_x + badge_w, badge_y + badge_h),
+            radius=16,
+            fill=badge_color
+        )
+        draw.text(
+            (badge_x + badge_w//2 - rank_w//2, badge_y + 3),
+            rank_str,
+            fill=text_color,
+            font=rank_font_bold
+        )
 
         # logo + label if present
         if r <= len(items):
             team_name = teams.get(items[r-1].team_id, "—")
-            logo = _load_team_logo(team_name, logo_map, size=160)
+            logo = _load_team_logo(team_name, logo_map, size=140)
 
-            # center logo
-            lg_x = x0 + (CELL_W - logo.width) // 2
-            lg_y = y0 + 20 + 40  # a bit lower than rank badge
+            # circular background behind logo
+            logo_bg_r = 76
+            logo_center_x = x0 + CELL_W // 2
+            logo_center_y = y0 + 80
+            draw.ellipse(
+                (logo_center_x - logo_bg_r, logo_center_y - logo_bg_r,
+                 logo_center_x + logo_bg_r, logo_center_y + logo_bg_r),
+                fill=(20, 26, 38),
+                outline=(45, 55, 72),
+                width=2
+            )
+
+            # center logo over background
+            lg_x = logo_center_x - logo.width // 2
+            lg_y = logo_center_y - logo.height // 2
             img.paste(logo, (lg_x, lg_y), logo)
 
             # team text (truncate if too long)
             label = team_name
-            max_width = CELL_W - 24
+            max_width = CELL_W - 20
             while draw.textlength(label, font=label_font) > max_width and len(label) > 3:
                 label = label[:-2] + "…"
             tw = draw.textlength(label, font=label_font)
-            draw.text((x0 + (CELL_W - tw)//2, y0 + CELL_H - 44), label, fill=(220, 226, 240), font=label_font)
+            draw.text(
+                (x0 + (CELL_W - tw)//2, y0 + CELL_H - 38),
+                label,
+                fill=(225, 230, 240),
+                font=label_font
+            )
         else:
             # empty placeholder
             dash_w = draw.textlength("—", font=label_font)
-            draw.text((x0 + (CELL_W - dash_w)//2, y0 + CELL_H - 44), "—", fill=(90, 100, 120), font=label_font)
+            draw.text((x0 + (CELL_W - dash_w)//2, y0 + CELL_H - 38), "—", fill=(70, 80, 95), font=label_font)
 
-    # footer
-    foot = "Generated with CLAAMP Polls"
-    fw = draw.textlength(foot, font=sub_font)
-    draw.text((W - M - fw, H - M - 8 - 28), foot, fill=(120, 132, 152), font=sub_font)
+    # modern footer with branding
+    footer_font = _load_font(22)
+    footer_y = H - M - 50
+
+    # Footer background bar
+    draw.rounded_rectangle((M, footer_y, W-M, H-M), radius=12, fill=(15, 19, 28))
+
+    # CLAAMP branding with accent dot
+    foot_text = "CLAAMP Polls"
+    brand_x = M + 28
+    brand_y = footer_y + 16
+
+    # Draw brand dot (like in nav)
+    dot_r = 5
+    draw.ellipse(
+        (brand_x - dot_r, brand_y + 6 - dot_r, brand_x + dot_r, brand_y + 6 + dot_r),
+        fill=(110, 231, 255)
+    )
+
+    # Brand text
+    draw.text((brand_x + 18, brand_y), foot_text, fill=(180, 190, 205), font=footer_font)
+
+    # Right side - subtle timestamp or mark
+    now = datetime.now().strftime("%b %d, %Y")
+    draw.text((W - M - 160, brand_y), now, fill=(100, 110, 125), font=footer_font)
 
     # out
     buf = io.BytesIO()

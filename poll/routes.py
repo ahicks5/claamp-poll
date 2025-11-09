@@ -365,23 +365,35 @@ def poll_list():
 @bp.get("/polls/<int:poll_id>/results")
 @login_required
 def results(poll_id: Optional[int] = None):
+    """
+    Render poll results for a given poll_id, or (if not provided) the currently
+    open poll, otherwise the latest poll. Provides:
+      - top_rows: enriched top-25 with points, firsts, appearances, dispersion stats
+      - others: teams outside top-25 with points
+      - submitters: list of voter display names
+      - stats: deviant ballots, most-different pair, pair differences, consistency/volatility
+      - voter_grid: simple per-voter grid of [(rank, team_name)] for template rendering
+    """
     with SessionLocal() as s:
+        # Resolve poll
         if poll_id is not None:
             poll = s.get(Poll, poll_id)
             if not poll:
                 flash("Poll not found.", "warning")
                 return redirect(url_for("poll.poll_list"))
         else:
-            # Prefer currently open poll, else latest past
             poll = (
                 s.execute(
                     select(Poll).order_by(Poll.is_open.desc(), Poll.season.desc(), Poll.week.desc())
-                ).scalars().first()
+                )
+                .scalars()
+                .first()
             )
             if not poll:
                 flash("No polls yet.", "warning")
                 return redirect(url_for("poll.dashboard"))
 
+        # All submitted ballots for this poll
         ballots = (
             s.execute(
                 select(Ballot)
@@ -392,28 +404,26 @@ def results(poll_id: Optional[int] = None):
             .all()
         )
 
+        # If no ballots, return empty-safe payloads
         if not ballots:
             return render_template(
                 "poll_results.html",
                 poll=poll,
                 top_rows=[],
                 others=[],
-                logo_map=logo_map,
                 submitters=[],
+                logo_map=logo_map,
                 stats={
                     "deviant_ballots": [],
                     "most_different_pair": None,
                     "pair_differences": [],
                     "team_consistency": [],
+                    "team_volatile": [],
                 },
                 voter_grid=[]
             )
 
-        # --- the rest of your existing results() logic stays the same below ---
-        # (unchanged code from your current results() starting at "ballot_full = (...)" all the way to the render_template)
-        # TIP: paste your existing block here without modification.
-        # ----- BEGIN unchanged block -----
-        from sqlalchemy.orm import joinedload
+        # Pull full ballots with user & items
         ballot_full = (
             s.execute(
                 select(Ballot)
@@ -426,9 +436,11 @@ def results(poll_id: Optional[int] = None):
             .all()
         )
 
+        # Team id -> name map
         team_rows = s.execute(select(Team)).scalars().all()
         TEAM_NAME = {t.id: t.name for t in team_rows}
 
+        # Build per-voter maps and aggregate ranks
         from collections import defaultdict
         team_ranks_all = defaultdict(list)
         voter_maps = []
@@ -437,27 +449,35 @@ def results(poll_id: Optional[int] = None):
         for b in ballot_full:
             voter_name = b.user.username if (b.user and b.user.username) else f"User {b.user_id}"
             submitters.append(voter_name)
+
+            # ranks: {team_id: rank}
             rmap = {it.team_id: it.rank for it in sorted(b.items, key=lambda x: x.rank)}
             voter_maps.append({"voter_name": voter_name, "ranks": rmap})
+
+            # aggregate ranks for dispersion metrics
             for tid, rk in rmap.items():
                 team_ranks_all[tid].append(rk)
 
-        def points(rank: int) -> int:
+        # Points helper (top-25 gets 25..1)
+        def _points(rank: int) -> int:
             return max(0, (MAX_RANK + 1) - int(rank))
 
-        agg = {}
+        # Aggregate points, first-place votes, appearances
+        agg_points = {}
         firsts = defaultdict(int)
         appearances = defaultdict(int)
+
         for vm in voter_maps:
             for tid, rk in vm["ranks"].items():
-                agg.setdefault(tid, 0)
-                agg[tid] += points(rk)
+                agg_points.setdefault(tid, 0)
+                agg_points[tid] += _points(rk)
                 appearances[tid] += 1
                 if rk == 1:
                     firsts[tid] += 1
 
+        # Base rows
         rows = []
-        for tid, pts in agg.items():
+        for tid, pts in agg_points.items():
             rows.append({
                 "team_id": tid,
                 "team": TEAM_NAME.get(tid, f"Team {tid}"),
@@ -467,6 +487,7 @@ def results(poll_id: Optional[int] = None):
             })
         rows.sort(key=lambda r: (-r["points"], -r["firsts"], r["team"]))
 
+        # Defaults for delta comparison
         defaults_rows = s.execute(
             select(DefaultBallot)
             .where(or_(DefaultBallot.poll_id == poll.id, DefaultBallot.poll_id.is_(None)))
@@ -474,13 +495,15 @@ def results(poll_id: Optional[int] = None):
         ).scalars().all()
         DEFAULT_BY_TEAM = {r.team_id: r.rank for r in defaults_rows}
 
+        # Enrich with dispersion & default deltas
         import math
         enriched = []
         for idx, r in enumerate(rows, start=1):
             tid = r["team_id"]
             ranks = team_ranks_all.get(tid, [])
             if ranks:
-                mn = min(ranks); mx = max(ranks)
+                mn = min(ranks)
+                mx = max(ranks)
                 mean = sum(ranks) / len(ranks)
                 var = sum((rk - mean) ** 2 for rk in ranks) / len(ranks)
                 stddev = math.sqrt(var)
@@ -501,33 +524,47 @@ def results(poll_id: Optional[int] = None):
                 "stddev_rank": stddev,
             })
 
+        # Slice top-25 + others
         top_rows = enriched[:MAX_RANK]
-        others = [{"team": r["team"], "points": r["points"]} for r in enriched[MAX_RANK:] if r["points"] > 0]
+        others = [
+            {"team": r["team"], "points": r["points"]}
+            for r in enriched[MAX_RANK:]
+            if r["points"] > 0
+        ]
         others.sort(key=lambda x: x["points"], reverse=True)
 
+        # Footrule distances for deviance
         UNRANKED = MAX_RANK + 1
+
         def footrule(vmap, cmap):
             all_ids = set(vmap.keys()) | set(cmap.keys())
             return sum(abs(vmap.get(t, UNRANKED) - cmap.get(t, UNRANKED)) for t in all_ids)
 
         consensus_map = {r["team_id"]: r["group_rank"] for r in top_rows}
 
+        # Most deviant ballots
         deviant_ballots = []
         for vm in voter_maps:
             dist = footrule(vm["ranks"], consensus_map)
             deviant_ballots.append({"voter_name": vm["voter_name"], "deviation": dist})
         deviant_ballots.sort(key=lambda x: x["deviation"], reverse=True)
 
+        # Most different pair of voters + top 10 team diffs for that pair
         most_different_pair = None
         pair_differences = []
         best_dist = -1
         for i in range(len(voter_maps)):
             for j in range(i + 1, len(voter_maps)):
-                A = voter_maps[i]; B = voter_maps[j]
+                A = voter_maps[i]
+                B = voter_maps[j]
                 d = footrule(A["ranks"], B["ranks"])
                 if d > best_dist:
                     best_dist = d
-                    most_different_pair = {"a": A["voter_name"], "b": B["voter_name"], "distance": d}
+                    most_different_pair = {
+                        "a": A["voter_name"],
+                        "b": B["voter_name"],
+                        "distance": d
+                    }
                     diffs = []
                     union_ids = set(A["ranks"].keys()) | set(B["ranks"].keys())
                     for tid in union_ids:
@@ -536,13 +573,14 @@ def results(poll_id: Optional[int] = None):
                         diffs.append({
                             "team_id": tid,
                             "team": TEAM_NAME.get(tid, f"Team {tid}"),
-                            "rank_a": ra if ra != UNRANKED else None,
-                            "rank_b": rb if rb != UNRANKED else None,
+                            "rank_a": (None if ra == UNRANKED else ra),
+                            "rank_b": (None if rb == UNRANKED else rb),
                             "abs_diff": abs(ra - rb),
                         })
                     diffs.sort(key=lambda x: (-x["abs_diff"], x["team"]))
                     pair_differences = diffs[:10]
 
+        # Team consistency / volatility lists (require MIN_APPS appearances)
         MIN_APPS = 2
         team_consistency = [
             {
@@ -556,6 +594,14 @@ def results(poll_id: Optional[int] = None):
         ]
         team_consistency.sort(key=lambda x: x["stddev"])
         team_volatile = sorted(team_consistency, key=lambda x: x["stddev"], reverse=True)
+
+        # --- Simple voter grid for the template ---
+        # Each row: {"voter": "name", "ranks": [(1,"Team A"), (2,"Team B"), ...]}
+        voter_grid = []
+        for vm in voter_maps:
+            pairs = sorted(vm["ranks"].items(), key=lambda kv: kv[1])  # sort by rank asc
+            ranks_list = [(rk, TEAM_NAME.get(tid, f"Team {tid}")) for tid, rk in pairs if rk <= MAX_RANK]
+            voter_grid.append({"voter": vm["voter_name"], "ranks": ranks_list})
 
     return render_template(
         "poll_results.html",
@@ -573,7 +619,6 @@ def results(poll_id: Optional[int] = None):
         },
         voter_grid=voter_grid
     )
-    # ----- END unchanged block -----
 
 
 @bp.get("/admin")

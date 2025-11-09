@@ -32,13 +32,13 @@
           <p class="muted mb-0">Thanks — your ballot is in.</p>
 
           <div class="action-tray" role="group" aria-label="Ballot actions">
-            <a class="tray-btn" href="{{ url_for('poll.vote_form') }}">
+            <a class="tray-btn" href="{{ url_for('poll.vote_form', poll_id=open_poll.id) }}">
               <span class="tray-btn__icon" aria-hidden="true">✏️</span>
               <span class="tray-btn__label">Edit Ballot</span>
             </a>
 
-            <!-- IMPORTANT: link to specific poll id results -->
-            <a class="tray-btn tray-btn--primary" href="{{ url_for('poll.results_by_id', poll_id=open_poll.id) }}">
+            <!-- link to THIS poll's results -->
+            <a class="tray-btn tray-btn--primary" href="{{ url_for('poll.results', poll_id=open_poll.id) }}">
               <span class="tray-btn__icon" aria-hidden="true">📊</span>
               <span class="tray-btn__label">See Current Results</span>
             </a>
@@ -56,17 +56,16 @@
           <p class="muted mb-0">Cast your ballot to shape this week’s rankings.</p>
 
           <div class="action-tray" role="group" aria-label="Poll actions">
-            <a class="tray-btn tray-btn--primary tray-btn--glow" href="{{ url_for('poll.vote_form') }}">
+            <a class="tray-btn tray-btn--primary tray-btn--glow" href="{{ url_for('poll.vote_form', poll_id=open_poll.id) }}">
               <span class="tray-btn__icon" aria-hidden="true">🗳️</span>
               <span class="tray-btn__label">Vote Now</span>
             </a>
 
-            {% if open_poll %}
-              <a class="tray-btn tray-btn--ghost" href="{{ url_for('poll.results_by_id', poll_id=open_poll.id) }}">
-                <span class="tray-btn__icon" aria-hidden="true">👀</span>
-                <span class="tray-btn__label">See Current Results</span>
-              </a>
-            {% endif %}
+            <!-- link to THIS poll's results -->
+            <a class="tray-btn tray-btn--ghost" href="{{ url_for('poll.results', poll_id=open_poll.id) }}">
+              <span class="tray-btn__icon" aria-hidden="true">👀</span>
+              <span class="tray-btn__label">See Current Results</span>
+            </a>
           </div>
         </div>
       {% endif %}
@@ -82,24 +81,24 @@
           <p class="muted mt-0">{{ latest_past_poll.title }}</p>
         </div>
         <div class="align-end">
-          <!-- IMPORTANT: link to the specific past poll id -->
-          <a class="btn" href="{{ url_for('poll.results_by_id', poll_id=latest_past_poll.id) }}">View Results</a>
+          <!-- IMPORTANT: use poll.results with poll_id -->
+          <a class="btn" href="{{ url_for('poll.results', poll_id=latest_past_poll.id) }}">View Results</a>
         </div>
       </header>
     </div>
   {% endif %}
 
-  <!-- Quick link: browse all polls -->
+  <!-- Browse all polls -->
   <div class="card">
-    <div class="split-row">
+    <header class="split-row">
       <div>
-        <h3 class="mb-0">All Polls</h3>
-        <p class="muted mt-0 small">Browse and open any poll’s results.</p>
+        <h3 class="mb-0">Browse Polls</h3>
+        <p class="muted mt-0">See every week’s vote and results</p>
       </div>
       <div class="align-end">
-        <a class="btn" href="{{ url_for('poll.poll_list') }}">Open Poll Directory</a>
+        <a class="btn" href="{{ url_for('poll.poll_list') }}">All Polls</a>
       </div>
-    </div>
+    </header>
   </div>
 
   <!-- Admin quick-open tools (visible only to admins) -->
@@ -108,6 +107,7 @@
       <h3 class="mb-0">Admin</h3>
       <p class="muted mt-0 small">Open a new poll or (re)seed teams.</p>
 
+      <!-- Open Poll -->
       <form method="post"
             action="{{ url_for('poll.admin_new_poll') }}"
             class="form-grid mt-2"
@@ -132,6 +132,7 @@
         </div>
       </form>
 
+      <!-- Seed Teams -->
       <form method="post" action="{{ url_for('poll.admin_seed_teams') }}" class="mt-2">
         <button class="btn sm" type="submit">Seed Teams</button>
       </form>

@@ -396,16 +396,13 @@
 }
 .table-results {
   min-width: 600px;
-}
-.table-results th:nth-child(2),
-.table-results td:nth-child(2) {
-  min-width: 200px;
-  max-width: 250px;
+  table-layout: auto;
 }
 .rank-cell {
   font-weight: 700;
   color: var(--brand, #6ee7ff);
-  width: 50px;
+  width: 1%;
+  white-space: nowrap;
 }
 .team-cell {
   display: flex;
@@ -421,8 +418,6 @@
 }
 .team-name {
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Delta indicators */
@@ -504,26 +499,17 @@
 }
 .stats-table {
   margin: 0;
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
-  min-width: 400px;
 }
 .stats-table th,
 .stats-table td {
-  padding: 10px 12px;
+  padding: 10px 14px;
   font-size: 0.875rem;
   white-space: nowrap;
 }
-.stats-table th:first-child,
-.stats-table td:first-child {
-  width: 40%;
-  max-width: 180px;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .stats-table td.truncate {
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -531,7 +517,6 @@
 .stats-table th.num,
 .stats-table td.num {
   text-align: right;
-  width: auto;
 }
 
 /* Ballot Grid */

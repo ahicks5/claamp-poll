@@ -4,91 +4,158 @@
 
 <section class="container results-container">
 
-  <div class="card">
-    <header class="results-head">
-      <h1 class="results-title">Results: {{ poll.title }}</h1>
+  <!-- Sticky Results Header -->
+  <div class="results-header">
+    <div class="results-header__content">
+      <h1 class="results-title">{{ poll.title }}</h1>
       <div class="results-meta">
-        <span class="muted">Submitted by: {{ submitters|default([],true)|join(", ") or "—" }}</span>
+        <span class="meta-item">{{ poll.season }} • Week {{ poll.week }}</span>
+        <span class="meta-divider">|</span>
+        <span class="meta-item">{{ submitters|default([],true)|length }} voters</span>
       </div>
-    </header>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs" role="tablist">
+    <button class="tab tab--active" data-tab="rankings" role="tab" aria-selected="true">Rankings</button>
+    <button class="tab" data-tab="stats" role="tab" aria-selected="false">Stats</button>
+    <button class="tab" data-tab="ballots" role="tab" aria-selected="false">Ballots</button>
+  </div>
+
+  <!-- Tab Content: Rankings -->
+  <div id="rankings" class="tab-panel tab-panel--active" role="tabpanel">
 
     {% if top_rows and top_rows|length %}
+      <!-- Top 25 -->
+      <div class="card">
+        <h2 class="section-title">Top 25</h2>
 
-      <!-- Unified responsive table (desktop & mobile) -->
-      <div class="table-wrap mt-2 h-scroll">
-        <table class="table table-results">
-          <thead>
-            <tr>
-              <th class="num">#</th>
-              <th>Team</th>
-              <th class="num">Pts</th>
-              <th class="num">1st</th>
-              <th class="num">CFP Rank</th>
-              <th class="num">Δ</th>
-              <th class="num">Min</th>
-              <th class="num">Max</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in top_rows %}
-              {% set fname = logo_map.get(r.team) %}
-              {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
-              <tr>
-                <td class="num">{{ r.group_rank }}</td>
-                <td class="team-cell">
-                  <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
+        <!-- Mobile Cards (show on mobile) -->
+        <div class="rankings-mobile">
+          {% for r in top_rows %}
+            {% set fname = logo_map.get(r.team) %}
+            {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
+            <div class="rank-card">
+              <div class="rank-card__header">
+                <span class="rank-badge">#{{ r.group_rank }}</span>
+                <div class="rank-card__team">
+                  <img class="rank-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
                        onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
-                  <span class="team-name">{{ r.team }}</span>
-                </td>
-                <td class="num">{{ r.points }}</td>
-                <td class="num">{{ r.firsts }}</td>
-                <td class="num">{{ r.default_rank or "—" }}</td>
-                {% set d = r.delta_vs_default %}
-                <td class="num">
-                  {% if d is not none %}
-                    {% if d > 0 %}
-                      <span class="delta up">↑ {{ d }}</span>
-                    {% elif d < 0 %}
-                      <span class="delta down">↓ {{ (0 - d) }}</span>
-                    {% else %}
-                      <span class="delta flat">—</span>
-                    {% endif %}
-                  {% else %} — {% endif %}
-                </td>
-                <td class="num">{{ r.min_rank or "—" }}</td>
-                <td class="num">{{ r.max_rank or "—" }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                  <span class="rank-team-name">{{ r.team }}</span>
+                </div>
+              </div>
+              <div class="rank-card__stats">
+                <div class="stat">
+                  <span class="stat-label">Points</span>
+                  <span class="stat-value">{{ r.points }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">1st</span>
+                  <span class="stat-value">{{ r.firsts }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Range</span>
+                  <span class="stat-value">{{ r.min_rank or "—" }}-{{ r.max_rank or "—" }}</span>
+                </div>
+                {% if r.default_rank %}
+                <div class="stat">
+                  <span class="stat-label">CFP</span>
+                  <span class="stat-value">{{ r.default_rank }}</span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Desktop Table (show on desktop) -->
+        <div class="rankings-desktop">
+          <div class="table-wrap">
+            <table class="table table-results">
+              <thead>
+                <tr>
+                  <th class="num">#</th>
+                  <th>Team</th>
+                  <th class="num">Pts</th>
+                  <th class="num">1st</th>
+                  <th class="num">CFP</th>
+                  <th class="num">Δ</th>
+                  <th class="num">Min</th>
+                  <th class="num">Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in top_rows %}
+                  {% set fname = logo_map.get(r.team) %}
+                  {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
+                  <tr>
+                    <td class="num rank-cell">{{ r.group_rank }}</td>
+                    <td class="team-cell">
+                      <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
+                           onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
+                      <span class="team-name">{{ r.team }}</span>
+                    </td>
+                    <td class="num">{{ r.points }}</td>
+                    <td class="num">{{ r.firsts }}</td>
+                    <td class="num">{{ r.default_rank or "—" }}</td>
+                    {% set d = r.delta_vs_default %}
+                    <td class="num">
+                      {% if d is not none %}
+                        {% if d > 0 %}
+                          <span class="delta up">↑{{ d }}</span>
+                        {% elif d < 0 %}
+                          <span class="delta down">↓{{ (0 - d) }}</span>
+                        {% else %}
+                          <span class="delta flat">—</span>
+                        {% endif %}
+                      {% else %} — {% endif %}
+                    </td>
+                    <td class="num">{{ r.min_rank or "—" }}</td>
+                    <td class="num">{{ r.max_rank or "—" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
+      <!-- Others Receiving Votes -->
       {% if others and others|length %}
-        <p class="muted others mt-2">
-          <strong>Others receiving votes:</strong>
-          {% for o in others %}
-            {{ o.team }} ({{ o.points }}){% if not loop.last %},{% endif %}
-          {% endfor %}
-        </p>
+        <div class="card mt-2">
+          <h3 class="section-subtitle">Others Receiving Votes</h3>
+          <div class="others-list">
+            {% for o in others %}
+              <span class="other-team">{{ o.team }} <span class="other-points">({{ o.points }})</span></span>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </div>
+        </div>
       {% endif %}
+
     {% else %}
-      <p class="muted">No ballots yet.</p>
+      <div class="card">
+        <div class="empty-state">
+          <p class="empty-state__icon">📊</p>
+          <p class="muted">No ballots submitted yet.</p>
+        </div>
+      </div>
     {% endif %}
+
   </div>
-  <!-- Poll Stats -->
-  <div class="card stats-card mt-3">
-    <header class="stats-card__header">
-      <h2 class="stats-card__title">Poll Stats</h2>
-      <p class="muted small">All stats are contained within this card. Scroll inside tables when needed →</p>
-    </header>
 
-    <div class="stats-grid" role="region" aria-label="Poll statistics">
-      <!-- Most deviant ballots -->
-      <section class="stats-section">
-        <h3 class="stats-section__title">Most deviant ballots</h3>
-        <p class="muted small">(Higher distance = farther from consensus)</p>
+  <!-- Tab Content: Stats -->
+  <div id="stats" class="tab-panel" role="tabpanel" hidden>
 
-        <div class="stat-table-wrap" tabindex="0">
+    <!-- Deviant Ballots -->
+    <details class="stat-accordion" open>
+      <summary class="stat-accordion__header">
+        <h3 class="stat-accordion__title">Most Deviant Ballots</h3>
+        <span class="stat-accordion__icon">▼</span>
+      </summary>
+      <div class="stat-accordion__content">
+        <p class="muted small mb-2">Higher distance = farther from consensus</p>
+        <div class="stat-table-wrap">
           <table class="table stats-table">
             <thead>
               <tr>
@@ -106,145 +173,536 @@
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
+    </details>
 
-      <!-- Most different pair -->
-      <section class="stats-section">
-        <h3 class="stats-section__title">Most different pair</h3>
-
-        {% if stats.most_different_pair %}
-          {% set p = stats.most_different_pair %}
-          <p class="mt-1"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
-
-          <div class="stat-table-wrap" tabindex="0">
-            <table class="table stats-table">
-              <thead>
+    <!-- Most Different Pair -->
+    {% if stats.most_different_pair %}
+    <details class="stat-accordion">
+      <summary class="stat-accordion__header">
+        <h3 class="stat-accordion__title">Most Different Pair</h3>
+        <span class="stat-accordion__icon">▼</span>
+      </summary>
+      <div class="stat-accordion__content">
+        {% set p = stats.most_different_pair %}
+        <p class="pair-intro"><strong>{{ p.a }}</strong> vs <strong>{{ p.b }}</strong> — distance {{ p.distance }}</p>
+        <div class="stat-table-wrap">
+          <table class="table stats-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th class="num">{{ p.a }}</th>
+                <th class="num">{{ p.b }}</th>
+                <th class="num">Δ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in stats.pair_differences[:10] %}
                 <tr>
-                  <th>Team</th>
-                  <th class="num">Rank ({{ p.a }})</th>
-                  <th class="num">Rank ({{ p.b }})</th>
-                  <th class="num">Δ</th>
+                  <td class="truncate">{{ d.team }}</td>
+                  <td class="num">{{ d.rank_a or "—" }}</td>
+                  <td class="num">{{ d.rank_b or "—" }}</td>
+                  <td class="num">{{ d.abs_diff }}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {% for d in stats.pair_differences %}
-                  <tr>
-                    <td class="truncate">{{ d.team }}</td>
-                    <td class="num">{{ d.rank_a or "—" }}</td>
-                    <td class="num">{{ d.rank_b or "—" }}</td>
-                    <td class="num">{{ d.abs_diff }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <p class="muted">Not enough ballots to compare.</p>
-        {% endif %}
-      </section>
-
-      <!-- Steadiest / Most volatile -->
-      <section class="stats-section stats-section--span2">
-        <h3 class="stats-section__title">Most consistent / most volatile</h3>
-        <p class="muted small">(Std dev over submitted ballots; smaller = more consistent)</p>
-
-        <div class="split-cols">
-          <!-- Steadiest -->
-          <div class="stats-subsection">
-            <h4 class="stats-subsection__title">Steadiest (top 10)</h4>
-            <div class="stat-table-wrap" tabindex="0">
-              <table class="table stats-table">
-                <thead>
-                  <tr>
-                    <th>Team</th>
-                    <th class="num">StdDev</th>
-                    <th class="num">Min</th>
-                    <th class="num">Max</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for r in (stats.team_consistency | list)[:10] %}
-                    <tr>
-                      <td class="truncate">{{ r.team }}</td>
-                      <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
-                      <td class="num">{{ r.min_rank or "—" }}</td>
-                      <td class="num">{{ r.max_rank or "—" }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Most volatile -->
-          <div class="stats-subsection">
-            <h4 class="stats-subsection__title">Most volatile (top 10)</h4>
-            <div class="stat-table-wrap" tabindex="0">
-              <table class="table stats-table">
-                <thead>
-                  <tr>
-                    <th>Team</th>
-                    <th class="num">StdDev</th>
-                    <th class="num">Min</th>
-                    <th class="num">Max</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for r in (stats.team_volatile | list)[:10] %}
-                    <tr>
-                      <td class="truncate">{{ r.team }}</td>
-                      <td class="num">{{ "%.2f"|format(r.stddev) }}</td>
-                      <td class="num">{{ r.min_rank or "—" }}</td>
-                      <td class="num">{{ r.max_rank or "—" }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      </section>
-    </div>
+      </div>
+    </details>
+    {% endif %}
+
+    <!-- Most Consistent -->
+    <details class="stat-accordion">
+      <summary class="stat-accordion__header">
+        <h3 class="stat-accordion__title">Most Consistent Teams</h3>
+        <span class="stat-accordion__icon">▼</span>
+      </summary>
+      <div class="stat-accordion__content">
+        <p class="muted small mb-2">Lowest std dev = most consistent ranking</p>
+        <div class="stat-table-wrap">
+          <table class="table stats-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th class="num">StdDev</th>
+                <th class="num">Range</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in (stats.team_consistency | list)[:10] %}
+                <tr>
+                  <td class="truncate">{{ r.team }}</td>
+                  <td class="num">{{ "%.1f"|format(r.stddev) }}</td>
+                  <td class="num">{{ r.min_rank or "—" }}-{{ r.max_rank or "—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <!-- Most Volatile -->
+    <details class="stat-accordion">
+      <summary class="stat-accordion__header">
+        <h3 class="stat-accordion__title">Most Volatile Teams</h3>
+        <span class="stat-accordion__icon">▼</span>
+      </summary>
+      <div class="stat-accordion__content">
+        <p class="muted small mb-2">Highest std dev = most disagreement</p>
+        <div class="stat-table-wrap">
+          <table class="table stats-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th class="num">StdDev</th>
+                <th class="num">Range</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in (stats.team_volatile | list)[:10] %}
+                <tr>
+                  <td class="truncate">{{ r.team }}</td>
+                  <td class="num">{{ "%.1f"|format(r.stddev) }}</td>
+                  <td class="num">{{ r.min_rank or "—" }}-{{ r.max_rank or "—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
   </div>
 
+  <!-- Tab Content: Ballots -->
+  <div id="ballots" class="tab-panel" role="tabpanel" hidden>
+    <div class="card">
+      <h2 class="section-title">Individual Ballots</h2>
+      <p class="muted small mb-3">Each row shows one voter's complete ballot (ranks 1–{{ MAX_RANK or 25 }})</p>
 
-  <!-- AP-style ballot grid -->
-  <div class="card mt-3">
-    <h2>Ballot Grid</h2>
-    <p class="muted small">Each row is a voter; columns are ranks 1–{{ MAX_RANK or 25 }}. Scroll → on mobile.</p>
-
-    <div class="ballot-grid-wrap">
-      <table class="ballot-grid">
-        <thead>
-          <tr>
-            <th>Voter</th>
-            {% for r in range(1, (MAX_RANK or 25) + 1) %}
-              <th class="num">{{ r }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in voter_grid %}
+      <div class="ballot-grid-wrap">
+        <table class="ballot-grid">
+          <thead>
             <tr>
-              <td class="voter-name">{{ row.voter_name }}</td>
-              {% for cell in row.ranks %}
-                <td class="grid-cell">
-                  {% if cell.team_id %}
-                    {% set file = cell.file or "default.png" %}
-                    <img src="{{ url_for('static', filename='images/logos/' ~ file) }}"
-                         alt="{{ cell.team }} logo"
-                         onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
-                  {% else %}
-                    <span class="muted">—</span>
-                  {% endif %}
-                </td>
+              <th class="voter-col">Voter</th>
+              {% for r in range(1, (MAX_RANK or 25) + 1) %}
+                <th class="num rank-col">{{ r }}</th>
               {% endfor %}
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for row in voter_grid %}
+              <tr>
+                <td class="voter-name">{{ row.voter_name }}</td>
+                {% for cell in row.ranks %}
+                  <td class="grid-cell">
+                    {% if cell.team_id %}
+                      {% set file = cell.file or "default.png" %}
+                      <img src="{{ url_for('static', filename='images/logos/' ~ file) }}"
+                           alt="{{ cell.team }} logo"
+                           title="{{ cell.team }}"
+                           onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
+                    {% else %}
+                      <span class="muted">—</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
 </section>
+
+<style>
+/* Results Header */
+.results-header {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.results-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
+}
+.results-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--muted, #9aa6b2);
+}
+.meta-divider {
+  opacity: 0.5;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--panel-2, #10141c);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #1f2633);
+  overflow-x: auto;
+}
+.tab {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #9aa6b2);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tab:hover {
+  background: var(--panel-1, #0c111a);
+  color: var(--text, #e9edf2);
+}
+.tab--active {
+  background: var(--panel-1, #0c111a);
+  color: var(--brand, #6ee7ff);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Tab Panels */
+.tab-panel {
+  display: none;
+}
+.tab-panel--active {
+  display: block;
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+.section-subtitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+/* Mobile Rankings Cards */
+.rankings-mobile {
+  display: grid;
+  gap: 12px;
+}
+.rank-card {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 10px;
+  padding: 14px;
+}
+.rank-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  background: var(--panel-2, #161a20);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--brand, #6ee7ff);
+}
+.rank-card__team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.rank-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.rank-team-name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.rank-card__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, #1f2633);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted, #9aa6b2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text, #e9edf2);
+}
+
+/* Desktop Rankings Table */
+.rankings-desktop {
+  display: none;
+}
+.rank-cell {
+  font-weight: 700;
+  color: var(--brand, #6ee7ff);
+}
+.team-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+/* Delta indicators */
+.delta {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.delta.up {
+  color: var(--accent, #7cffb7);
+}
+.delta.down {
+  color: #ff6b6b;
+}
+.delta.flat {
+  color: var(--muted, #9aa6b2);
+}
+
+/* Others Receiving Votes */
+.others-list {
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+.other-team {
+  color: var(--text, #e9edf2);
+}
+.other-points {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.85rem;
+}
+
+/* Stat Accordions */
+.stat-accordion {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.stat-accordion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.stat-accordion__header::-webkit-details-marker {
+  display: none;
+}
+.stat-accordion__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.stat-accordion__icon {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  color: var(--muted, #9aa6b2);
+}
+.stat-accordion[open] .stat-accordion__icon {
+  transform: rotate(180deg);
+}
+.stat-accordion__content {
+  padding: 0 16px 16px 16px;
+}
+.pair-intro {
+  margin: 0 0 12px 0;
+  padding: 12px;
+  background: var(--panel-1, #0c111a);
+  border-radius: 8px;
+  border: 1px solid var(--line, #1f2633);
+}
+.stat-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line, #1f2633);
+}
+.stats-table {
+  margin: 0;
+}
+.stats-table th,
+.stats-table td {
+  padding: 10px 12px;
+  font-size: 0.875rem;
+}
+
+/* Ballot Grid */
+.ballot-grid-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+}
+.ballot-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.ballot-grid thead {
+  position: sticky;
+  top: 0;
+  background: var(--panel-2, #161a20);
+  z-index: 2;
+}
+.ballot-grid th {
+  padding: 8px 6px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--line, #1f2633);
+  white-space: nowrap;
+}
+.ballot-grid .voter-col {
+  position: sticky;
+  left: 0;
+  background: var(--panel-2, #161a20);
+  z-index: 3;
+  min-width: 100px;
+  text-align: left;
+}
+.ballot-grid tbody .voter-name {
+  position: sticky;
+  left: 0;
+  background: var(--panel-1, #0c111a);
+  z-index: 1;
+  padding: 8px 12px;
+  font-weight: 500;
+  border-right: 1px solid var(--line, #1f2633);
+}
+.ballot-grid .rank-col {
+  font-size: 0.75rem;
+  color: var(--muted, #9aa6b2);
+}
+.ballot-grid .grid-cell {
+  padding: 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--line, #1f2633);
+  min-width: 32px;
+}
+.ballot-grid .grid-cell img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsive */
+@media (min-width: 769px) {
+  .results-title {
+    font-size: 2rem;
+  }
+  .rankings-mobile {
+    display: none;
+  }
+  .rankings-desktop {
+    display: block;
+  }
+  .stat-accordion {
+    margin-bottom: 16px;
+  }
+  .stat-accordion__header {
+    padding: 20px;
+  }
+  .stat-accordion__content {
+    padding: 0 20px 20px 20px;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+.empty-state__icon {
+  font-size: 3rem;
+  margin: 0 0 12px 0;
+}
+
+/* Utility classes */
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+</style>
+
+<script>
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.dataset.tab;
+
+      // Update tabs
+      tabs.forEach(t => {
+        t.classList.remove('tab--active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('tab--active');
+      tab.setAttribute('aria-selected', 'true');
+
+      // Update panels
+      panels.forEach(panel => {
+        panel.classList.remove('tab-panel--active');
+        panel.hidden = true;
+      });
+      const targetPanel = document.getElementById(targetId);
+      targetPanel.classList.add('tab-panel--active');
+      targetPanel.hidden = false;
+    });
+  });
+});
+</script>
+
 {% endblock %}

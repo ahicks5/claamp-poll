@@ -39,6 +39,9 @@ Ballot grid & slots (theme-friendly)
   place-items: center;
   padding: 14px;
   box-sizing: border-box;
+  min-height: 96px;
+  height: 100%;
+  width: 100%;
 }
 
 .rank-dropzone--hover {

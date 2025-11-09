@@ -894,41 +894,7 @@ def share_ballot_png(ballot_id:int):
         # cell border
         draw.rectangle((x0, y0, x1, y1), outline=(28, 35, 48), width=1)
 
-        # modern rank badge (pill-style)
-        rank_str = str(r)
-        rank_w = draw.textlength(rank_str, font=rank_font_bold)
-        badge_w = int(rank_w + 28)
-        badge_h = 32
-        badge_x = x0 + 16
-        badge_y = y0 + 14
-
-        # Badge background with gradient-like effect (darker to brand)
-        if r <= 5:
-            # Top 5 get accent color
-            badge_color = (110, 231, 255)  # brand cyan
-            text_color = (12, 17, 26)  # dark text
-        elif r <= 10:
-            # Top 10 get subtle brand
-            badge_color = (75, 180, 200)
-            text_color = (240, 242, 245)
-        else:
-            # Others get muted
-            badge_color = (35, 43, 58)
-            text_color = (180, 190, 205)
-
-        draw.rounded_rectangle(
-            (badge_x, badge_y, badge_x + badge_w, badge_y + badge_h),
-            radius=16,
-            fill=badge_color
-        )
-        draw.text(
-            (badge_x + badge_w//2 - rank_w//2, badge_y + 3),
-            rank_str,
-            fill=text_color,
-            font=rank_font_bold
-        )
-
-        # logo + label if present
+        # logo + label if present (draw BEFORE badge so badge appears on top)
         if r <= len(items):
             team_name = teams.get(items[r-1].team_id, "—")
             logo = _load_team_logo(team_name, logo_map, size=140)
@@ -966,6 +932,40 @@ def share_ballot_png(ballot_id:int):
             # empty placeholder
             dash_w = draw.textlength("—", font=label_font)
             draw.text((x0 + (CELL_W - dash_w)//2, y0 + CELL_H - 38), "—", fill=(70, 80, 95), font=label_font)
+
+        # modern rank badge (pill-style) - drawn LAST so it appears on top
+        rank_str = str(r)
+        rank_w = draw.textlength(rank_str, font=rank_font_bold)
+        badge_w = int(rank_w + 28)
+        badge_h = 32
+        badge_x = x0 + 16
+        badge_y = y0 + 14
+
+        # Badge background with gradient-like effect (darker to brand)
+        if r <= 5:
+            # Top 5 get accent color
+            badge_color = (110, 231, 255)  # brand cyan
+            text_color = (12, 17, 26)  # dark text
+        elif r <= 10:
+            # Top 10 get subtle brand
+            badge_color = (75, 180, 200)
+            text_color = (240, 242, 245)
+        else:
+            # Others get muted
+            badge_color = (35, 43, 58)
+            text_color = (180, 190, 205)
+
+        draw.rounded_rectangle(
+            (badge_x, badge_y, badge_x + badge_w, badge_y + badge_h),
+            radius=16,
+            fill=badge_color
+        )
+        draw.text(
+            (badge_x + badge_w//2 - rank_w//2, badge_y + 3),
+            rank_str,
+            fill=text_color,
+            font=rank_font_bold
+        )
 
     # modern footer with branding
     footer_font = _load_font(22)

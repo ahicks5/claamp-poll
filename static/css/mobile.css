@@ -43,3 +43,55 @@ small, .small { font-size: var(--step--1); }
 .card, .stats-card, .container {
   overflow: visible;
 }
+
+
+/* Mobile-first spacing & rhythm */
+.index-hero__head { display: grid; gap: 6px; }
+.index-hero__title { margin: 0; font-size: clamp(20px, 4.6vw, 28px); line-height: 1.15; }
+.index-hero__subtitle { margin: 0; font-size: clamp(14px, 3.8vw, 16px); }
+
+.index-actions { margin-top: 12px; display: grid; gap: 10px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.split-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.split-row .mb-0 { margin-bottom: 0; }
+.split-row .mt-0 { margin-top: 0; }
+.align-end { display: flex; justify-content: flex-end; }
+
+.admin-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Form grid refinement on tiny screens */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 520px) {
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+/* Touch targets and prevent overflow */
+.card .btn,
+.card button,
+.card a.btn {
+  min-height: 40px;
+}
+
+.container {
+  /* ensure no horizontal scroll due to inner elements */
+  overflow-x: clip;
+}

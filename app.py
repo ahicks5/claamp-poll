@@ -81,9 +81,8 @@ def debug_db():
         return jsonify(error=f"{e.__class__.__name__}: {e}"), 500
 
 @app.context_processor
-def inject_globals():
-    from datetime import datetime, timezone
-    return {"current_year": datetime.now(timezone.utc).year}
+def inject_year():
+    return {"year": datetime.utcnow().year}
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":

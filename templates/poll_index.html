@@ -1,65 +1,97 @@
 {% extends "base.html" %}
 {% block title %}CLAAMP Poll{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/index.css') }}"/>
+
 <section class="container stack">
 
-  <div class="card">
-    <h1>Friends AP Poll</h1>
+  <!-- Hero / Status Card -->
+  <div class="card index-hero">
+    <header class="index-hero__head">
+      <h1 class="index-hero__title">Friends AP Poll</h1>
+      {% if open_poll %}
+        <p class="index-hero__subtitle">
+          Current: <strong>{{ open_poll.title }}</strong>
+          <span class="muted">({{ open_poll.season }} • Week {{ open_poll.week }})</span>
+        </p>
+      {% else %}
+        <p class="index-hero__subtitle muted">No open poll right now.</p>
+      {% endif %}
+    </header>
 
     {% if open_poll %}
-      <h2>Current: {{ open_poll.title }} ({{ open_poll.season }} • Week {{ open_poll.week }})</h2>
-
       {% if user_ballot and user_ballot.submitted_at %}
-        <p class="muted">You submitted a ballot.</p>
-        <div class="flex gap-2">
-          <a class="btn" href="{{ url_for('poll.vote_form') }}">Edit Ballot</a>
-          <a class="btn btn-primary" href="{{ url_for('poll.results') }}">See Results</a>
-          <a class="btn sm" href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}" target="_blank" download>
-            Share image
-          </a>
+        <div class="index-actions">
+          <p class="muted">You submitted a ballot.</p>
+          <div class="btn-row">
+            <a class="btn" href="{{ url_for('poll.vote_form') }}">Edit Ballot</a>
+            <a class="btn btn-primary" href="{{ url_for('poll.results') }}">See Results</a>
+            <a class="btn sm" href="{{ url_for('poll.share_ballot_png', ballot_id=user_ballot.id) }}"
+               target="_blank" download>
+              Share image
+            </a>
+          </div>
         </div>
       {% else %}
-        <a class="btn btn-primary" href="{{ url_for('poll.vote_form') }}">Vote Now</a>
+        <div class="index-actions">
+          <p class="muted">Cast your ballot to contribute to this week’s rankings.</p>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="{{ url_for('poll.vote_form') }}">Vote Now</a>
+            <a class="btn" href="{{ url_for('poll.results') }}">See Current Results</a>
+          </div>
+        </div>
       {% endif %}
-
-    {% else %}
-      <p class="muted">No open poll.</p>
     {% endif %}
   </div>
 
+  <!-- Latest Past Results -->
   {% if latest_past_poll %}
     <div class="card">
-      <h3>Most Recent Results</h3>
-      <p>{{ latest_past_poll.title }}</p>
-      <a class="btn" href="{{ url_for('poll.results') }}">View Results</a>
+      <header class="split-row">
+        <div>
+          <h3 class="mb-0">Most Recent Results</h3>
+          <p class="muted mt-0">{{ latest_past_poll.title }}</p>
+        </div>
+        <div class="align-end">
+          <a class="btn" href="{{ url_for('poll.results') }}">View Results</a>
+        </div>
+      </header>
     </div>
   {% endif %}
 
-  {% if current_user.is_admin %}
+  <!-- Admin quick-open tools (visible only to admins) -->
+  {% if current_user.is_authenticated and current_user.is_admin %}
     <div class="card">
       <h3>Admin</h3>
 
-      <form method="post" action="{{ url_for('poll.admin_new_poll') }}" class="form-grid mt-2">
+      <!-- Open Poll (separate, standalone form) -->
+      <form method="post"
+            action="{{ url_for('poll.admin_new_poll') }}"
+            class="form-grid mt-2"
+            autocomplete="on"
+            novalidate>
         <div>
-          <label class="label">Season</label>
-          <input name="season" type="number" placeholder="2025" required>
+          <label class="label" for="season">Season</label>
+          <input id="season" name="season" type="number" inputmode="numeric" placeholder="2025" required>
         </div>
         <div>
-          <label class="label">Week</label>
-          <input name="week" type="number" placeholder="12" required>
+          <label class="label" for="week">Week</label>
+          <input id="week" name="week" type="number" inputmode="numeric" placeholder="12" required>
         </div>
         <div>
-          <label class="label">Title</label>
-          <input name="title" type="text" placeholder="Week 12 AP (Friends) Poll" required>
+          <label class="label" for="title">Title</label>
+          <input id="title" name="title" type="text" placeholder="Week 12 AP (Friends) Poll" required>
         </div>
 
-        <div style="grid-column:1/-1; display:flex; gap:10px; justify-content:flex-end;">
-          <button class="btn btn-primary">Open Poll</button>
+        <div class="admin-actions">
+          <button class="btn btn-primary" type="submit">Open Poll</button>
           <a class="btn" href="{{ url_for('poll.admin_panel') }}">Admin Panel</a>
-          <form method="post" action="{{ url_for('poll.admin_seed_teams') }}">
-            <button class="btn">Seed Teams</button>
-          </form>
         </div>
+      </form>
+
+      <!-- Seed Teams (its own form; no nesting) -->
+      <form method="post" action="{{ url_for('poll.admin_seed_teams') }}" class="mt-2">
+        <button class="btn sm" type="submit">Seed Teams</button>
       </form>
     </div>
   {% endif %}

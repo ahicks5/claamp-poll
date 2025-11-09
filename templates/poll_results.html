@@ -32,12 +32,12 @@
           <tbody>
             {% for r in top_rows %}
               {% set fname = logo_map.get(r.team) %}
-              {% set img_src = fname and url_for('static', filename='logos/' ~ fname) or url_for('static', filename='logos/default.png') %}
+              {% set img_src = fname and url_for('static', filename='images/logos/' ~ fname) or url_for('static', filename='images/logos/default.png') %}
               <tr>
                 <td class="num">{{ r.group_rank }}</td>
                 <td class="team-cell">
                   <img class="team-logo" src="{{ img_src }}" alt="{{ r.team }} logo"
-                       onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+                       onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
                   <span class="team-name">{{ r.team }}</span>
                 </td>
                 <td class="num">{{ r.points }}</td>
@@ -231,9 +231,9 @@
                 <td class="grid-cell">
                   {% if cell.team_id %}
                     {% set file = cell.file or "default.png" %}
-                    <img src="{{ url_for('static', filename='logos/' ~ file) }}"
+                    <img src="{{ url_for('static', filename='images/logos/' ~ file) }}"
                          alt="{{ cell.team }} logo"
-                         onerror="this.src='{{ url_for('static', filename='logos/default.png') }}'">
+                         onerror="this.src='{{ url_for('static', filename='images/logos/default.png') }}'">
                   {% else %}
                     <span class="muted">—</span>
                   {% endif %}

@@ -39,20 +39,30 @@
 /* 4) Results table layout – stays table on mobile, but scrolls horizontally */
 .table-results {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 600px;
 }
-.table-results th, .table-results td { white-space: nowrap; padding: 10px 12px; }
-.table-results th:nth-child(2), .table-results td:nth-child(2) { min-width: 260px; }
+.table-results th, .table-results td { white-space: nowrap; padding: 10px 14px; }
 
-.team-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.team-logo { width: 28px; height: 28px; object-fit: contain; }
-.team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-cell {
+  font-weight: 700;
+  color: var(--brand, #6ee7ff);
+  width: 1%;
+  white-space: nowrap;
+}
+
+.team-cell { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.team-logo { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.team-name { font-weight: 500; }
 
 /* Deltas */
-.delta { font-weight: 700; }
-.delta.up   { color: #16a34a; } /* green */
-.delta.down { color: #dc2626; } /* red */
-.delta.flat { color: #94a3b8; }
+.delta {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.delta.up { color: var(--accent, #7cffb7); }
+.delta.down { color: #ff6b6b; }
+.delta.flat { color: var(--muted, #9aa6b2); }
 
 /* 5) Stats grid that won’t overflow */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -241,15 +251,14 @@ html, body {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;         /* equal columns; prevents blowout */
-  min-width: 520px;            /* allow scrolling for small screens */
+  table-layout: auto;
 }
 
 .stats-table th,
 .stats-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  word-break: break-word;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .stats-table th.num,
@@ -260,7 +269,7 @@ html, body {
 
 /* Utility to clip long names without expanding the table */
 .truncate {
-  max-width: 100%;
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -355,39 +364,4 @@ html, body {
   }
 }
 
-/* ---------------------------------------------------------
-   Wide Desktop Table Column Refinements
-   Targeting only the results big table.
-   --------------------------------------------------------- */
-
-.table-results.wide {
-  table-layout: fixed;
-}
-
-/* Rank column: keep it *tight* */
-.table-results.wide th.num:first-child,
-.table-results.wide td.num:first-child {
-  width: 32px;            /* very small */
-  max-width: 32px;
-  min-width: 28px;
-  text-align: right;
-  padding-right: 6px;
-}
-
-/* Team column: give it breathing room */
-.table-results.wide th:nth-child(2),
-.table-results.wide td:nth-child(2) {
-  width: auto;            /* let it expand naturally */
-  min-width: 200px;       /* still safe on desktop */
-}
-
-/* Numeric stats columns: compact, uniform */
-.table-results.wide th.num,
-.table-results.wide td.num {
-  width: 56px;
-  max-width: 60px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 

@@ -10,18 +10,4 @@ Tables (results/admin)
 
 .table-wrap{ border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel); }
 
-/* Results table: logo + name cell */
-.table-results .team-cell {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  align-items: center;
-  gap: 10px;
-}
-.table-results .team-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  background: rgba(255,255,255,.06);
-  border-radius: 6px;
-}
-.table-results .team-name { font-weight: 600; }
+/* Results table: logo + name cell - styles moved to results.css */

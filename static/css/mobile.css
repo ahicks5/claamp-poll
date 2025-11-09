@@ -166,16 +166,3 @@
 .mb-0 { margin-bottom: 0 !important; }
 .mt-0 { margin-top: 0 !important; }
 
-/* --- Mobile refinements for index page --- */
-
-/* Slightly larger tap targets inside trays on small screens */
-@media (max-width: 480px) {
-  .tray-btn { padding: 14px 16px; }
-  .tray-btn__icon { width: 30px; height: 30px; }
-}
-
-/* Reduce container side overflow risk on tiny devices */
-.container { overflow-x: clip; }
-
-/* Ensure pills don’t wrap awkwardly */
-.pill { white-space: nowrap; }

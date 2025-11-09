@@ -28,7 +28,7 @@
             <td>{{ p.title }}</td>
             <td>{{ 'Open' if p.is_open else 'Closed' }}</td>
             <td>
-              <a class="btn sm" href="{{ url_for('poll.results_by_id', poll_id=p.id) }}">Results</a>
+              <a class="btn sm" href="{{ url_for('poll.results', poll_id=p.id) }}">Results</a>
             </td>
           </tr>
         {% else %}

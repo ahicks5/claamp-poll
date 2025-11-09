@@ -181,25 +181,39 @@ def require_admin():
 @login_required
 def dashboard():
     with SessionLocal() as s:
-        open_poll = s.execute(
-            select(Poll).where(Poll.is_open == True).order_by(Poll.season.desc(), Poll.week.desc())
-        ).scalars().first()
+        # Fetch ALL polls, ordered by season/week descending (newest first)
+        all_polls = s.execute(
+            select(Poll).order_by(Poll.season.desc(), Poll.week.desc())
+        ).scalars().all()
 
-        latest_past = s.execute(
-            select(Poll).where(Poll.is_open == False).order_by(Poll.season.desc(), Poll.week.desc())
-        ).scalars().first()
+        # Get user's ballot status for each open poll
+        user_ballots = {}
+        open_poll_ids = [p.id for p in all_polls if p.is_open]
+        if open_poll_ids:
+            ballots = s.execute(
+                select(Ballot).where(
+                    Ballot.poll_id.in_(open_poll_ids),
+                    Ballot.user_id == current_user.id
+                )
+            ).scalars().all()
+            user_ballots = {b.poll_id: b for b in ballots}
 
-        user_ballot = None
-        if open_poll:
-            user_ballot = s.execute(
-                select(Ballot).where(Ballot.poll_id == open_poll.id, Ballot.user_id == current_user.id)
-            ).scalars().first()
+        # Count submitted ballots per poll for display
+        ballot_counts = {}
+        for poll in all_polls:
+            count = s.execute(
+                select(func.count(Ballot.id)).where(
+                    Ballot.poll_id == poll.id,
+                    Ballot.submitted_at.isnot(None)
+                )
+            ).scalar_one()
+            ballot_counts[poll.id] = count
 
     return render_template(
         "poll_index.html",
-        open_poll=open_poll,
-        latest_past_poll=latest_past,
-        user_ballot=user_ballot
+        polls=all_polls,
+        user_ballots=user_ballots,
+        ballot_counts=ballot_counts
     )
 
 

@@ -33,8 +33,15 @@ def get_current_group(user, db_session: Session):
             return group
 
     # Fallback to user's first group (usually CLAAMP)
-    if user.groups:
-        group = user.groups[0]
+    # Query through the session instead of accessing user.groups (which may be detached)
+    membership = db_session.execute(
+        select(GroupMembership)
+        .where(GroupMembership.user_id == user.id)
+        .limit(1)
+    ).scalar_one_or_none()
+
+    if membership:
+        group = membership.group
         set_current_group_id(group.id)  # Update session
         return group
 

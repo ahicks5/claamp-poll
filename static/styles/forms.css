@@ -2,7 +2,7 @@
 Forms & Alerts
 ===================== */
 .input, input[type="text"], input[type="number"], input[type="email"], input[type="password"], select{
-width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+padding:10px 12px; border-radius:10px; border:1px solid var(--line);
 background:var(--panel); color:var(--text); outline:none;
 }
 .input:focus, input:focus, select:focus{ box-shadow: var(--focus); }

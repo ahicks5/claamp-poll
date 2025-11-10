@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Create Group{% endblock %}
+{% block content %}
+
+<section class="container">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Create New Group</h1>
+      <p class="page-subtitle muted">Create a new group for your friends or community</p>
+    </div>
+    <a href="{{ url_for('groups.groups_dashboard') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+
+  <!-- Create Form -->
+  <div class="form-container">
+    <form method="POST" action="{{ url_for('groups.create_group') }}" class="create-form">
+
+      <!-- Group Name -->
+      <div class="form-group">
+        <label for="name" class="form-label">Group Name <span class="required">*</span></label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          class="form-input"
+          placeholder="e.g., My Friend League"
+          maxlength="128"
+          required
+          autofocus
+        >
+        <p class="form-hint">Choose a unique and memorable name for your group</p>
+      </div>
+
+      <!-- Group Description -->
+      <div class="form-group">
+        <label for="description" class="form-label">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          class="form-input form-textarea"
+          placeholder="Describe what this group is about..."
+          rows="4"
+        ></textarea>
+        <p class="form-hint">Optional - help people understand what this group is for</p>
+      </div>
+
+      <!-- Group Type -->
+      <div class="form-group">
+        <label class="form-label">Group Type <span class="required">*</span></label>
+        <div class="radio-cards">
+          <label class="radio-card">
+            <input type="radio" name="is_public" value="true" checked>
+            <div class="radio-card__content">
+              <div class="radio-card__header">
+                <span class="radio-card__icon">🌍</span>
+                <span class="radio-card__title">Public Group</span>
+              </div>
+              <p class="radio-card__description">Anyone can search for and join this group</p>
+            </div>
+          </label>
+
+          <label class="radio-card">
+            <input type="radio" name="is_public" value="false">
+            <div class="radio-card__content">
+              <div class="radio-card__header">
+                <span class="radio-card__icon">🔒</span>
+                <span class="radio-card__title">Private Group</span>
+              </div>
+              <p class="radio-card__description">Only people with the invite link can join</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg">Create Group</button>
+        <a href="{{ url_for('groups.groups_dashboard') }}" class="btn btn-ghost btn-lg">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Info Box -->
+  <div class="info-box">
+    <h3 class="info-box__title">💡 Tips</h3>
+    <ul class="info-box__list">
+      <li>Public groups are great for community-wide competitions</li>
+      <li>Private groups are perfect for friend leagues - you'll get a unique invite link</li>
+      <li>You can create polls and spreads specific to each group</li>
+      <li>Members can switch between their groups at any time</li>
+    </ul>
+  </div>
+
+</section>
+
+<style>
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+.page-subtitle {
+  font-size: 1rem;
+  margin: 8px 0 0 0;
+}
+
+/* Form Container */
+.form-container {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+.create-form {
+  max-width: 600px;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 28px;
+}
+.form-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg, #eaeef7);
+  margin-bottom: 8px;
+}
+.required {
+  color: #ff6b6b;
+}
+.form-input {
+  width: 100%;
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  color: var(--fg, #eaeef7);
+  transition: border-color 0.2s ease;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--brand, #6ee7ff);
+}
+.form-textarea {
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.form-hint {
+  font-size: 0.85rem;
+  color: var(--fg-muted, #a8b2c8);
+  margin: 6px 0 0 0;
+}
+
+/* Radio Cards */
+.radio-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.radio-card {
+  position: relative;
+  cursor: pointer;
+}
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.radio-card__content {
+  background: var(--panel-1, #0c111a);
+  border: 2px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+.radio-card:hover .radio-card__content {
+  border-color: var(--brand, #6ee7ff);
+}
+.radio-card input[type="radio"]:checked + .radio-card__content {
+  background: linear-gradient(135deg, rgba(110, 231, 255, 0.1), rgba(110, 231, 255, 0.05));
+  border-color: var(--brand, #6ee7ff);
+  box-shadow: 0 0 0 1px var(--brand, #6ee7ff);
+}
+.radio-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.radio-card__icon {
+  font-size: 1.5rem;
+}
+.radio-card__title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--fg, #eaeef7);
+}
+.radio-card__description {
+  font-size: 0.85rem;
+  color: var(--fg-muted, #a8b2c8);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+}
+
+/* Info Box */
+.info-box {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 24px;
+}
+.info-box__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: var(--fg, #eaeef7);
+}
+.info-box__list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--fg-muted, #a8b2c8);
+  line-height: 1.8;
+}
+.info-box__list li {
+  margin-bottom: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .form-container {
+    padding: 24px;
+  }
+  .radio-cards {
+    grid-template-columns: 1fr;
+  }
+  .form-actions {
+    flex-direction: column;
+  }
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+{% endblock %}

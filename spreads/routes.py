@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from db import SessionLocal
 from models import SpreadPoll, SpreadGame, SpreadPick, Team, User
 from utils.logo_map import logo_map
+from utils.group_helpers import get_current_group
 
 from . import bp
 
@@ -63,19 +64,20 @@ def is_valid_weekend_game(game_time):
     return game_time.month == 11 and game_time.day in (14, 15)
 
 
-def get_latest_open_poll(session):
-    """Get the most recent open SpreadPoll"""
+def get_latest_open_poll(session, group_id):
+    """Get the most recent open SpreadPoll for a group"""
     return session.execute(
         select(SpreadPoll)
-        .where(SpreadPoll.is_open == True)
+        .where(SpreadPoll.is_open == True, SpreadPoll.group_id == group_id)
         .order_by(SpreadPoll.season.desc(), SpreadPoll.week.desc())
     ).scalar_one_or_none()
 
 
-def get_latest_poll(session):
-    """Get the most recent SpreadPoll (open or closed)"""
+def get_latest_poll(session, group_id):
+    """Get the most recent SpreadPoll (open or closed) for a group"""
     return session.execute(
         select(SpreadPoll)
+        .where(SpreadPoll.group_id == group_id)
         .order_by(SpreadPoll.season.desc(), SpreadPoll.week.desc())
     ).scalar_one_or_none()
 
@@ -90,8 +92,16 @@ def dashboard():
     """Spreads dashboard - list of all spread polls"""
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        # Filter polls by current group
         polls = session.execute(
             select(SpreadPoll)
+            .where(SpreadPoll.group_id == current_group.id)
             .order_by(SpreadPoll.season.desc(), SpreadPoll.week.desc())
         ).scalars().all()
 
@@ -148,7 +158,13 @@ def vote_latest():
     """Redirect to vote page for latest open poll"""
     session = SessionLocal()
     try:
-        poll = get_latest_open_poll(session)
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        poll = get_latest_open_poll(session, current_group.id)
         if not poll:
             flash("No open spread polls available.", "warning")
             return redirect(url_for("spreads.dashboard"))
@@ -163,9 +179,20 @@ def vote(season: int, week: int):
     """Vote page for a specific week's spread poll"""
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        # Get poll and verify it belongs to current group
         poll = session.execute(
             select(SpreadPoll)
-            .where(SpreadPoll.season == season, SpreadPoll.week == week)
+            .where(
+                SpreadPoll.season == season,
+                SpreadPoll.week == week,
+                SpreadPoll.group_id == current_group.id
+            )
         ).scalar_one_or_none()
 
         if not poll:
@@ -229,6 +256,12 @@ def submit_vote():
     """Submit picks for a spread poll"""
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         poll_id = request.form.get("poll_id", type=int)
         if not poll_id:
             flash("Invalid poll.", "danger")
@@ -236,6 +269,11 @@ def submit_vote():
 
         poll = session.get(SpreadPoll, poll_id)
         if not poll:
+            flash("Poll not found.", "danger")
+            return redirect(url_for("spreads.dashboard"))
+
+        # Verify poll belongs to current group
+        if poll.group_id != current_group.id:
             flash("Poll not found.", "danger")
             return redirect(url_for("spreads.dashboard"))
 
@@ -347,9 +385,20 @@ def results(season: int, week: int):
     """Results page for a specific week"""
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        # Get poll and verify it belongs to current group
         poll = session.execute(
             select(SpreadPoll)
-            .where(SpreadPoll.season == season, SpreadPoll.week == week)
+            .where(
+                SpreadPoll.season == season,
+                SpreadPoll.week == week,
+                SpreadPoll.group_id == current_group.id
+            )
         ).scalar_one_or_none()
 
         if not poll:
@@ -434,42 +483,58 @@ def stats():
     """Overall statistics and leaderboards"""
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         # Get all users
         users = session.execute(select(User)).scalars().all()
 
-        # Calculate overall stats for each user
+        # Calculate overall stats for each user (only for current group's polls)
         user_stats = []
         for user in users:
-            # Total picks
+            # Total picks (only for current group's polls)
             total_picks = session.execute(
                 select(func.count(SpreadPick.id))
-                .where(SpreadPick.user_id == user.id)
+                .join(SpreadPoll)
+                .where(
+                    SpreadPick.user_id == user.id,
+                    SpreadPoll.group_id == current_group.id
+                )
             ).scalar()
 
             # Correct picks
             correct_picks = session.execute(
                 select(func.count(SpreadPick.id))
+                .join(SpreadPoll)
                 .where(
                     SpreadPick.user_id == user.id,
-                    SpreadPick.is_correct == True
+                    SpreadPick.is_correct == True,
+                    SpreadPoll.group_id == current_group.id
                 )
             ).scalar()
 
             # Incorrect picks
             incorrect_picks = session.execute(
                 select(func.count(SpreadPick.id))
+                .join(SpreadPoll)
                 .where(
                     SpreadPick.user_id == user.id,
-                    SpreadPick.is_correct == False
+                    SpreadPick.is_correct == False,
+                    SpreadPoll.group_id == current_group.id
                 )
             ).scalar()
 
             # Pending picks
             pending_picks = session.execute(
                 select(func.count(SpreadPick.id))
+                .join(SpreadPoll)
                 .where(
                     SpreadPick.user_id == user.id,
-                    SpreadPick.is_correct.is_(None)
+                    SpreadPick.is_correct.is_(None),
+                    SpreadPoll.group_id == current_group.id
                 )
             ).scalar()
 
@@ -490,9 +555,10 @@ def stats():
         # Sort by correct picks descending
         user_stats.sort(key=lambda x: (x['correct'], x['pct']), reverse=True)
 
-        # Get all polls for weekly breakdown
+        # Get all polls for weekly breakdown (only for current group)
         polls = session.execute(
             select(SpreadPoll)
+            .where(SpreadPoll.group_id == current_group.id)
             .order_by(SpreadPoll.season.desc(), SpreadPoll.week.desc())
         ).scalars().all()
 
@@ -512,8 +578,16 @@ def admin_panel():
     require_admin()
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        # Filter polls by current group
         polls = session.execute(
             select(SpreadPoll)
+            .where(SpreadPoll.group_id == current_group.id)
             .order_by(SpreadPoll.season.desc(), SpreadPoll.week.desc())
         ).scalars().all()
 
@@ -551,8 +625,19 @@ def close_poll(poll_id: int):
     require_admin()
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         poll = session.get(SpreadPoll, poll_id)
         if not poll:
+            flash("Poll not found.", "danger")
+            return redirect(url_for("spreads.admin_panel"))
+
+        # Verify poll belongs to current group
+        if poll.group_id != current_group.id:
             flash("Poll not found.", "danger")
             return redirect(url_for("spreads.admin_panel"))
 
@@ -571,8 +656,19 @@ def open_poll(poll_id: int):
     require_admin()
     session = SessionLocal()
     try:
+        # Get current group
+        current_group = get_current_group(current_user, session)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         poll = session.get(SpreadPoll, poll_id)
         if not poll:
+            flash("Poll not found.", "danger")
+            return redirect(url_for("spreads.admin_panel"))
+
+        # Verify poll belongs to current group
+        if poll.group_id != current_group.id:
             flash("Poll not found.", "danger")
             return redirect(url_for("spreads.admin_panel"))
 

@@ -46,7 +46,40 @@
       <nav id="site-nav" class="site-nav" aria-label="Primary">
         <ul class="site-nav__list">
           {% if current_user.is_authenticated %}
-            <!-- inside <ul class="site-nav__list"> when authenticated -->
+            <!-- Group Switcher Dropdown -->
+            {% if current_group %}
+              <li class="group-switcher">
+                <button class="group-switcher__btn" id="group-switcher-btn" aria-expanded="false" aria-controls="group-dropdown">
+                  <span class="group-switcher__name">{{ current_group.name }}</span>
+                  <span class="group-switcher__arrow">▼</span>
+                </button>
+                <div class="group-dropdown" id="group-dropdown" hidden>
+                  <div class="group-dropdown__header">
+                    <span class="group-dropdown__label">Switch Group</span>
+                  </div>
+                  <ul class="group-dropdown__list">
+                    {% for group in current_user.groups %}
+                      <li>
+                        <a
+                          href="{{ url_for('groups.switch', group_id=group.id) }}"
+                          class="group-dropdown__item {% if current_group and group.id == current_group.id %}group-dropdown__item--active{% endif %}"
+                        >
+                          <span class="group-dropdown__item-name">{{ group.name }}</span>
+                          {% if current_group and group.id == current_group.id %}
+                            <span class="group-dropdown__check">✓</span>
+                          {% endif %}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                  <div class="group-dropdown__footer">
+                    <a href="{{ url_for('groups.groups_dashboard') }}" class="group-dropdown__link">Manage Groups</a>
+                  </div>
+                </div>
+              </li>
+            {% endif %}
+
+            <!-- Regular Nav Links -->
             <li><a class="site-nav__link" href="{{ url_for('root') }}">Home</a></li>
             <li><a class="site-nav__link" href="{{ url_for('poll.dashboard') }}">Polls</a></li>
             <li><a class="site-nav__link" href="{{ url_for('spreads.dashboard') }}">Spreads</a></li>
@@ -74,6 +107,178 @@
       <small class="muted">© {{ year }} Take Free Points</small>
     </div>
   </footer>
+
+  <style>
+    /* Group Switcher Styles */
+    .group-switcher {
+      position: relative;
+    }
+    .group-switcher__btn {
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.15), rgba(110, 231, 255, 0.05));
+      border: 1px solid var(--brand, #6ee7ff);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: var(--fg, #eaeef7);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .group-switcher__btn:hover {
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.25), rgba(110, 231, 255, 0.1));
+    }
+    .group-switcher__name {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .group-switcher__arrow {
+      font-size: 0.7rem;
+      transition: transform 0.2s ease;
+    }
+    .group-switcher__btn[aria-expanded="true"] .group-switcher__arrow {
+      transform: rotate(180deg);
+    }
+
+    /* Group Dropdown */
+    .group-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 240px;
+      background: var(--panel-2, #10141c);
+      border: 1px solid var(--line, #1f2633);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+    .group-dropdown__header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line, #1f2633);
+    }
+    .group-dropdown__label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--fg-muted, #a8b2c8);
+      font-weight: 600;
+    }
+    .group-dropdown__list {
+      list-style: none;
+      padding: 4px;
+      margin: 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .group-dropdown__item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      color: var(--fg, #eaeef7);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background 0.2s ease;
+    }
+    .group-dropdown__item:hover {
+      background: var(--panel-1, #0c111a);
+    }
+    .group-dropdown__item--active {
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.1), rgba(110, 231, 255, 0.05));
+      color: var(--brand, #6ee7ff);
+    }
+    .group-dropdown__item-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .group-dropdown__check {
+      color: var(--brand, #6ee7ff);
+      font-size: 1rem;
+    }
+    .group-dropdown__footer {
+      padding: 8px;
+      border-top: 1px solid var(--line, #1f2633);
+    }
+    .group-dropdown__link {
+      display: block;
+      padding: 10px 12px;
+      color: var(--brand, #6ee7ff);
+      text-decoration: none;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: background 0.2s ease;
+    }
+    .group-dropdown__link:hover {
+      background: var(--panel-1, #0c111a);
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .group-switcher {
+        width: 100%;
+      }
+      .group-switcher__btn {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .group-dropdown {
+        left: 0;
+        right: 0;
+        min-width: 100%;
+      }
+    }
+  </style>
+
+  <script>
+    // Group switcher dropdown functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const switcherBtn = document.getElementById('group-switcher-btn');
+      const dropdown = document.getElementById('group-dropdown');
+
+      if (switcherBtn && dropdown) {
+        switcherBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const isExpanded = switcherBtn.getAttribute('aria-expanded') === 'true';
+
+          if (isExpanded) {
+            closeDropdown();
+          } else {
+            openDropdown();
+          }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function(e) {
+          if (!switcherBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            closeDropdown();
+          }
+        });
+
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            closeDropdown();
+          }
+        });
+
+        function openDropdown() {
+          switcherBtn.setAttribute('aria-expanded', 'true');
+          dropdown.hidden = false;
+        }
+
+        function closeDropdown() {
+          switcherBtn.setAttribute('aria-expanded', 'false');
+          dropdown.hidden = true;
+        }
+      }
+    });
+  </script>
 
   <script>document.documentElement.classList.remove('no-js');</script>
   <script src="{{ url_for('static', filename='scripts/app.js') }}" defer></script>

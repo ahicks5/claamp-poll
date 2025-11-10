@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }}{% endblock %}
+{% block content %}
+
+<section class="container">
+
+  <!-- Back Button -->
+  <div style="margin-bottom: 20px;">
+    <a href="{{ url_for('groups.groups_dashboard') }}" class="btn btn-ghost">← Back to My Groups</a>
+  </div>
+
+  <!-- Group Header -->
+  <div class="group-header">
+    <div class="group-header__content">
+      <div class="group-header__title-row">
+        <h1 class="group-header__name">{{ group.name }}</h1>
+        {% if group.is_public %}
+          <span class="pill pill-public">Public</span>
+        {% else %}
+          <span class="pill pill-private">Private</span>
+        {% endif %}
+      </div>
+      {% if group.description %}
+        <p class="group-header__description">{{ group.description }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Header Actions -->
+    <div class="group-header__actions">
+      {% if is_member %}
+        {% if is_current_group %}
+          <span class="btn btn-ghost btn--disabled">Current Group</span>
+        {% else %}
+          <a href="{{ url_for('groups.switch', group_id=group.id) }}" class="btn btn-primary">Switch to This Group</a>
+        {% endif %}
+      {% else %}
+        {% if group.is_public %}
+          <a href="{{ url_for('groups.join', group_id=group.id) }}" class="btn btn-primary">Join Group</a>
+        {% else %}
+          <span class="btn btn-ghost btn--disabled">Private (Invite Only)</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-card__label">Members</div>
+      <div class="stat-card__value">{{ group.memberships|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__label">Created</div>
+      <div class="stat-card__value">{{ group.created_at.strftime('%b %d, %Y') if group.created_at else 'Unknown' }}</div>
+    </div>
+    {% if group.created_by_user %}
+      <div class="stat-card">
+        <div class="stat-card__label">Owner</div>
+        <div class="stat-card__value">{{ group.created_by_user.username }}</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Invite Code Section (for private groups, only visible to members) -->
+  {% if not group.is_public and is_member and group.invite_code %}
+    <div class="invite-section">
+      <h2 class="invite-section__title">Share Invite Link</h2>
+      <p class="invite-section__description muted">Share this link with friends to invite them to this group</p>
+      <div class="invite-code-box">
+        <code class="invite-code" id="invite-link">{{ request.url_root }}groups/invite/{{ group.invite_code }}</code>
+        <button class="btn btn-ghost btn-copy" onclick="copyInviteLink()">Copy</button>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Members List -->
+  <div class="members-section">
+    <h2 class="section-title">Members ({{ group.memberships|length }})</h2>
+    <div class="members-grid">
+      {% for membership in group.memberships %}
+        <div class="member-card">
+          <div class="member-card__info">
+            <span class="member-card__name">{{ membership.user.username }}</span>
+            {% if membership.role == 'owner' %}
+              <span class="badge badge-owner">Owner</span>
+            {% elif membership.role == 'admin' %}
+              <span class="badge badge-admin">Admin</span>
+            {% endif %}
+          </div>
+          {% if membership.user.id == current_user.id %}
+            <span class="badge badge-you">You</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</section>
+
+<style>
+/* Group Header */
+.group-header {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.group-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.group-header__name {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--fg, #eaeef7);
+}
+.group-header__description {
+  font-size: 1.1rem;
+  color: var(--fg-muted, #a8b2c8);
+  margin: 0;
+  line-height: 1.6;
+}
+.group-header__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Stats Cards */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.stat-card__label {
+  font-size: 0.875rem;
+  color: var(--fg-muted, #a8b2c8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.stat-card__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--fg, #eaeef7);
+}
+
+/* Invite Section */
+.invite-section {
+  background: linear-gradient(135deg, rgba(110, 231, 255, 0.1), rgba(110, 231, 255, 0.05));
+  border: 1px solid var(--brand, #6ee7ff);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+.invite-section__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--fg, #eaeef7);
+}
+.invite-section__description {
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+}
+.invite-code-box {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.invite-code {
+  flex: 1;
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: var(--brand, #6ee7ff);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.btn-copy {
+  flex-shrink: 0;
+}
+
+/* Members Section */
+.members-section {
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--fg, #eaeef7);
+}
+.members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.member-card {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.member-card__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.member-card__name {
+  font-weight: 500;
+  color: var(--fg, #eaeef7);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.badge-owner {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+  border: 1px solid #ffd700;
+}
+.badge-admin {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+.badge-you {
+  background: rgba(124, 255, 183, 0.15);
+  color: #7cffb7;
+  border: 1px solid #7cffb7;
+}
+
+/* Pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pill-public {
+  background: rgba(124, 255, 183, 0.15);
+  color: #7cffb7;
+  border: 1px solid #7cffb7;
+}
+.pill-private {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+
+/* Button disabled state */
+.btn--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .group-header {
+    flex-direction: column;
+    padding: 24px;
+  }
+  .group-header__name {
+    font-size: 1.5rem;
+  }
+  .group-header__actions {
+    width: 100%;
+  }
+  .group-header__actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+  .invite-code-box {
+    flex-direction: column;
+  }
+  .btn-copy {
+    width: 100%;
+  }
+  .members-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+function copyInviteLink() {
+  const link = document.getElementById('invite-link').textContent;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-ghost');
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-ghost');
+    }, 2000);
+  });
+}
+</script>
+
+{% endblock %}

@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from db import SessionLocal
 from models import Poll, Ballot, BallotItem, Team, User, DefaultBallot
 from utils.logo_map import logo_map
+from utils.group_helpers import get_current_group
 
 from . import bp  # your Blueprint: bp = Blueprint("poll", __name__, url_prefix="/poll")
 
@@ -181,9 +182,17 @@ def require_admin():
 @login_required
 def dashboard():
     with SessionLocal() as s:
-        # Fetch ALL polls, ordered by season/week descending (newest first)
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        # Fetch polls for current group, ordered by season/week descending (newest first)
         all_polls = s.execute(
-            select(Poll).order_by(Poll.season.desc(), Poll.week.desc())
+            select(Poll)
+            .where(Poll.group_id == current_group.id)
+            .order_by(Poll.season.desc(), Poll.week.desc())
         ).scalars().all()
 
         # Get user's ballot status for each open poll
@@ -225,19 +234,30 @@ def dashboard():
 @login_required
 def vote_form(poll_id: Optional[int] = None):
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         if poll_id is not None:
             poll = s.get(Poll, poll_id)
             if not poll:
+                flash("Poll not found.", "warning")
+                return redirect(url_for("poll.poll_list"))
+            # Verify poll belongs to current group
+            if poll.group_id != current_group.id:
                 flash("Poll not found.", "warning")
                 return redirect(url_for("poll.poll_list"))
             if not poll.is_open:
                 flash("That poll is closed to voting.", "info")
                 return redirect(url_for("poll.results", poll_id=poll.id))
         else:
-            # Fallback: latest open poll
+            # Fallback: latest open poll in current group
             poll = (
                 s.execute(
-                    select(Poll).where(Poll.is_open == True)
+                    select(Poll)
+                    .where(Poll.is_open == True, Poll.group_id == current_group.id)
                     .order_by(Poll.season.desc(), Poll.week.desc())
                 ).scalars().first()
             )
@@ -286,8 +306,16 @@ def vote_form(poll_id: Optional[int] = None):
 @login_required
 def submit_vote():
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         poll = s.execute(
-            select(Poll).where(Poll.is_open == True).order_by(Poll.season.desc(), Poll.week.desc())
+            select(Poll)
+            .where(Poll.is_open == True, Poll.group_id == current_group.id)
+            .order_by(Poll.season.desc(), Poll.week.desc())
         ).scalars().first()
         if not poll:
             flash("No open poll.", "warning")
@@ -343,6 +371,14 @@ def api_poll_default(poll_id):
     week_key = None  # simple version: latest by id if multiple exist
 
     with SessionLocal() as s:
+        # Get current group and verify poll belongs to it
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            return jsonify({"error": "No group"}), 403
+
+        poll = s.get(Poll, poll_id)
+        if poll and poll.group_id != current_group.id:
+            return jsonify({"error": "Poll not found"}), 404
         q = select(DefaultBallot).where(
             or_(
                 DefaultBallot.poll_id == poll_id,
@@ -365,9 +401,17 @@ def api_poll_default(poll_id):
 @login_required
 def poll_list():
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         polls = (
             s.execute(
-                select(Poll).order_by(Poll.season.desc(), Poll.week.desc())
+                select(Poll)
+                .where(Poll.group_id == current_group.id)
+                .order_by(Poll.season.desc(), Poll.week.desc())
             ).scalars().all()
         )
     return render_template("poll_list.html", polls=polls)
@@ -389,12 +433,18 @@ def results(poll_id: Optional[int] = None):
       - voter_grid: simple per-voter grid of [(rank, team_name)] for template rendering
     """
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         # Resolve poll
         if poll_id is not None:
             poll = s.execute(
                 select(Poll)
                 .options(joinedload(Poll.ballots))
-                .where(Poll.id == poll_id)
+                .where(Poll.id == poll_id, Poll.group_id == current_group.id)
             ).scalars().first()
             if not poll:
                 flash("Poll not found.", "warning")
@@ -404,6 +454,7 @@ def results(poll_id: Optional[int] = None):
                 s.execute(
                     select(Poll)
                     .options(joinedload(Poll.ballots))
+                    .where(Poll.group_id == current_group.id)
                     .order_by(Poll.is_open.desc(), Poll.season.desc(), Poll.week.desc())
                 )
                 .scalars()
@@ -687,8 +738,16 @@ def results(poll_id: Optional[int] = None):
 def admin_panel():
     require_admin()
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         polls = s.execute(
-            select(Poll).order_by(Poll.season.desc(), Poll.week.desc())
+            select(Poll)
+            .where(Poll.group_id == current_group.id)
+            .order_by(Poll.season.desc(), Poll.week.desc())
         ).scalars().all()
         team_count = s.execute(select(func.count(Team.id))).scalar_one()
 
@@ -709,7 +768,19 @@ def admin_new_poll():
         return redirect(url_for("poll.admin_panel"))
 
     with SessionLocal() as s:
-        p = Poll(season=season, week=week, title=title, is_open=True)
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
+        p = Poll(
+            season=season,
+            week=week,
+            title=title,
+            is_open=True,
+            group_id=current_group.id
+        )
         s.add(p)
         try:
             s.commit()
@@ -726,8 +797,16 @@ def admin_new_poll():
 def admin_close_poll(poll_id: int):
     require_admin()
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            flash("Please join a group first", "warning")
+            return redirect(url_for("groups.search"))
+
         p = s.get(Poll, poll_id)
         if not p:
+            flash("Poll not found.", "warning")
+        elif p.group_id != current_group.id:
             flash("Poll not found.", "warning")
         else:
             p.is_open = False
@@ -798,6 +877,11 @@ def _load_team_logo(team_name:str, logo_map:dict, size:int=180) -> Image.Image:
 @login_required
 def share_ballot_png(ballot_id:int):
     with SessionLocal() as s:
+        # Get current group
+        current_group = get_current_group(current_user, s)
+        if not current_group:
+            abort(403)
+
         # load ballot, ensure owner or admin can view
         ballot = s.get(Ballot, ballot_id)
         if not ballot:
@@ -806,6 +890,10 @@ def share_ballot_png(ballot_id:int):
             abort(403)
 
         poll = s.get(Poll, ballot.poll_id)
+        # Verify poll belongs to current group
+        if poll.group_id != current_group.id:
+            abort(404)
+
         user = s.get(User, ballot.user_id)
 
         # get items ordered by rank and join team names

@@ -21,6 +21,16 @@
   <form method="POST" action="{{ url_for('spreads.submit_vote') }}" id="spreads-form">
     <input type="hidden" name="poll_id" value="{{ poll.id }}">
 
+    <!-- Submit button at top -->
+    {% if poll.is_open and games_by_day %}
+      <div style="margin-bottom: 2rem; text-align: center;">
+        <button type="submit" class="btn btn-primary btn-lg">Save Picks</button>
+        <p class="muted" style="margin-top: 0.5rem; font-size: 0.875rem;">
+          You can update your picks anytime before the poll closes
+        </p>
+      </div>
+    {% endif %}
+
     {% if games_by_day %}
       {% for day, games in games_by_day.items()|sort %}
         <!-- Day header -->

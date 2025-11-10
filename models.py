@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint, Index, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint, Index, func, Text
 from sqlalchemy.orm import relationship
 from db import Base
 from datetime import datetime, timezone
@@ -14,6 +14,9 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
+    group_memberships = relationship("GroupMembership", back_populates="user", cascade="all, delete-orphan")
+
     # Flask-Login helpers (simple properties)
     @property
     def is_authenticated(self): return True
@@ -23,23 +26,75 @@ class User(Base):
     def is_anonymous(self): return False
     def get_id(self): return str(self.id)
 
+    # Helper to get user's groups
+    @property
+    def groups(self):
+        return [membership.group for membership in self.group_memberships]
+
 class Team(Base):
     __tablename__ = "teams"
     id = Column(Integer, primary_key=True)
     name = Column(String(128), unique=True, nullable=False, index=True)
 
+# ============================================================
+# GROUPS SYSTEM MODELS
+# ============================================================
+
+class Group(Base):
+    """A group that can contain polls and spreads"""
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(128), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    is_public = Column(Boolean, default=True, nullable=False)
+    invite_code = Column(String(32), unique=True, nullable=True, index=True)  # For private groups
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    members = relationship("GroupMembership", back_populates="group", cascade="all, delete-orphan")
+    polls = relationship("Poll", back_populates="group")
+    spread_polls = relationship("SpreadPoll", back_populates="group")
+    creator = relationship("User", foreign_keys=[created_by_user_id])
+
+class GroupMembership(Base):
+    """Many-to-many relationship between users and groups"""
+    __tablename__ = "group_memberships"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+    role = Column(String(20), default="member", nullable=False)  # owner, admin, member
+
+    # Relationships
+    group = relationship("Group", back_populates="members")
+    user = relationship("User", back_populates="group_memberships")
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="uq_group_membership"),
+        Index("ix_group_membership_user", "user_id"),
+    )
+
 class Poll(Base):
     __tablename__ = "polls"
     id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
     season = Column(Integer, nullable=False, index=True)
     week = Column(Integer, nullable=False, index=True)
     title = Column(String(128), nullable=False)
     is_open = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    group = relationship("Group", back_populates="polls")
     ballots = relationship("Ballot", back_populates="poll", cascade="all, delete-orphan")
+
     __table_args__ = (
-        UniqueConstraint("season", "week", name="uq_poll_season_week"),
+        UniqueConstraint("group_id", "season", "week", name="uq_poll_group_season_week"),
         Index("ix_poll_open_season_week", "is_open", "season", "week"),
+        Index("ix_poll_group", "group_id"),
     )
 
 class Ballot(Base):
@@ -102,6 +157,7 @@ class SpreadPoll(Base):
     __tablename__ = "spread_polls"
 
     id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
     season = Column(Integer, nullable=False, index=True)
     week = Column(Integer, nullable=False, index=True)
     title = Column(String(128), nullable=False)  # e.g. "Week 10 - Saturday Games"
@@ -109,12 +165,15 @@ class SpreadPoll(Base):
     closes_at = Column(DateTime(timezone=True), nullable=True)  # When picks close
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Relationships
+    group = relationship("Group", back_populates="spread_polls")
     games = relationship("SpreadGame", back_populates="spread_poll", cascade="all, delete-orphan")
     picks = relationship("SpreadPick", back_populates="spread_poll", cascade="all, delete-orphan")
 
     __table_args__ = (
-        UniqueConstraint("season", "week", name="uq_spread_poll_season_week"),
+        UniqueConstraint("group_id", "season", "week", name="uq_spread_poll_group_season_week"),
         Index("ix_spread_poll_open_season_week", "is_open", "season", "week"),
+        Index("ix_spread_poll_group", "group_id"),
     )
 
 class SpreadGame(Base):

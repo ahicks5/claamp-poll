@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Search Groups{% endblock %}
+{% block content %}
+
+<section class="container">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Search Public Groups</h1>
+      <p class="page-subtitle muted">Find and join public groups</p>
+    </div>
+    <a href="{{ url_for('groups.groups_dashboard') }}" class="btn btn-ghost">My Groups</a>
+  </div>
+
+  <!-- Search Form -->
+  <div class="search-box">
+    <form method="GET" action="{{ url_for('groups.search') }}" class="search-form">
+      <input
+        type="text"
+        name="q"
+        class="search-input"
+        placeholder="Search for groups by name..."
+        value="{{ query or '' }}"
+        autofocus
+      >
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  </div>
+
+  <!-- Search Results -->
+  {% if query %}
+    <div class="results-header">
+      {% if groups %}
+        <p class="results-count">Found {{ groups|length }} group{% if groups|length != 1 %}s{% endif %}</p>
+      {% else %}
+        <p class="results-count muted">No groups found matching "{{ query }}"</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Groups Grid -->
+  {% if groups %}
+    <div class="groups-grid">
+      {% for group in groups %}
+        <div class="group-card">
+
+          <!-- Group Header -->
+          <div class="group-card__header">
+            <h3 class="group-card__name">{{ group.name }}</h3>
+            {% if group.is_public %}
+              <span class="pill pill-public">Public</span>
+            {% else %}
+              <span class="pill pill-private">Private</span>
+            {% endif %}
+          </div>
+
+          <!-- Group Description -->
+          {% if group.description %}
+            <p class="group-card__description">{{ group.description[:100] }}{% if group.description|length > 100 %}...{% endif %}</p>
+          {% else %}
+            <p class="group-card__description muted">No description</p>
+          {% endif %}
+
+          <!-- Group Stats -->
+          <div class="group-card__stats">
+            <div class="stat-item">
+              <span class="stat-label">Members</span>
+              <span class="stat-value">{{ group.memberships|length }}</span>
+            </div>
+          </div>
+
+          <!-- Group Actions -->
+          <div class="group-card__actions">
+            {% set user_is_member = current_user in [m.user for m in group.memberships] %}
+            {% if user_is_member %}
+              <span class="btn btn-ghost btn--disabled">Already a Member</span>
+            {% else %}
+              <a href="{{ url_for('groups.join', group_id=group.id) }}" class="btn btn-primary">Join Group</a>
+            {% endif %}
+            <a href="{{ url_for('groups.group_detail', group_id=group.id) }}" class="btn btn-ghost">View Details</a>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  {% elif not query %}
+    <!-- Show all public groups when no search query -->
+    <div class="card">
+      <div class="empty-state">
+        <p class="empty-state__icon">🔍</p>
+        <h3 class="empty-state__title">Search for Groups</h3>
+        <p class="empty-state__message muted">Enter a search term above to find public groups</p>
+      </div>
+    </div>
+  {% endif %}
+
+</section>
+
+<style>
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+.page-subtitle {
+  font-size: 1rem;
+  margin: 8px 0 0 0;
+}
+
+/* Search Box */
+.search-box {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+.search-form {
+  display: flex;
+  gap: 12px;
+}
+.search-input {
+  flex: 1;
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  color: var(--fg, #eaeef7);
+  transition: border-color 0.2s ease;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--brand, #6ee7ff);
+}
+.search-input::placeholder {
+  color: var(--fg-muted, #a8b2c8);
+}
+
+/* Results Header */
+.results-header {
+  margin-bottom: 20px;
+}
+.results-count {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Groups Grid */
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Group Card */
+.group-card {
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Group Card Header */
+.group-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+.group-card__name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg, #eaeef7);
+}
+
+/* Group Card Description */
+.group-card__description {
+  font-size: 0.95rem;
+  color: var(--fg-muted, #a8b2c8);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+/* Group Card Stats */
+.group-card__stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line, #1f2633);
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--fg-muted, #a8b2c8);
+}
+.stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg, #eaeef7);
+}
+
+/* Group Card Actions */
+.group-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pill-public {
+  background: rgba(124, 255, 183, 0.15);
+  color: #7cffb7;
+  border: 1px solid #7cffb7;
+}
+.pill-private {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+
+/* Button disabled state */
+.btn--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty-state__icon {
+  font-size: 4rem;
+  margin: 0 0 16px 0;
+}
+.empty-state__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+.empty-state__message {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .search-form {
+    flex-direction: column;
+  }
+  .search-form .btn {
+    width: 100%;
+  }
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+  .group-card__actions {
+    flex-direction: column;
+  }
+  .group-card__actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+{% endblock %}

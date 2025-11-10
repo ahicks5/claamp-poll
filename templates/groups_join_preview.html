@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Join {{ group.name }}{% endblock %}
+{% block content %}
+
+<section class="container">
+
+  <!-- Join Preview Card -->
+  <div class="join-preview">
+
+    <!-- Group Icon -->
+    <div class="join-preview__icon">
+      {% if group.is_public %}
+        🌍
+      {% else %}
+        🔒
+      {% endif %}
+    </div>
+
+    <!-- Group Info -->
+    <h1 class="join-preview__title">You've been invited to join</h1>
+    <h2 class="join-preview__group-name">{{ group.name }}</h2>
+
+    {% if group.description %}
+      <p class="join-preview__description">{{ group.description }}</p>
+    {% endif %}
+
+    <!-- Group Stats -->
+    <div class="join-preview__stats">
+      <div class="stat-item">
+        <span class="stat-icon">👥</span>
+        <span class="stat-text">{{ group.memberships|length }} member{% if group.memberships|length != 1 %}s{% endif %}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">{% if group.is_public %}🌍{% else %}🔒{% endif %}</span>
+        <span class="stat-text">{% if group.is_public %}Public{% else %}Private{% endif %} group</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="join-preview__actions">
+      {% if current_user.is_authenticated %}
+        {% set user_is_member = current_user in [m.user for m in group.memberships] %}
+        {% if user_is_member %}
+          <a href="{{ url_for('groups.switch', group_id=group.id) }}" class="btn btn-primary btn-lg">
+            Go to Group
+          </a>
+          <p class="join-preview__note muted">You're already a member of this group</p>
+        {% else %}
+          <a href="{{ url_for('groups.join', group_id=group.id) }}" class="btn btn-primary btn-lg">
+            Join {{ group.name }}
+          </a>
+          <p class="join-preview__note muted">Click to join and start participating</p>
+        {% endif %}
+      {% else %}
+        <a href="{{ url_for('auth.login') }}?next={{ request.url }}" class="btn btn-primary btn-lg">
+          Login to Join
+        </a>
+        <p class="join-preview__note muted">
+          Don't have an account?
+          <a href="{{ url_for('auth.register') }}?next={{ request.url }}" class="link">Create one</a>
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- What You'll Get -->
+    <div class="join-preview__features">
+      <h3 class="features__title">What's included:</h3>
+      <ul class="features__list">
+        <li>📊 Participate in group-specific polls and spreads</li>
+        <li>🏆 Compete on group leaderboards</li>
+        <li>👥 Connect with other members</li>
+        <li>🔄 Switch between groups anytime</li>
+      </ul>
+    </div>
+
+  </div>
+
+</section>
+
+<style>
+/* Join Preview Container */
+.join-preview {
+  max-width: 600px;
+  margin: 60px auto;
+  background: var(--panel-2, #10141c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 16px;
+  padding: 48px 40px;
+  text-align: center;
+}
+
+/* Icon */
+.join-preview__icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+/* Title */
+.join-preview__title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--fg-muted, #a8b2c8);
+  margin: 0 0 12px 0;
+}
+
+/* Group Name */
+.join-preview__group-name {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--fg, #eaeef7);
+  margin: 0 0 20px 0;
+  line-height: 1.2;
+  background: linear-gradient(135deg, var(--brand, #6ee7ff), #7cffb7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Description */
+.join-preview__description {
+  font-size: 1.1rem;
+  color: var(--fg-muted, #a8b2c8);
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+/* Stats */
+.join-preview__stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--line, #1f2633);
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-icon {
+  font-size: 1.5rem;
+}
+.stat-text {
+  font-size: 0.95rem;
+  color: var(--fg, #eaeef7);
+  font-weight: 500;
+}
+
+/* Actions */
+.join-preview__actions {
+  margin-bottom: 32px;
+}
+.btn-lg {
+  padding: 16px 48px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  width: 100%;
+  max-width: 300px;
+  justify-content: center;
+}
+.join-preview__note {
+  font-size: 0.9rem;
+  margin: 12px 0 0 0;
+}
+.link {
+  color: var(--brand, #6ee7ff);
+  text-decoration: none;
+  font-weight: 500;
+}
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Features */
+.join-preview__features {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: left;
+}
+.features__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg, #eaeef7);
+  margin: 0 0 16px 0;
+}
+.features__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.features__list li {
+  font-size: 0.95rem;
+  color: var(--fg-muted, #a8b2c8);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line, #1f2633);
+  line-height: 1.5;
+}
+.features__list li:last-child {
+  border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .join-preview {
+    margin: 20px auto;
+    padding: 32px 24px;
+  }
+  .join-preview__group-name {
+    font-size: 2rem;
+  }
+  .join-preview__stats {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+  .btn-lg {
+    max-width: 100%;
+  }
+}
+</style>
+
+{% endblock %}

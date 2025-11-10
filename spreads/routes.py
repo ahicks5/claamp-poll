@@ -98,22 +98,34 @@ def dashboard():
         # Get user's pick counts for each poll
         poll_data = []
         for poll in polls:
-            # Count games in this poll
-            game_count = session.execute(
-                select(func.count(SpreadGame.id))
+            # Get all games and filter to Nov 14-15 with valid spreads
+            games = session.execute(
+                select(SpreadGame)
                 .where(SpreadGame.spread_poll_id == poll.id)
-            ).scalar()
+            ).scalars().all()
 
-            # Count user's picks
+            # Apply same filtering as vote/results pages
+            filtered_games = [
+                game for game in games
+                if is_valid_weekend_game(game.game_time)
+                and game.home_spread and game.home_spread != 'N/A'
+                and game.away_spread and game.away_spread != 'N/A'
+            ]
+            game_count = len(filtered_games)
+
+            # Count user's picks (only for filtered games)
             user_pick_count = 0
             if current_user.is_authenticated:
-                user_pick_count = session.execute(
-                    select(func.count(SpreadPick.id))
-                    .where(
-                        SpreadPick.spread_poll_id == poll.id,
-                        SpreadPick.user_id == current_user.id
-                    )
-                ).scalar()
+                filtered_game_ids = [g.id for g in filtered_games]
+                if filtered_game_ids:
+                    user_pick_count = session.execute(
+                        select(func.count(SpreadPick.id))
+                        .where(
+                            SpreadPick.spread_poll_id == poll.id,
+                            SpreadPick.user_id == current_user.id,
+                            SpreadPick.spread_game_id.in_(filtered_game_ids)
+                        )
+                    ).scalar()
 
             poll_data.append({
                 'poll': poll,

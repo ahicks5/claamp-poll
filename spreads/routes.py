@@ -30,13 +30,20 @@ def require_admin():
 
 def game_is_locked(game_time):
     """Check if game is locked (started or within 5 minutes of start)
-    Note: game_time is stored as naive datetime in ET"""
+    Handles both timezone-aware and timezone-naive datetimes"""
     if not game_time:
         return False
     # Get current time in UTC and convert to ET (naive, -6 hours)
     now_utc = datetime.now(timezone.utc)
     now_et = now_utc - timedelta(hours=6)
     now_et = now_et.replace(tzinfo=None)
+
+    # Handle timezone-aware game_time from old data
+    if game_time.tzinfo is not None:
+        # Convert to naive ET time (subtract 6 hours from UTC)
+        game_time = game_time.astimezone(timezone.utc) - timedelta(hours=6)
+        game_time = game_time.replace(tzinfo=None)
+
     # Lock picks 5 minutes before game starts
     lock_time = game_time - timedelta(minutes=5)
     return now_et >= lock_time

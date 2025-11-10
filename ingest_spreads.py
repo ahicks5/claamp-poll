@@ -73,12 +73,18 @@ def is_weekend_game(dt: Optional[datetime]) -> bool:
 
 
 def game_has_started(game_time: Optional[datetime]) -> bool:
-    """Check if game has already started (game_time is in ET, naive)"""
+    """Check if game has already started (handles both naive and aware datetimes)"""
     if not game_time:
         return False
     # Get current time in UTC and convert to ET (naive)
     now_utc = datetime.now(timezone.utc)
     now_et = utc_to_et(now_utc)
+
+    # Handle timezone-aware game_time from old data
+    if game_time.tzinfo is not None:
+        # Convert to naive ET time
+        game_time = utc_to_et(game_time)
+
     return now_et >= game_time
 
 

@@ -197,9 +197,12 @@
     font-family: ui-monospace, monospace;
   }
 
-  .spread-btn:hover:not(:disabled) {
-    background: #2a3441;
-    border-color: #6ee7ff;
+  /* Only apply hover on non-touch devices */
+  @media (hover: hover) {
+    .spread-btn:hover:not(:disabled) {
+      background: #2a3441;
+      border-color: #6ee7ff;
+    }
   }
 
   .spread-btn.selected {
@@ -211,6 +214,19 @@
   .spread-btn:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  /* Disable tap highlight on mobile */
+  .spread-btn {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Remove active state visual on touch devices */
+  .spread-btn:active:not(.selected):not(:disabled) {
+    background: #1f2937;
   }
 
   .game-time {
@@ -278,32 +294,50 @@
 </style>
 
 <script>
-  // Handle spread button clicks
+  // Handle spread button clicks with immediate feedback on mobile
   document.addEventListener('DOMContentLoaded', function() {
     const spreadButtons = document.querySelectorAll('.spread-btn');
 
+    function handleSelection(button, event) {
+      if (button.disabled) return;
+
+      // Prevent default to avoid hover states on mobile
+      if (event) {
+        event.preventDefault();
+      }
+
+      const gameId = button.getAttribute('data-game-id');
+      const teamId = button.getAttribute('data-team-id');
+      const hiddenInput = document.getElementById('pick_game_' + gameId);
+
+      // Find all buttons for this game
+      const gameBtns = document.querySelectorAll(`[data-game-id="${gameId}"]`);
+
+      // If clicking the already-selected button, deselect it
+      if (button.classList.contains('selected')) {
+        button.classList.remove('selected');
+        hiddenInput.value = '';
+      } else {
+        // Deselect all buttons for this game
+        gameBtns.forEach(btn => btn.classList.remove('selected'));
+
+        // Select this button immediately
+        button.classList.add('selected');
+        hiddenInput.value = teamId;
+      }
+    }
+
     spreadButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        if (this.disabled) return;
+      // Use touchstart for immediate feedback on mobile
+      button.addEventListener('touchstart', function(e) {
+        handleSelection(this, e);
+      }, { passive: false });
 
-        const gameId = this.getAttribute('data-game-id');
-        const teamId = this.getAttribute('data-team-id');
-        const hiddenInput = document.getElementById('pick_game_' + gameId);
-
-        // Find all buttons for this game
-        const gameBtns = document.querySelectorAll(`[data-game-id="${gameId}"]`);
-
-        // If clicking the already-selected button, deselect it
-        if (this.classList.contains('selected')) {
-          this.classList.remove('selected');
-          hiddenInput.value = '';
-        } else {
-          // Deselect all buttons for this game
-          gameBtns.forEach(btn => btn.classList.remove('selected'));
-
-          // Select this button
-          this.classList.add('selected');
-          hiddenInput.value = teamId;
+      // Still handle click for desktop and as fallback
+      button.addEventListener('click', function(e) {
+        // Only handle if touchstart didn't already handle it
+        if (e.type === 'click' && !('ontouchstart' in window)) {
+          handleSelection(this, e);
         }
       });
     });

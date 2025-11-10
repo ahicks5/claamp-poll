@@ -1,21 +1,155 @@
 {% extends "base.html" %}
 {% block title %}Login – CLAAMP{% endblock %}
 {% block content %}
-  <section class="container">
-    <div class="card" style="max-width:520px; margin:0 auto;">
-      <h1>Login</h1>
-      <form method="post" class="stack mt-2" autocomplete="on">
-        <label class="label" for="user">Username</label>
-        <input id="user" name="username" required>
+  <section class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Welcome back</h1>
+        <p class="muted">Sign in to your CLAAMP account</p>
+      </div>
 
-        <label class="label" for="pass">Password</label>
-        <input id="pass" type="password" name="password" required>
+      <form method="post" class="auth-form" autocomplete="on">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            class="form-input"
+            autocomplete="username"
+            required
+            autofocus>
+        </div>
 
-        <div class="flex space-between mt-2">
-          <a class="btn btn-ghost" href="{{ url_for('auth.register') }}">Create account</a>
-          <button class="btn btn-primary" type="submit">Login</button>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            autocomplete="current-password"
+            required>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">
+          Sign in
+        </button>
+
+        <div class="auth-footer">
+          <p class="muted">Don't have an account?</p>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-block">
+            Create account
+          </a>
         </div>
       </form>
     </div>
   </section>
+
+  <style>
+    .auth-container {
+      min-height: calc(100vh - 200px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: #141b26;
+      border: 1px solid #2a3441;
+      border-radius: 0.75rem;
+      padding: 2.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-header h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .auth-header .muted {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #e5e7eb;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: #1f2937;
+      border: 2px solid #374151;
+      border-radius: 0.5rem;
+      color: #e5e7eb;
+      font-size: 16px; /* Prevents zoom on iOS */
+      font-family: inherit;
+      transition: all 0.15s ease;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #6ee7ff;
+      background: #2a3441;
+    }
+
+    .form-input::placeholder {
+      color: #6b7280;
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .auth-footer {
+      margin-top: 1rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #2a3441;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .auth-footer p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 600px) {
+      .auth-card {
+        padding: 2rem 1.5rem;
+      }
+
+      .auth-header h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 {% endblock %}

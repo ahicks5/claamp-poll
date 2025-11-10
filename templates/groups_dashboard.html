@@ -13,7 +13,7 @@
     <div class="page-actions">
       <a class="btn btn-ghost" href="{{ url_for('groups.search') }}">Search Groups</a>
       {% if current_user.is_admin %}
-        <a class="btn btn-primary" href="{{ url_for('groups.create') }}">Create Group</a>
+        <a class="btn btn-primary" href="{{ url_for('groups.create_form') }}">Create Group</a>
       {% endif %}
     </div>
   </div>
@@ -59,7 +59,7 @@
           <div class="group-card__stats">
             <div class="stat-item">
               <span class="stat-label">Members</span>
-              <span class="stat-value">{{ group.memberships|length }}</span>
+              <span class="stat-value">{{ group.members|length }}</span>
             </div>
           </div>
 
@@ -85,7 +85,7 @@
         <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
           <a href="{{ url_for('groups.search') }}" class="btn btn-primary">Search Groups</a>
           {% if current_user.is_admin %}
-            <a href="{{ url_for('groups.create') }}" class="btn btn-ghost">Create Group</a>
+            <a href="{{ url_for('groups.create_form') }}" class="btn btn-ghost">Create Group</a>
           {% endif %}
         </div>
       </div>

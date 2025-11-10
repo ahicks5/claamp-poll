@@ -66,13 +66,13 @@
           <div class="group-card__stats">
             <div class="stat-item">
               <span class="stat-label">Members</span>
-              <span class="stat-value">{{ group.memberships|length }}</span>
+              <span class="stat-value">{{ group.members|length }}</span>
             </div>
           </div>
 
           <!-- Group Actions -->
           <div class="group-card__actions">
-            {% set user_is_member = current_user in [m.user for m in group.memberships] %}
+            {% set user_is_member = current_user in [m.user for m in group.members] %}
             {% if user_is_member %}
               <span class="btn btn-ghost btn--disabled">Already a Member</span>
             {% else %}

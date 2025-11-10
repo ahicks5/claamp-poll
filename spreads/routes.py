@@ -30,15 +30,16 @@ def require_admin():
 
 def game_is_locked(game_time):
     """Check if game is locked (started or within 5 minutes of start)
-    Note: game_time is stored in ET timezone"""
+    Note: game_time is stored as naive datetime in ET"""
     if not game_time:
         return False
-    # game_time is in ET, so compare with current ET time
-    ET = pytz.timezone('America/New_York')
-    now = datetime.now(ET)
+    # Get current time in UTC and convert to ET (naive, -6 hours)
+    now_utc = datetime.now(timezone.utc)
+    now_et = now_utc - timedelta(hours=6)
+    now_et = now_et.replace(tzinfo=None)
     # Lock picks 5 minutes before game starts
     lock_time = game_time - timedelta(minutes=5)
-    return now >= lock_time
+    return now_et >= lock_time
 
 
 def get_latest_open_poll(session):

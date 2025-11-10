@@ -41,12 +41,15 @@ ET = pytz.timezone('America/New_York')
 
 
 def utc_to_et(dt_utc: Optional[datetime]) -> Optional[datetime]:
-    """Convert UTC datetime to Eastern Time"""
+    """Convert UTC datetime to Eastern Time by subtracting 6 hours
+    (manual adjustment to match actual game times)"""
     if not dt_utc:
         return None
     if dt_utc.tzinfo is None:
         dt_utc = dt_utc.replace(tzinfo=timezone.utc)
-    return dt_utc.astimezone(ET)
+    # Manually subtract 6 hours and make timezone-naive
+    et_time = dt_utc - timedelta(hours=6)
+    return et_time.replace(tzinfo=None)
 
 
 def get_day_of_week(dt: Optional[datetime]) -> Optional[str]:
@@ -59,22 +62,23 @@ def get_day_of_week(dt: Optional[datetime]) -> Optional[str]:
 
 
 def is_weekend_game(dt: Optional[datetime]) -> bool:
-    """Check if datetime is Friday or Saturday (in ET)"""
+    """Check if datetime is Friday 11/14 or Saturday 11/15"""
     if not dt:
         return False
     dt_et = utc_to_et(dt)
     if not dt_et:
         return False
-    # Friday = 4, Saturday = 5
-    return dt_et.weekday() in (4, 5)
+    # Check if it's November 14 or 15
+    return (dt_et.month == 11 and dt_et.day in (14, 15))
 
 
 def game_has_started(game_time: Optional[datetime]) -> bool:
-    """Check if game has already started (game_time is in ET)"""
+    """Check if game has already started (game_time is in ET, naive)"""
     if not game_time:
         return False
-    # game_time is now stored in ET, so compare with current ET time
-    now_et = datetime.now(ET)
+    # Get current time in UTC and convert to ET (naive)
+    now_utc = datetime.now(timezone.utc)
+    now_et = utc_to_et(now_utc)
     return now_et >= game_time
 
 

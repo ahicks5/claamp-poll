@@ -25,7 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from db import SessionLocal
-from models import Team, SpreadPoll, SpreadGame, BovadaTeamMapping
+from models import Team, SpreadPoll, SpreadGame, BovadaTeamMapping, Group
 from utils.bovada_team_mapper import map_bovada_team
 from utils.scrape_bovada import fetch_events_for_sport, fetch_event_node_by_link, extract_key_markets
 
@@ -88,16 +88,21 @@ def game_has_started(game_time: Optional[datetime]) -> bool:
     return now_et >= game_time
 
 
-def get_or_create_spread_poll(session: Session, season: int, week: int) -> SpreadPoll:
-    """Get or create the SpreadPoll for this week"""
+def get_or_create_spread_poll(session: Session, season: int, week: int, group_id: int) -> SpreadPoll:
+    """Get or create the SpreadPoll for this week in the specified group"""
     poll = session.execute(
         select(SpreadPoll)
-        .where(SpreadPoll.season == season, SpreadPoll.week == week)
+        .where(
+            SpreadPoll.group_id == group_id,
+            SpreadPoll.season == season,
+            SpreadPoll.week == week
+        )
     ).scalar_one_or_none()
 
     if poll is None:
         # Create new poll
         poll = SpreadPoll(
+            group_id=group_id,
             season=season,
             week=week,
             title=f"Week {week} - Weekend Games",
@@ -106,9 +111,9 @@ def get_or_create_spread_poll(session: Session, season: int, week: int) -> Sprea
         )
         session.add(poll)
         session.flush()
-        print(f"[+] Created new SpreadPoll: Season {season}, Week {week}")
+        print(f"[+] Created new SpreadPoll: Season {season}, Week {week}, Group {group_id}")
     else:
-        print(f"[✓] Found existing SpreadPoll: Season {season}, Week {week}")
+        print(f"[✓] Found existing SpreadPoll: Season {season}, Week {week}, Group {group_id}")
 
     return poll
 
@@ -195,8 +200,20 @@ def run_ingestion():
         print(f"Season: {CURRENT_SEASON}, Week: {CURRENT_WEEK}")
         print(f"{'='*60}\n")
 
-        # Get or create the SpreadPoll for this week
-        poll = get_or_create_spread_poll(session, CURRENT_SEASON, CURRENT_WEEK)
+        # Get CLAAMP group (default group for spreads ingestion)
+        claamp_group = session.execute(
+            select(Group).where(Group.name == "CLAAMP")
+        ).scalar_one_or_none()
+
+        if not claamp_group:
+            print("[ERROR] CLAAMP group not found!")
+            print("[!] Please run migrate_groups.py first")
+            sys.exit(1)
+
+        print(f"[✓] Using group: {claamp_group.name} (ID: {claamp_group.id})")
+
+        # Get or create the SpreadPoll for this week in CLAAMP group
+        poll = get_or_create_spread_poll(session, CURRENT_SEASON, CURRENT_WEEK, claamp_group.id)
 
         # Fetch events from Bovada
         print(f"[→] Fetching events from Bovada ({SPORT})...")

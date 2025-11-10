@@ -11,6 +11,7 @@ from models import User
 from auth import bp as auth_bp
 from poll import bp as poll_bp
 from spreads import bp as spreads_bp
+from groups import bp as groups_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-override")
@@ -25,10 +26,22 @@ def load_user(user_id: str):
     with SessionLocal() as s:
         return s.get(User, int(user_id))
 
-# ---- Global template context (e.g., footer year) ----
+# ---- Global template context (e.g., footer year, current_group) ----
 @app.context_processor
 def inject_globals():
-    return {"current_year": datetime.utcnow().year}
+    context = {
+        "current_year": datetime.utcnow().year,
+        "year": datetime.utcnow().year
+    }
+
+    # Inject current group for authenticated users
+    if current_user.is_authenticated:
+        from utils.group_helpers import get_current_group
+        with SessionLocal() as s:
+            current_group = get_current_group(current_user, s)
+            context["current_group"] = current_group
+
+    return context
 
 # ---- Root: home page ----
 @app.get("/")
@@ -42,6 +55,7 @@ def root():
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(poll_bp)
 app.register_blueprint(spreads_bp)
+app.register_blueprint(groups_bp)
 
 # ---------------- TEMP DIAGNOSTICS: keep while stabilizing ----------------
 from sqlalchemy import inspect

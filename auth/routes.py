@@ -19,7 +19,7 @@ def login():
                 login_user(user)
                 user.last_login_at = datetime.now(timezone.utc)
                 s.commit()
-                return redirect(url_for("poll.dashboard"))
+                return redirect(url_for("root"))
         flash("Invalid credentials.", "danger")
     return render_template("auth_login.html")
 

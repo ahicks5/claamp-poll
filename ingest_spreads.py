@@ -41,14 +41,14 @@ ET = pytz.timezone('America/New_York')
 
 
 def utc_to_et(dt_utc: Optional[datetime]) -> Optional[datetime]:
-    """Convert UTC datetime to Eastern Time by subtracting 6 hours
-    (manual adjustment to match actual game times)"""
+    """Convert UTC datetime to Eastern Time by subtracting 5 hours
+    (EST is UTC-5 in November)"""
     if not dt_utc:
         return None
     if dt_utc.tzinfo is None:
         dt_utc = dt_utc.replace(tzinfo=timezone.utc)
-    # Manually subtract 6 hours and make timezone-naive
-    et_time = dt_utc - timedelta(hours=6)
+    # Subtract 5 hours for Eastern Time and make timezone-naive
+    et_time = dt_utc - timedelta(hours=5)
     return et_time.replace(tzinfo=None)
 
 

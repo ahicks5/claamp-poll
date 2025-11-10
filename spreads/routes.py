@@ -33,20 +33,34 @@ def game_is_locked(game_time):
     Handles both timezone-aware and timezone-naive datetimes"""
     if not game_time:
         return False
-    # Get current time in UTC and convert to ET (naive, -6 hours)
+    # Get current time in UTC and convert to ET (naive, -5 hours for EST)
     now_utc = datetime.now(timezone.utc)
-    now_et = now_utc - timedelta(hours=6)
+    now_et = now_utc - timedelta(hours=5)
     now_et = now_et.replace(tzinfo=None)
 
     # Handle timezone-aware game_time from old data
     if game_time.tzinfo is not None:
-        # Convert to naive ET time (subtract 6 hours from UTC)
-        game_time = game_time.astimezone(timezone.utc) - timedelta(hours=6)
+        # Convert to naive ET time (subtract 5 hours from UTC)
+        game_time = game_time.astimezone(timezone.utc) - timedelta(hours=5)
         game_time = game_time.replace(tzinfo=None)
 
     # Lock picks 5 minutes before game starts
     lock_time = game_time - timedelta(minutes=5)
     return now_et >= lock_time
+
+
+def is_valid_weekend_game(game_time):
+    """Check if game is scheduled for Nov 14 or 15, 2024"""
+    if not game_time:
+        return False
+
+    # Handle timezone-aware datetimes
+    if game_time.tzinfo is not None:
+        game_time = game_time.astimezone(timezone.utc) - timedelta(hours=5)
+        game_time = game_time.replace(tzinfo=None)
+
+    # Check if it's November 14 or 15
+    return game_time.month == 11 and game_time.day in (14, 15)
 
 
 def get_latest_open_poll(session):
@@ -156,6 +170,14 @@ def vote(season: int, week: int):
             .where(SpreadGame.spread_poll_id == poll.id)
             .order_by(SpreadGame.game_time.asc())
         ).unique().scalars().all()
+
+        # Filter to only Nov 14-15 games with valid spreads
+        games = [
+            game for game in games
+            if is_valid_weekend_game(game.game_time)
+            and game.home_spread and game.home_spread != 'N/A'
+            and game.away_spread and game.away_spread != 'N/A'
+        ]
 
         # Load user's existing picks
         user_picks = {}
@@ -333,6 +355,14 @@ def results(season: int, week: int):
             .where(SpreadGame.spread_poll_id == poll.id)
             .order_by(SpreadGame.game_time.asc())
         ).unique().scalars().all()
+
+        # Filter to only Nov 14-15 games with valid spreads
+        games = [
+            game for game in games
+            if is_valid_weekend_game(game.game_time)
+            and game.home_spread and game.home_spread != 'N/A'
+            and game.away_spread and game.away_spread != 'N/A'
+        ]
 
         # Calculate user records
         user_records = defaultdict(lambda: {'correct': 0, 'incorrect': 0, 'pending': 0})

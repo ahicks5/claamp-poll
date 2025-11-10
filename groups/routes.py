@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from db import SessionLocal
 from models import Group, GroupMembership, User, Poll, SpreadPoll
 from utils.group_helpers import (
-    get_current_group, switch_group as switch_group_helper,
+    get_current_group, get_user_groups, switch_group as switch_group_helper,
     is_member, is_owner, generate_invite_code,
     add_user_to_group, get_group_by_invite_code, search_public_groups
 )
@@ -29,7 +29,7 @@ def groups_dashboard():
     """Show all user's groups"""
     session = SessionLocal()
     try:
-        user_groups = current_user.groups
+        user_groups = get_user_groups(current_user.id, session)
         current_group = get_current_group(current_user, session)
 
         return render_template(
@@ -104,7 +104,8 @@ def search():
             ).scalars().all()
 
         # Mark which groups user is already in
-        user_group_ids = {g.id for g in current_user.groups}
+        user_groups = get_user_groups(current_user.id, session)
+        user_group_ids = {g.id for g in user_groups}
 
         return render_template(
             "groups_search.html",

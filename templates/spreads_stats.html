@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Spreads Stats - CLAAMP{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header" style="text-align: center; margin-bottom: 2rem;">
+    <h1>Overall Statistics</h1>
+    <p class="muted">Leaderboard and performance across all weeks</p>
+  </div>
+
+  <!-- Overall Leaderboard -->
+  {% if user_stats %}
+    <div class="card" style="margin-bottom: 2rem;">
+      <div class="card-header">
+        <h2 style="margin: 0; font-size: 1.25rem;">All-Time Leaderboard</h2>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>User</th>
+              <th>Correct</th>
+              <th>Incorrect</th>
+              <th>Pending</th>
+              <th>Total</th>
+              <th>Win %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in user_stats %}
+              <tr {% if entry.user.id == current_user.id %}class="highlight-row"{% endif %}>
+                <td>
+                  <div class="rank-badge">
+                    {% if loop.index == 1 %}
+                      🥇
+                    {% elif loop.index == 2 %}
+                      🥈
+                    {% elif loop.index == 3 %}
+                      🥉
+                    {% else %}
+                      {{ loop.index }}
+                    {% endif %}
+                  </div>
+                </td>
+                <td>
+                  <strong>{{ entry.user.username }}</strong>
+                  {% if entry.user.id == current_user.id %}
+                    <span class="badge badge-primary" style="margin-left: 0.5rem;">You</span>
+                  {% endif %}
+                </td>
+                <td class="correct-cell">{{ entry.correct }}</td>
+                <td class="incorrect-cell">{{ entry.incorrect }}</td>
+                <td>{{ entry.pending }}</td>
+                <td><strong>{{ entry.total_picks }}</strong></td>
+                <td>
+                  {% if entry.graded_total > 0 %}
+                    <div class="progress-cell">
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ entry.pct }}%"></div>
+                      </div>
+                      <strong>{{ "%.1f"|format(entry.pct) }}%</strong>
+                    </div>
+                  {% else %}
+                    <span class="muted">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="muted">No picks have been made yet.</p>
+    </div>
+  {% endif %}
+
+  <!-- Weekly Breakdown -->
+  {% if polls %}
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin: 0; font-size: 1.25rem;">Weekly Breakdown</h2>
+      </div>
+      <div class="card-body">
+        <div class="weeks-grid">
+          {% for poll in polls %}
+            <a href="{{ url_for('spreads.results', season=poll.season, week=poll.week) }}"
+               class="week-card">
+              <div class="week-title">
+                <strong>Week {{ poll.week }}</strong>
+                <span class="muted">{{ poll.season }}</span>
+              </div>
+              <div class="week-status">
+                {% if poll.is_open %}
+                  <span class="badge badge-success">Open</span>
+                {% else %}
+                  <span class="badge badge-secondary">Closed</span>
+                {% endif %}
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div style="margin-top: 2rem; text-align: center;">
+    <a href="{{ url_for('spreads.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+</div>
+
+<style>
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #1f2937;
+  }
+
+  .stats-table th {
+    background: #141b26;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .stats-table tbody tr:hover {
+    background: #141b2633;
+  }
+
+  .highlight-row {
+    background: #6ee7ff11;
+  }
+
+  .rank-badge {
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .correct-cell {
+    color: #10b981;
+    font-weight: 600;
+  }
+
+  .incorrect-cell {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  .progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #1f2937;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #6ee7ff);
+    transition: width 0.3s ease;
+  }
+
+  .weeks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .week-card {
+    background: #1f2937;
+    border: 2px solid #374151;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .week-card:hover {
+    border-color: #6ee7ff;
+    transform: translateY(-2px);
+  }
+
+  .week-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .week-status {
+    margin-top: 0.5rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .badge-primary {
+    background: #6ee7ff;
+    color: #0c111a;
+  }
+
+  .badge-success {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .badge-secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .stats-table {
+      font-size: 0.875rem;
+    }
+
+    .stats-table th,
+    .stats-table td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    .progress-cell {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}

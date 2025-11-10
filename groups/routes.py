@@ -51,7 +51,7 @@ def group_detail(group_id: int):
             select(Group)
             .where(Group.id == group_id)
             .options(joinedload(Group.members).joinedload(GroupMembership.user))
-        ).scalar_one_or_none()
+        ).unique().scalar_one_or_none()
 
         if not group:
             flash("Group not found.", "danger")
@@ -106,7 +106,7 @@ def search():
                 .where(Group.is_public == True)
                 .options(joinedload(Group.members))
                 .order_by(Group.name)
-            ).scalars().all()
+            ).unique().scalars().all()
 
         # Mark which groups user is already in
         user_groups = get_user_groups(current_user.id, session)
@@ -149,7 +149,7 @@ def join(group_id: int):
             select(Group)
             .where(Group.id == group_id)
             .options(joinedload(Group.members))
-        ).scalar_one_or_none()
+        ).unique().scalar_one_or_none()
 
         if not group:
             flash("Group not found.", "danger")

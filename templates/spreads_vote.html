@@ -33,19 +33,33 @@
           {% set away_logo = logo_map.get(game.away_team.name, 'default.png') %}
           {% set home_logo = logo_map.get(game.home_team.name, 'default.png') %}
           {% set user_pick = user_picks.get(game.id) %}
+          {% set is_locked = game_is_locked(game.game_time) %}
 
-          <div class="game-row" data-game-id="{{ game.id }}">
+          {# Format spreads with + for positive values #}
+          {% set away_spread_display = game.away_spread %}
+          {% if away_spread_display and not away_spread_display.startswith('-') and away_spread_display != 'N/A' %}
+            {% set away_spread_display = '+' + away_spread_display %}
+          {% endif %}
+
+          {% set home_spread_display = game.home_spread %}
+          {% if home_spread_display and not home_spread_display.startswith('-') and home_spread_display != 'N/A' %}
+            {% set home_spread_display = '+' + home_spread_display %}
+          {% endif %}
+
+          <div class="game-row {{ 'game-locked' if is_locked else '' }}" data-game-id="{{ game.id }}">
             <!-- Away team (left side) -->
             <div class="team team-away">
-              <img src="{{ url_for('static', filename='images/logos/' + away_logo) }}"
-                   alt="{{ game.away_team.name }}"
-                   class="team-logo">
+              <div class="logo-wrapper">
+                <img src="{{ url_for('static', filename='images/logos/' + away_logo) }}"
+                     alt="{{ game.away_team.name }}"
+                     class="team-logo">
+              </div>
               <button type="button"
                       class="spread-btn spread-btn-away {{ 'selected' if user_pick and user_pick.picked_team_id == game.away_team_id else '' }}"
                       data-game-id="{{ game.id }}"
                       data-team-id="{{ game.away_team_id }}"
-                      {% if not poll.is_open %}disabled{% endif %}>
-                {{ game.away_spread if game.away_spread else 'N/A' }}
+                      {% if not poll.is_open or is_locked %}disabled{% endif %}>
+                {{ away_spread_display if away_spread_display else 'N/A' }}
               </button>
             </div>
 
@@ -58,12 +72,14 @@
                       class="spread-btn spread-btn-home {{ 'selected' if user_pick and user_pick.picked_team_id == game.home_team_id else '' }}"
                       data-game-id="{{ game.id }}"
                       data-team-id="{{ game.home_team_id }}"
-                      {% if not poll.is_open %}disabled{% endif %}>
-                {{ game.home_spread if game.home_spread else 'N/A' }}
+                      {% if not poll.is_open or is_locked %}disabled{% endif %}>
+                {{ home_spread_display if home_spread_display else 'N/A' }}
               </button>
-              <img src="{{ url_for('static', filename='images/logos/' + home_logo) }}"
-                   alt="{{ game.home_team.name }}"
-                   class="team-logo">
+              <div class="logo-wrapper">
+                <img src="{{ url_for('static', filename='images/logos/' + home_logo) }}"
+                     alt="{{ game.home_team.name }}"
+                     class="team-logo">
+              </div>
             </div>
 
             <!-- Hidden input to store the pick -->
@@ -74,8 +90,8 @@
 
             <!-- Game time (optional, for reference) -->
             {% if game.game_time %}
-              <div class="game-time">
-                {{ game.game_time.strftime('%I:%M %p ET') if game.game_time else '' }}
+              <div class="game-time {{ 'locked-text' if is_locked else '' }}">
+                {% if is_locked %}🔒 {% endif %}{{ game.game_time.strftime('%-I:%M %p ET') if game.game_time else '' }}
               </div>
             {% endif %}
           </div>
@@ -143,6 +159,15 @@
     justify-content: flex-end;
   }
 
+  .logo-wrapper {
+    background: #2a3441;
+    border-radius: 0.375rem;
+    padding: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .team-logo {
     width: 48px;
     height: 48px;
@@ -195,6 +220,21 @@
     transform: translateX(-50%);
     font-size: 0.75rem;
     color: #6b7280;
+  }
+
+  /* Locked game styles */
+  .game-locked {
+    opacity: 0.6;
+  }
+
+  .game-locked .spread-btn {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .locked-text {
+    color: #ef4444;
+    font-weight: 600;
   }
 
   /* Mobile optimizations */

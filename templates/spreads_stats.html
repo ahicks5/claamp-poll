@@ -16,15 +16,13 @@
         <h2 style="margin: 0; font-size: 1.25rem;">All-Time Leaderboard</h2>
       </div>
       <div class="card-body" style="padding: 0;">
-        <table class="stats-table">
+        <!-- Desktop Table -->
+        <table class="stats-table desktop-only">
           <thead>
             <tr>
               <th>Rank</th>
               <th>User</th>
-              <th>Correct</th>
-              <th>Incorrect</th>
-              <th>Pending</th>
-              <th>Total</th>
+              <th>Record</th>
               <th>Win %</th>
             </tr>
           </thead>
@@ -50,17 +48,20 @@
                     <span class="badge badge-primary" style="margin-left: 0.5rem;">You</span>
                   {% endif %}
                 </td>
-                <td class="correct-cell">{{ entry.correct }}</td>
-                <td class="incorrect-cell">{{ entry.incorrect }}</td>
-                <td>{{ entry.pending }}</td>
-                <td><strong>{{ entry.total_picks }}</strong></td>
+                <td>
+                  <span class="correct-cell">{{ entry.correct }}W</span> -
+                  <span class="incorrect-cell">{{ entry.incorrect }}L</span>
+                  {% if entry.pending > 0 %}
+                    <span class="muted"> · {{ entry.pending }}P</span>
+                  {% endif %}
+                </td>
                 <td>
                   {% if entry.graded_total > 0 %}
                     <div class="progress-cell">
+                      <strong>{{ "%.1f"|format(entry.pct) }}%</strong>
                       <div class="progress-bar">
                         <div class="progress-fill" style="width: {{ entry.pct }}%"></div>
                       </div>
-                      <strong>{{ "%.1f"|format(entry.pct) }}%</strong>
                     </div>
                   {% else %}
                     <span class="muted">-</span>
@@ -70,6 +71,50 @@
             {% endfor %}
           </tbody>
         </table>
+
+        <!-- Mobile Cards -->
+        <div class="stats-mobile mobile-only">
+          {% for entry in user_stats %}
+            <div class="stats-card {% if entry.user.id == current_user.id %}stats-card-highlight{% endif %}">
+              <div class="stats-card-header">
+                <div class="stats-rank">
+                  {% if loop.index == 1 %}
+                    🥇
+                  {% elif loop.index == 2 %}
+                    🥈
+                  {% elif loop.index == 3 %}
+                    🥉
+                  {% else %}
+                    #{{ loop.index }}
+                  {% endif %}
+                </div>
+                <div class="stats-user">
+                  <div class="stats-username">
+                    <strong>{{ entry.user.username }}</strong>
+                    {% if entry.user.id == current_user.id %}
+                      <span class="badge badge-primary">You</span>
+                    {% endif %}
+                  </div>
+                  <div class="stats-record">
+                    <span class="correct-cell">{{ entry.correct }}W</span> -
+                    <span class="incorrect-cell">{{ entry.incorrect }}L</span>
+                    {% if entry.pending > 0 %}
+                      <span class="muted"> · {{ entry.pending }}P</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if entry.graded_total > 0 %}
+                <div class="stats-card-footer">
+                  <div class="progress-bar-mobile">
+                    <div class="progress-fill" style="width: {{ entry.pct }}%"></div>
+                  </div>
+                  <strong class="stats-pct">{{ "%.1f"|format(entry.pct) }}%</strong>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   {% else %}
@@ -113,6 +158,16 @@
 </div>
 
 <style>
+  /* Desktop/Mobile Toggle */
+  .desktop-only {
+    display: table;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+
+  /* Desktop Table */
   .stats-table {
     width: 100%;
     border-collapse: collapse;
@@ -176,6 +231,79 @@
     transition: width 0.3s ease;
   }
 
+  /* Mobile Stats Cards */
+  .stats-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .stats-card {
+    background: #1f2937;
+    border: 2px solid #374151;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .stats-card-highlight {
+    background: #6ee7ff11;
+    border-color: #6ee7ff55;
+  }
+
+  .stats-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .stats-rank {
+    font-size: 1.75rem;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  .stats-user {
+    flex: 1;
+  }
+
+  .stats-username {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .stats-record {
+    font-size: 0.9rem;
+  }
+
+  .stats-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #374151;
+  }
+
+  .progress-bar-mobile {
+    flex: 1;
+    height: 8px;
+    background: #374151;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .stats-pct {
+    min-width: 50px;
+    text-align: right;
+    color: #6ee7ff;
+  }
+
+  /* Weekly Breakdown */
   .weeks-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -237,24 +365,38 @@
     padding: 3rem 1rem;
   }
 
-  @media (max-width: 600px) {
-    .stats-table {
-      font-size: 0.875rem;
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .desktop-only {
+      display: none !important;
     }
 
-    .stats-table th,
-    .stats-table td {
-      padding: 0.75rem 0.5rem;
+    .mobile-only {
+      display: flex !important;
     }
 
-    .progress-cell {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
+    .weeks-grid {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.75rem;
     }
 
-    .progress-bar {
-      width: 100%;
+    .week-card {
+      padding: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-rank {
+      font-size: 1.5rem;
+      min-width: 35px;
+    }
+
+    .stats-username strong {
+      font-size: 0.95rem;
+    }
+
+    .weeks-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>

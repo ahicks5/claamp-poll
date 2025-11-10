@@ -32,7 +32,7 @@ def get_current_group(user, db_session: Session):
             select(Group)
             .where(Group.id == group_id)
             .options(joinedload(Group.members))
-        ).scalar_one_or_none()
+        ).unique().scalar_one_or_none()
 
         if group and is_member(user.id, group_id, db_session):
             return group
@@ -44,7 +44,7 @@ def get_current_group(user, db_session: Session):
         .where(GroupMembership.user_id == user.id)
         .options(joinedload(GroupMembership.group).joinedload(Group.members))
         .limit(1)
-    ).scalar_one_or_none()
+    ).unique().scalar_one_or_none()
 
     if membership:
         group = membership.group
@@ -117,7 +117,7 @@ def get_user_groups(user_id: int, db_session: Session):
         select(GroupMembership)
         .where(GroupMembership.user_id == user_id)
         .options(joinedload(GroupMembership.group).joinedload(Group.members))
-    ).scalars().all()
+    ).unique().scalars().all()
 
     return [membership.group for membership in memberships]
 
@@ -128,7 +128,7 @@ def get_group_by_invite_code(invite_code: str, db_session: Session):
         select(Group)
         .where(Group.invite_code == invite_code)
         .options(joinedload(Group.members))
-    ).scalar_one_or_none()
+    ).unique().scalar_one_or_none()
 
 
 def search_public_groups(query: str, db_session: Session):
@@ -139,4 +139,4 @@ def search_public_groups(query: str, db_session: Session):
         .where(Group.name.ilike(f"%{query}%"))
         .options(joinedload(Group.members))
         .order_by(Group.name)
-    ).scalars().all()
+    ).unique().scalars().all()

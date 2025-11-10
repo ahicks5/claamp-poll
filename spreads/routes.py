@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import render_template, request, redirect, url_for, flash, abort, jsonify
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+import pytz
 
 from flask_login import login_required, current_user
 from sqlalchemy import select, func, and_
@@ -28,10 +29,13 @@ def require_admin():
 
 
 def game_is_locked(game_time):
-    """Check if game is locked (started or within 5 minutes of start)"""
+    """Check if game is locked (started or within 5 minutes of start)
+    Note: game_time is stored in ET timezone"""
     if not game_time:
         return False
-    now = datetime.now(timezone.utc)
+    # game_time is in ET, so compare with current ET time
+    ET = pytz.timezone('America/New_York')
+    now = datetime.now(ET)
     # Lock picks 5 minutes before game starts
     lock_time = game_time - timedelta(minutes=5)
     return now >= lock_time

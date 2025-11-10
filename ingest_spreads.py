@@ -70,11 +70,12 @@ def is_weekend_game(dt: Optional[datetime]) -> bool:
 
 
 def game_has_started(game_time: Optional[datetime]) -> bool:
-    """Check if game has already started"""
+    """Check if game has already started (game_time is in ET)"""
     if not game_time:
         return False
-    now = datetime.now(timezone.utc)
-    return now >= game_time
+    # game_time is now stored in ET, so compare with current ET time
+    now_et = datetime.now(ET)
+    return now_et >= game_time
 
 
 def get_or_create_spread_poll(session: Session, season: int, week: int) -> SpreadPoll:
@@ -215,7 +216,9 @@ def run_ingestion():
             bovada_event_id = str(row.get('event_id', ''))
             home_team_name = row.get('home_team')
             away_team_name = row.get('away_team')
-            game_time = row.get('start_time_utc')
+            game_time_utc = row.get('start_time_utc')
+            # Convert to Eastern Time for storage and display
+            game_time = utc_to_et(game_time_utc)
             game_day = row.get('day_of_week', 'Saturday')
             status = row.get('status', 'scheduled')
 

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from flask import render_template, request, redirect, url_for, flash, abort, jsonify
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 
 from flask_login import login_required, current_user
@@ -25,6 +25,16 @@ def require_admin():
     """Ensure current user is admin"""
     if not (current_user.is_authenticated and getattr(current_user, "is_admin", False)):
         abort(403)
+
+
+def game_is_locked(game_time):
+    """Check if game is locked (started or within 5 minutes of start)"""
+    if not game_time:
+        return False
+    now = datetime.now(timezone.utc)
+    # Lock picks 5 minutes before game starts
+    lock_time = game_time - timedelta(minutes=5)
+    return now >= lock_time
 
 
 def get_latest_open_poll(session):
@@ -159,7 +169,9 @@ def vote(season: int, week: int):
             poll=poll,
             games_by_day=games_by_day,
             user_picks=user_picks,
-            logo_map=logo_map
+            logo_map=logo_map,
+            game_is_locked=game_is_locked,
+            now_utc=datetime.now(timezone.utc)
         )
     finally:
         session.close()
@@ -193,7 +205,13 @@ def submit_vote():
 
         # Process picks
         picks_saved = 0
+        skipped_locked = 0
         for game in games:
+            # Skip games that have started or are about to start (5 min buffer)
+            if game_is_locked(game.game_time):
+                skipped_locked += 1
+                continue
+
             # Form field: pick_game_{game.id} = team_id
             picked_team_id = request.form.get(f"pick_game_{game.id}", type=int)
 
@@ -260,8 +278,14 @@ def submit_vote():
             picks_saved += 1
 
         session.commit()
-        flash(f"Picks saved! ({picks_saved} games)", "success")
-        return redirect(url_for("spreads.vote", season=poll.season, week=poll.week))
+
+        # Show message about locked games if any
+        message = f"Picks saved! ({picks_saved} games)"
+        if skipped_locked > 0:
+            message += f" • {skipped_locked} game(s) locked (already started)"
+        flash(message, "success")
+
+        return redirect(url_for("spreads.dashboard"))
 
     except Exception as e:
         session.rollback()

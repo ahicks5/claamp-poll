@@ -15,6 +15,7 @@ MANUAL_MAPPINGS = {
     "Louisiana Lafayette": "Louisiana",
     "Louisiana Monroe": "ULM",
     "Louisiana-Monroe": "ULM",
+    "UL Monroe": "ULM",
     "UTSA": "UTSA",
     "UAB": "UAB",
     "UCF": "UCF",

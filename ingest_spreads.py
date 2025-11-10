@@ -7,7 +7,9 @@ This script:
 2. Maps team names to our database teams
 3. Creates/updates SpreadPoll for current week
 4. Creates/updates SpreadGame records with latest spreads
-5. Only includes Saturday games
+5. Includes Friday and Saturday games
+6. Converts times from UTC to Eastern Time
+7. Stops updating spreads for games that have started
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ load_dotenv(find_dotenv())
 import sys
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+import pytz
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -33,19 +36,45 @@ SPORT = "football/college-football"
 CURRENT_SEASON = 2025
 CURRENT_WEEK = 11  # Adjust this weekly
 
+# Timezone for display (Eastern Time)
+ET = pytz.timezone('America/New_York')
+
+
+def utc_to_et(dt_utc: Optional[datetime]) -> Optional[datetime]:
+    """Convert UTC datetime to Eastern Time"""
+    if not dt_utc:
+        return None
+    if dt_utc.tzinfo is None:
+        dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+    return dt_utc.astimezone(ET)
+
 
 def get_day_of_week(dt: Optional[datetime]) -> Optional[str]:
-    """Get day of week from datetime"""
+    """Get day of week from datetime (in ET)"""
     if not dt:
         return None
-    return dt.strftime("%A")  # Returns "Monday", "Tuesday", etc.
+    # Convert to ET first
+    dt_et = utc_to_et(dt)
+    return dt_et.strftime("%A") if dt_et else None
 
 
-def is_saturday(dt: Optional[datetime]) -> bool:
-    """Check if datetime is a Saturday"""
+def is_weekend_game(dt: Optional[datetime]) -> bool:
+    """Check if datetime is Friday or Saturday (in ET)"""
     if not dt:
         return False
-    return dt.weekday() == 5  # Saturday = 5
+    dt_et = utc_to_et(dt)
+    if not dt_et:
+        return False
+    # Friday = 4, Saturday = 5
+    return dt_et.weekday() in (4, 5)
+
+
+def game_has_started(game_time: Optional[datetime]) -> bool:
+    """Check if game has already started"""
+    if not game_time:
+        return False
+    now = datetime.now(timezone.utc)
+    return now >= game_time
 
 
 def get_or_create_spread_poll(session: Session, season: int, week: int) -> SpreadPoll:
@@ -60,7 +89,7 @@ def get_or_create_spread_poll(session: Session, season: int, week: int) -> Sprea
         poll = SpreadPoll(
             season=season,
             week=week,
-            title=f"Week {week} - Saturday Games",
+            title=f"Week {week} - Weekend Games",
             is_open=True,
             closes_at=None  # Can be set manually or calculated
         )
@@ -111,15 +140,21 @@ def upsert_spread_game(
         ).scalar_one_or_none()
 
     if existing:
-        # Update existing game
+        # Update existing game, but DON'T update spreads if game has started
+        has_started = game_has_started(existing.game_time)
+
         existing.bovada_event_id = bovada_event_id
-        existing.home_spread = home_spread
-        existing.away_spread = away_spread
         existing.game_time = game_time
         existing.game_day = game_day
         existing.status = status or 'scheduled'
+
+        # Only update spreads if game hasn't started yet
+        if not has_started:
+            existing.home_spread = home_spread
+            existing.away_spread = away_spread
+
         game = existing
-        action = "updated"
+        action = "updated" if not has_started else "updated (no spread change)"
     else:
         # Create new game
         game = SpreadGame(
@@ -163,20 +198,20 @@ def run_ingestion():
 
         print(f"[✓] Found {len(events_df)} total events from Bovada")
 
-        # Filter to Saturday games only
+        # Filter to Friday and Saturday games only
         events_df['day_of_week'] = events_df['start_time_utc'].apply(get_day_of_week)
-        events_df['is_saturday'] = events_df['start_time_utc'].apply(is_saturday)
-        saturday_events = events_df[events_df['is_saturday'] == True]
+        events_df['is_weekend'] = events_df['start_time_utc'].apply(is_weekend_game)
+        weekend_events = events_df[events_df['is_weekend'] == True]
 
-        print(f"[✓] Filtered to {len(saturday_events)} Saturday games")
+        print(f"[✓] Filtered to {len(weekend_events)} weekend games (Friday & Saturday)")
 
         created_count = 0
         updated_count = 0
         skipped_count = 0
         unmapped_teams = set()
 
-        # Process each Saturday event
-        for idx, row in saturday_events.iterrows():
+        # Process each weekend event
+        for idx, row in weekend_events.iterrows():
             bovada_event_id = str(row.get('event_id', ''))
             home_team_name = row.get('home_team')
             away_team_name = row.get('away_team')

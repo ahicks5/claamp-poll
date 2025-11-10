@@ -58,7 +58,7 @@
                     <span class="group-dropdown__label">Switch Group</span>
                   </div>
                   <ul class="group-dropdown__list">
-                    {% for group in current_user.groups %}
+                    {% for group in user_groups %}
                       <li>
                         <a
                           href="{{ url_for('groups.switch', group_id=group.id) }}"

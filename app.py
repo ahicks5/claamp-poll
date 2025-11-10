@@ -34,12 +34,14 @@ def inject_globals():
         "year": datetime.utcnow().year
     }
 
-    # Inject current group for authenticated users
+    # Inject current group and user groups for authenticated users
     if current_user.is_authenticated:
-        from utils.group_helpers import get_current_group
+        from utils.group_helpers import get_current_group, get_user_groups
         with SessionLocal() as s:
             current_group = get_current_group(current_user, s)
+            user_groups = get_user_groups(current_user.id, s)
             context["current_group"] = current_group
+            context["user_groups"] = user_groups
 
     return context
 

@@ -77,7 +77,7 @@ def run_migration():
 
         # Get first admin user or first user
         first_user = session.execute(
-            text("SELECT id FROM users WHERE is_admin = 1 LIMIT 1")
+            text("SELECT id FROM users WHERE is_admin = true LIMIT 1")
         ).first()
 
         if not first_user:

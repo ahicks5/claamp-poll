@@ -47,7 +47,11 @@ def group_detail(group_id: int):
     """Show group details"""
     session = SessionLocal()
     try:
-        group = session.get(Group, group_id)
+        group = session.execute(
+            select(Group)
+            .where(Group.id == group_id)
+            .options(joinedload(Group.members).joinedload(GroupMembership.user))
+        ).scalar_one_or_none()
 
         if not group:
             flash("Group not found.", "danger")
@@ -100,6 +104,7 @@ def search():
             groups = session.execute(
                 select(Group)
                 .where(Group.is_public == True)
+                .options(joinedload(Group.members))
                 .order_by(Group.name)
             ).scalars().all()
 
@@ -140,7 +145,11 @@ def join(group_id: int):
     """Join a public group"""
     session = SessionLocal()
     try:
-        group = session.get(Group, group_id)
+        group = session.execute(
+            select(Group)
+            .where(Group.id == group_id)
+            .options(joinedload(Group.members))
+        ).scalar_one_or_none()
 
         if not group:
             flash("Group not found.", "danger")

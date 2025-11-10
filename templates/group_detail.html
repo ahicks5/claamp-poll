@@ -47,7 +47,7 @@
   <div class="stats-cards">
     <div class="stat-card">
       <div class="stat-card__label">Members</div>
-      <div class="stat-card__value">{{ group.memberships|length }}</div>
+      <div class="stat-card__value">{{ group.members|length }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-card__label">Created</div>
@@ -75,9 +75,9 @@
 
   <!-- Members List -->
   <div class="members-section">
-    <h2 class="section-title">Members ({{ group.memberships|length }})</h2>
+    <h2 class="section-title">Members ({{ group.members|length }})</h2>
     <div class="members-grid">
-      {% for membership in group.memberships %}
+      {% for membership in group.members %}
         <div class="member-card">
           <div class="member-card__info">
             <span class="member-card__name">{{ membership.user.username }}</span>

@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0c111a" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
-  <title>{% block title %}CLAAMP{% endblock %}</title>
+  <title>{% block title %}TakeFreePoints{% endblock %}</title>
 
   <style>
     html { -webkit-text-size-adjust: 100%; }
@@ -35,7 +35,7 @@
     <div class="site-header__inner">
       <a class="brand" href="{{ url_for('root') if current_user.is_authenticated else url_for('auth.login') }}">
         <span class="brand__dot"></span>
-        <span class="brand__text">CLAAMP</span>
+        <span class="brand__text">TFP</span>
       </a>
 
       <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">
@@ -71,7 +71,7 @@
   <!-- Footer -->
   <footer class="site-footer">
     <div class="site-footer__inner">
-      <small class="muted">© {{ year }} CLAAMP</small>
+      <small class="muted">© {{ year }} Take Free Points</small>
     </div>
   </footer>
 

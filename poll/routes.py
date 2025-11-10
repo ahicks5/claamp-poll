@@ -974,8 +974,8 @@ def share_ballot_png(ballot_id:int):
     # Footer background bar
     draw.rounded_rectangle((M, footer_y, W-M, H-M), radius=12, fill=(15, 19, 28))
 
-    # CLAAMP branding with accent dot
-    foot_text = "CLAAMP Polls"
+    # TakeFreePoints branding with accent dot
+    foot_text = "TFP Polls"
     brand_x = M + 28
     brand_y = footer_y + 16
 

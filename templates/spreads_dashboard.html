@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Spreads Dashboard - CLAAMP{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1>Spreads</h1>
+    <p class="muted">Pick against the spread for weekly NCAA games</p>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="actions-bar" style="margin-bottom: 2rem;">
+    <a href="{{ url_for('spreads.vote_latest') }}" class="btn btn-primary">Make Picks</a>
+    <a href="{{ url_for('spreads.stats') }}" class="btn btn-secondary">View Stats</a>
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('spreads.admin_panel') }}" class="btn btn-secondary">Admin</a>
+    {% endif %}
+  </div>
+
+  {% if poll_data %}
+    <div class="polls-list">
+      <h2 style="margin-bottom: 1rem;">Weekly Pools</h2>
+
+      {% for item in poll_data %}
+        {% set poll = item.poll %}
+        {% set game_count = item.game_count %}
+        {% set user_pick_count = item.user_pick_count %}
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="margin: 0; font-size: 1.25rem;">{{ poll.title }}</h3>
+              <p class="muted" style="margin: 0.25rem 0 0 0;">
+                Season {{ poll.season }}, Week {{ poll.week }}
+              </p>
+            </div>
+            <div>
+              {% if poll.is_open %}
+                <span class="badge badge-success">Open</span>
+              {% else %}
+                <span class="badge badge-secondary">Closed</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="card-body">
+            <p class="muted">
+              {{ game_count }} game{{ 's' if game_count != 1 else '' }}
+              {% if user_pick_count > 0 %}
+                · You picked {{ user_pick_count }} / {{ game_count }}
+              {% endif %}
+            </p>
+
+            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              {% if poll.is_open %}
+                <a href="{{ url_for('spreads.vote', season=poll.season, week=poll.week) }}" class="btn btn-primary btn-sm">
+                  {% if user_pick_count > 0 %}Edit Picks{% else %}Make Picks{% endif %}
+                </a>
+              {% endif %}
+
+              <a href="{{ url_for('spreads.results', season=poll.season, week=poll.week) }}" class="btn btn-secondary btn-sm">
+                View Results
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p class="muted">No spread pools available yet.</p>
+      {% if current_user.is_admin %}
+        <p class="muted">Run the ingestion script to create pools and games.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  .actions-bar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .badge-success {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .badge-secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+</style>
+{% endblock %}

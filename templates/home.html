@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}CLAAMP - Home{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+  <h1 style="text-align: center; margin-bottom: 2rem;">Welcome to CLAAMP</h1>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 3rem;">
+    <!-- Polls Card -->
+    <a href="{{ url_for('poll.dashboard') }}" style="text-decoration: none; color: inherit;">
+      <div class="card" style="padding: 2rem; text-align: center; transition: transform 0.2s; cursor: pointer; border: 2px solid #2a3441; background: #141b26;">
+        <h2 style="margin-top: 0; color: #6ee7ff;">Polls</h2>
+        <p style="color: #9ca3af; line-height: 1.6;">
+          Vote on weekly Top 25 rankings. Submit your ballot and see how your picks compare to the consensus.
+        </p>
+        <div style="margin-top: 1.5rem;">
+          <span class="btn btn-primary">Go to Polls →</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Spreads Card -->
+    <a href="{{ url_for('spreads.dashboard') }}" style="text-decoration: none; color: inherit;">
+      <div class="card" style="padding: 2rem; text-align: center; transition: transform 0.2s; cursor: pointer; border: 2px solid #2a3441; background: #141b26;">
+        <h2 style="margin-top: 0; color: #6ee7ff;">Spreads</h2>
+        <p style="color: #9ca3af; line-height: 1.6;">
+          Pick against the spread for weekly NCAA games. Track your record and compete on the leaderboard.
+        </p>
+        <div style="margin-top: 1.5rem;">
+          <span class="btn btn-primary">Go to Spreads →</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <style>
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #6ee7ff;
+    }
+  </style>
+</div>
+{% endblock %}

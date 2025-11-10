@@ -10,6 +10,7 @@ from db import SessionLocal
 from models import User
 from auth import bp as auth_bp
 from poll import bp as poll_bp
+from spreads import bp as spreads_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-override")
@@ -29,16 +30,18 @@ def load_user(user_id: str):
 def inject_globals():
     return {"current_year": datetime.utcnow().year}
 
-# ---- Root: redirect based on auth ----
+# ---- Root: home page ----
 @app.get("/")
 def root():
     if current_user.is_authenticated:
-        return redirect(url_for("poll.dashboard"))
+        from flask import render_template
+        return render_template("home.html")
     return redirect(url_for("auth.login"))
 
 # ---- Blueprints ----
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(poll_bp)
+app.register_blueprint(spreads_bp)
 
 # ---------------- TEMP DIAGNOSTICS: keep while stabilizing ----------------
 from sqlalchemy import inspect

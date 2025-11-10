@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}{{ poll.title }} - Make Picks - CLAAMP{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+  <div class="page-header" style="text-align: center; margin-bottom: 2rem;">
+    <h1>{{ poll.title }}</h1>
+    <p class="muted">Season {{ poll.season }}, Week {{ poll.week }}</p>
+    {% if not poll.is_open %}
+      <p class="badge badge-secondary">Closed</p>
+    {% endif %}
+  </div>
+
+  {% if not poll.is_open %}
+    <div class="alert alert-warning" style="margin-bottom: 2rem; padding: 1rem; background: #f59e0b33; border: 1px solid #f59e0b; border-radius: 0.5rem;">
+      <p style="margin: 0;">This poll is closed. You can view results but cannot make picks.</p>
+    </div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('spreads.submit_vote') }}" id="spreads-form">
+    <input type="hidden" name="poll_id" value="{{ poll.id }}">
+
+    {% if games_by_day %}
+      {% for day, games in games_by_day.items()|sort %}
+        <!-- Day header -->
+        <div class="day-header">
+          <h3>{{ day }}</h3>
+        </div>
+
+        <!-- Games for this day -->
+        {% for game in games %}
+          {% set away_logo = logo_map.get(game.away_team.name, 'default.png') %}
+          {% set home_logo = logo_map.get(game.home_team.name, 'default.png') %}
+          {% set user_pick = user_picks.get(game.id) %}
+
+          <div class="game-row" data-game-id="{{ game.id }}">
+            <!-- Away team (left side) -->
+            <div class="team team-away">
+              <img src="{{ url_for('static', filename='images/logos/' + away_logo) }}"
+                   alt="{{ game.away_team.name }}"
+                   class="team-logo">
+              <button type="button"
+                      class="spread-btn spread-btn-away {{ 'selected' if user_pick and user_pick.picked_team_id == game.away_team_id else '' }}"
+                      data-game-id="{{ game.id }}"
+                      data-team-id="{{ game.away_team_id }}"
+                      {% if not poll.is_open %}disabled{% endif %}>
+                {{ game.away_spread if game.away_spread else 'N/A' }}
+              </button>
+            </div>
+
+            <!-- VS in the middle -->
+            <div class="vs-separator">vs</div>
+
+            <!-- Home team (right side) -->
+            <div class="team team-home">
+              <button type="button"
+                      class="spread-btn spread-btn-home {{ 'selected' if user_pick and user_pick.picked_team_id == game.home_team_id else '' }}"
+                      data-game-id="{{ game.id }}"
+                      data-team-id="{{ game.home_team_id }}"
+                      {% if not poll.is_open %}disabled{% endif %}>
+                {{ game.home_spread if game.home_spread else 'N/A' }}
+              </button>
+              <img src="{{ url_for('static', filename='images/logos/' + home_logo) }}"
+                   alt="{{ game.home_team.name }}"
+                   class="team-logo">
+            </div>
+
+            <!-- Hidden input to store the pick -->
+            <input type="hidden"
+                   name="pick_game_{{ game.id }}"
+                   id="pick_game_{{ game.id }}"
+                   value="{{ user_pick.picked_team_id if user_pick else '' }}">
+
+            <!-- Game time (optional, for reference) -->
+            {% if game.game_time %}
+              <div class="game-time">
+                {{ game.game_time.strftime('%I:%M %p ET') if game.game_time else '' }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+
+      <!-- Submit button -->
+      {% if poll.is_open %}
+        <div style="margin-top: 2rem; text-align: center;">
+          <button type="submit" class="btn btn-primary btn-lg">Save Picks</button>
+          <p class="muted" style="margin-top: 0.5rem; font-size: 0.875rem;">
+            You can update your picks anytime before the poll closes
+          </p>
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="empty-state">
+        <p class="muted">No games available for this week yet.</p>
+      </div>
+    {% endif %}
+  </form>
+</div>
+
+<style>
+  .day-header {
+    margin: 2rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #2a3441;
+  }
+
+  .day-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6ee7ff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .game-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 0;
+    position: relative;
+  }
+
+  .game-row + .game-row {
+    border-top: 1px solid #1f2937;
+  }
+
+  .team {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+  }
+
+  .team-away {
+    justify-content: flex-start;
+  }
+
+  .team-home {
+    justify-content: flex-end;
+  }
+
+  .team-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  .vs-separator {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 0 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .spread-btn {
+    min-width: 64px;
+    padding: 0.625rem 1rem;
+    background: #1f2937;
+    border: 2px solid #374151;
+    border-radius: 0.5rem;
+    color: #e5e7eb;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: ui-monospace, monospace;
+  }
+
+  .spread-btn:hover:not(:disabled) {
+    background: #2a3441;
+    border-color: #6ee7ff;
+  }
+
+  .spread-btn.selected {
+    background: #6ee7ff;
+    border-color: #6ee7ff;
+    color: #0c111a;
+  }
+
+  .spread-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .game-time {
+    position: absolute;
+    bottom: 0.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 600px) {
+    .game-row {
+      padding: 1.5rem 0;
+    }
+
+    .team-logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .spread-btn {
+      min-width: 56px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .alert-warning {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f59e0b33;
+    border: 1px solid #f59e0b;
+    border-radius: 0.5rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .badge-secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+</style>
+
+<script>
+  // Handle spread button clicks
+  document.addEventListener('DOMContentLoaded', function() {
+    const spreadButtons = document.querySelectorAll('.spread-btn');
+
+    spreadButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        if (this.disabled) return;
+
+        const gameId = this.getAttribute('data-game-id');
+        const teamId = this.getAttribute('data-team-id');
+        const hiddenInput = document.getElementById('pick_game_' + gameId);
+
+        // Find all buttons for this game
+        const gameBtns = document.querySelectorAll(`[data-game-id="${gameId}"]`);
+
+        // If clicking the already-selected button, deselect it
+        if (this.classList.contains('selected')) {
+          this.classList.remove('selected');
+          hiddenInput.value = '';
+        } else {
+          // Deselect all buttons for this game
+          gameBtns.forEach(btn => btn.classList.remove('selected'));
+
+          // Select this button
+          this.classList.add('selected');
+          hiddenInput.value = teamId;
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}{{ poll.title }} - Results - CLAAMP{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header" style="text-align: center; margin-bottom: 2rem;">
+    <h1>{{ poll.title }} - Results</h1>
+    <p class="muted">Season {{ poll.season }}, Week {{ poll.week }}</p>
+  </div>
+
+  <!-- Leaderboard -->
+  {% if leaderboard %}
+    <div class="card" style="margin-bottom: 2rem;">
+      <div class="card-header">
+        <h2 style="margin: 0; font-size: 1.25rem;">Leaderboard</h2>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>User</th>
+              <th>Correct</th>
+              <th>Incorrect</th>
+              <th>Pending</th>
+              <th>Win %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in leaderboard %}
+              <tr {% if entry.user.id == current_user.id %}class="highlight-row"{% endif %}>
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong>{{ entry.user.username }}</strong>
+                  {% if entry.user.id == current_user.id %}
+                    <span class="badge badge-primary" style="margin-left: 0.5rem;">You</span>
+                  {% endif %}
+                </td>
+                <td class="correct-cell">{{ entry.correct }}</td>
+                <td class="incorrect-cell">{{ entry.incorrect }}</td>
+                <td>{{ entry.pending }}</td>
+                <td>
+                  {% if entry.total > 0 %}
+                    <strong>{{ "%.1f"|format(entry.pct) }}%</strong>
+                  {% else %}
+                    <span class="muted">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Games by day -->
+  {% if games_by_day %}
+    <h2 style="margin-top: 3rem; margin-bottom: 1rem;">Games</h2>
+
+    {% for day, games in games_by_day.items()|sort %}
+      <div class="day-header">
+        <h3>{{ day }}</h3>
+      </div>
+
+      {% for game in games %}
+        {% set away_logo = logo_map.get(game.away_team.name, 'default.png') %}
+        {% set home_logo = logo_map.get(game.home_team.name, 'default.png') %}
+
+        <div class="game-result-card">
+          <!-- Game header with teams -->
+          <div class="game-header">
+            <div class="team-info">
+              <img src="{{ url_for('static', filename='images/logos/' + away_logo) }}"
+                   alt="{{ game.away_team.name }}"
+                   class="team-logo-sm">
+              <span>{{ game.away_team.name }}</span>
+              {% if game.away_score is not none %}
+                <strong class="score">{{ game.away_score }}</strong>
+              {% endif %}
+            </div>
+
+            <div class="vs-text">@</div>
+
+            <div class="team-info">
+              {% if game.home_score is not none %}
+                <strong class="score">{{ game.home_score }}</strong>
+              {% endif %}
+              <span>{{ game.home_team.name }}</span>
+              <img src="{{ url_for('static', filename='images/logos/' + home_logo) }}"
+                   alt="{{ game.home_team.name }}"
+                   class="team-logo-sm">
+            </div>
+          </div>
+
+          <!-- Spread info -->
+          <div class="spread-info">
+            <span class="muted">Spread:</span>
+            <strong>{{ game.away_team.name }} {{ game.away_spread }}</strong>
+            <span class="muted">·</span>
+            <strong>{{ game.home_team.name }} {{ game.home_spread }}</strong>
+          </div>
+
+          <!-- Status -->
+          <div class="game-status">
+            {% if game.status == 'final' %}
+              <span class="badge badge-success">Final</span>
+            {% elif game.status == 'in_progress' %}
+              <span class="badge badge-warning">In Progress</span>
+            {% else %}
+              <span class="badge badge-secondary">Scheduled</span>
+            {% endif %}
+          </div>
+
+          <!-- Picks summary -->
+          {% if game.picks %}
+            <div class="picks-summary">
+              <p class="muted" style="margin-bottom: 0.5rem;">
+                <strong>{{ game.picks|length }}</strong> pick{{ 's' if game.picks|length != 1 else '' }}
+              </p>
+
+              <div class="picks-list">
+                {% for pick in game.picks %}
+                  {% set is_correct = pick.is_correct %}
+                  {% set is_home = pick.picked_team_id == game.home_team_id %}
+
+                  <div class="pick-item {% if is_correct == true %}correct{% elif is_correct == false %}incorrect{% endif %}">
+                    <span class="pick-user">{{ pick.user.username }}</span>
+                    <span class="pick-choice">
+                      picked {{ game.home_team.name if is_home else game.away_team.name }}
+                      ({{ game.home_spread if is_home else game.away_spread }})
+                    </span>
+                    {% if is_correct == true %}
+                      <span class="pick-result">✓</span>
+                    {% elif is_correct == false %}
+                      <span class="pick-result">✗</span>
+                    {% else %}
+                      <span class="pick-result muted">-</span>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <p class="muted" style="font-size: 0.875rem;">No picks for this game.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  {% else %}
+    <p class="muted">No games available.</p>
+  {% endif %}
+
+  <div style="margin-top: 2rem; text-align: center;">
+    <a href="{{ url_for('spreads.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+</div>
+
+<style>
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #1f2937;
+  }
+
+  .leaderboard-table th {
+    background: #141b26;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .leaderboard-table tbody tr:hover {
+    background: #141b2633;
+  }
+
+  .highlight-row {
+    background: #6ee7ff11;
+  }
+
+  .correct-cell {
+    color: #10b981;
+    font-weight: 600;
+  }
+
+  .incorrect-cell {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  .day-header {
+    margin: 2rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #2a3441;
+  }
+
+  .day-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6ee7ff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .game-result-card {
+    background: #141b26;
+    border: 1px solid #2a3441;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .team-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .team-logo-sm {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+
+  .score {
+    font-size: 1.25rem;
+    color: #6ee7ff;
+  }
+
+  .vs-text {
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .spread-info {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .game-status {
+    margin-bottom: 1rem;
+  }
+
+  .picks-summary {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #2a3441;
+  }
+
+  .picks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pick-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background: #1f2937;
+    font-size: 0.875rem;
+  }
+
+  .pick-item.correct {
+    background: #10b98122;
+    border-left: 3px solid #10b981;
+  }
+
+  .pick-item.incorrect {
+    background: #ef444422;
+    border-left: 3px solid #ef4444;
+  }
+
+  .pick-user {
+    font-weight: 600;
+  }
+
+  .pick-choice {
+    color: #9ca3af;
+    flex: 1;
+    margin: 0 1rem;
+  }
+
+  .pick-result {
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .badge-primary {
+    background: #6ee7ff;
+    color: #0c111a;
+  }
+
+  .badge-success {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .badge-warning {
+    background: #f59e0b;
+    color: #fff;
+  }
+
+  .badge-secondary {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  @media (max-width: 600px) {
+    .game-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .pick-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+
+    .pick-choice {
+      margin: 0;
+    }
+  }
+</style>
+{% endblock %}

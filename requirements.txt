@@ -8,3 +8,4 @@ Werkzeug==3.0.4
 gunicorn==22.0.0
 alembic==1.13.3
 Pillow>=10.3
+requests==2.32.5

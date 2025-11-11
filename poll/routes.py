@@ -365,11 +365,10 @@ def submit_vote():
 @login_required
 def api_poll_default(poll_id):
     """Return the current default map {rank: team_id}.
-       If you seeded with poll_id=None, we fall back to global defaults.
-       If you seeded with a week_key, you can pick the latest, or pass one via query param later.
+       Priority:
+       1. User's most recent ballot (from any poll in the group)
+       2. System default ballot
     """
-    week_key = None  # simple version: latest by id if multiple exist
-
     with SessionLocal() as s:
         # Get current group and verify poll belongs to it
         current_group = get_current_group(current_user, s)
@@ -379,15 +378,34 @@ def api_poll_default(poll_id):
         poll = s.get(Poll, poll_id)
         if poll and poll.group_id != current_group.id:
             return jsonify({"error": "Poll not found"}), 404
+
+        # First, try to get user's most recent submitted ballot from this group
+        most_recent_ballot = s.execute(
+            select(Ballot)
+            .options(joinedload(Ballot.items), joinedload(Ballot.poll))
+            .join(Poll, Ballot.poll_id == Poll.id)
+            .where(
+                Ballot.user_id == current_user.id,
+                Ballot.submitted_at.isnot(None),
+                Poll.group_id == current_group.id,
+                Ballot.poll_id != poll_id  # Don't use current poll (they're editing it)
+            )
+            .order_by(Ballot.submitted_at.desc())
+            .limit(1)
+        ).unique().scalars().first()
+
+        # If user has a previous ballot, use it as default
+        if most_recent_ballot and most_recent_ballot.items:
+            payload = {str(item.rank): item.team_id for item in most_recent_ballot.items}
+            return jsonify(payload)
+
+        # Fall back to system default
         q = select(DefaultBallot).where(
             or_(
                 DefaultBallot.poll_id == poll_id,
                 DefaultBallot.poll_id.is_(None)
             )
-        )
-        if week_key:
-            q = q.where(DefaultBallot.week_key == week_key)
-        q = q.order_by(DefaultBallot.rank)
+        ).order_by(DefaultBallot.rank)
 
         rows = s.scalars(q).all()
         payload = {str(r.rank): r.team_id for r in rows}

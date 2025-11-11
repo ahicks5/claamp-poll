@@ -72,8 +72,12 @@
             {% endif %}
             <a href="{{ url_for('groups.group_detail', group_id=group.id) }}" class="btn btn-ghost">Details</a>
             <button
-              class="btn btn-ghost btn-icon"
-              onclick="shareGroup('{{ group.name }}', '{{ group.description or 'Join our group!' }}', {{ 'true' if not group.is_public else 'false' }}, '{{ group.id }}', '{{ group.invite_code or '' }}')"
+              class="btn btn-ghost btn-icon share-group-btn"
+              data-group-name="{{ group.name }}"
+              data-group-desc="{{ group.description or 'Join our group!' }}"
+              data-is-private="{{ 'true' if not group.is_public else 'false' }}"
+              data-group-id="{{ group.id }}"
+              data-invite-code="{{ group.invite_code or '' }}"
               title="Share group">
               📤
             </button>
@@ -324,54 +328,87 @@
 
 <script>
 // Share group via native share or copy to clipboard
-async function shareGroup(groupName, groupDescription, isPrivate, groupId, inviteCode) {
-  // Determine share URL: invite link for private, group detail for public
-  const baseUrl = window.location.origin;
-  let shareUrl;
-  if (isPrivate && inviteCode) {
-    shareUrl = `${baseUrl}/groups/invite/${inviteCode}`;
-  } else {
-    shareUrl = `${baseUrl}/groups/${groupId}`;
-  }
+document.addEventListener('DOMContentLoaded', function() {
+  const shareButtons = document.querySelectorAll('.share-group-btn');
 
-  const shareData = {
-    title: `Join ${groupName} on Take Free Points`,
-    text: groupDescription,
-    url: shareUrl
-  };
+  shareButtons.forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      console.log('Share button clicked');
 
-  try {
-    // Try native share API first (works on mobile)
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      await navigator.share(shareData);
-    } else {
-      // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(shareUrl);
-      // Show temporary notification
-      const notification = document.createElement('div');
-      notification.textContent = 'Link copied to clipboard!';
-      notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 12px 20px; border-radius: 8px; z-index: 10000; font-weight: 500;';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
-    }
-  } catch (err) {
-    // If share was cancelled, do nothing
-    if (err.name !== 'AbortError') {
-      console.error('Share failed:', err);
-      // Try clipboard as last resort
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        const notification = document.createElement('div');
-        notification.textContent = 'Link copied to clipboard!';
-        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 12px 20px; border-radius: 8px; z-index: 10000; font-weight: 500;';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
-      } catch (clipErr) {
-        console.error('Clipboard failed:', clipErr);
+      const groupName = btn.dataset.groupName;
+      const groupDescription = btn.dataset.groupDesc;
+      const isPrivate = btn.dataset.isPrivate === 'true';
+      const groupId = btn.dataset.groupId;
+      const inviteCode = btn.dataset.inviteCode;
+
+      console.log('Share data:', { groupName, isPrivate, groupId, inviteCode });
+
+      // Determine share URL: invite link for private, group detail for public
+      const baseUrl = window.location.origin;
+      let shareUrl;
+      if (isPrivate && inviteCode) {
+        shareUrl = `${baseUrl}/groups/invite/${inviteCode}`;
+      } else {
+        shareUrl = `${baseUrl}/groups/${groupId}`;
       }
-    }
+
+      console.log('Share URL:', shareUrl);
+
+      const shareData = {
+        title: `Join ${groupName} on Take Free Points`,
+        text: groupDescription,
+        url: shareUrl
+      };
+
+      try {
+        // Try native share API first (works on mobile)
+        if (navigator.share) {
+          console.log('Using native share API');
+          await navigator.share(shareData);
+          showNotification('Shared!');
+        } else {
+          console.log('Using clipboard fallback');
+          // Fallback: copy to clipboard
+          await navigator.clipboard.writeText(shareUrl);
+          showNotification('Link copied to clipboard!');
+        }
+      } catch (err) {
+        console.error('Share error:', err);
+        // If share was cancelled, do nothing
+        if (err.name !== 'AbortError') {
+          // Try clipboard as last resort
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            showNotification('Link copied to clipboard!');
+          } catch (clipErr) {
+            console.error('Clipboard error:', clipErr);
+            showNotification('Failed to share', true);
+          }
+        }
+      }
+    });
+  });
+
+  function showNotification(message, isError = false) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isError ? '#ef4444' : 'var(--brand, #6ee7ff)'};
+      color: ${isError ? 'white' : 'var(--bg, #0a0e14)'};
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
   }
-}
+});
 </script>
 
 {% endblock %}

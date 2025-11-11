@@ -27,7 +27,14 @@
 
     <!-- Header Actions -->
     <div class="group-header__actions">
-      <button class="btn btn-ghost" onclick="shareGroup()" id="share-btn">
+      <button
+        class="btn btn-ghost"
+        id="share-btn"
+        data-group-name="{{ group.name }}"
+        data-group-desc="{{ group.description or 'Join our group!' }}"
+        data-is-private="{{ 'true' if not group.is_public else 'false' }}"
+        data-group-id="{{ group.id }}"
+        data-invite-code="{{ group.invite_code or '' }}">
         <span style="margin-right: 6px;">📤</span> Share Group
       </button>
       {% if is_member %}
@@ -326,81 +333,92 @@
 
 <script>
 // Share group via native share or copy to clipboard
-async function shareGroup() {
-  const groupName = "{{ group.name }}";
-  const groupDescription = "{{ group.description or 'Join our group!' }}";
-  const isPrivate = {{ 'true' if not group.is_public else 'false' }};
+document.addEventListener('DOMContentLoaded', function() {
+  const shareBtn = document.getElementById('share-btn');
+  if (!shareBtn) return;
 
-  // Determine share URL: invite link for private, group detail for public
-  let shareUrl;
-  if (isPrivate) {
-    {% if group.invite_code %}
-      shareUrl = "{{ request.url_root }}groups/invite/{{ group.invite_code }}";
-    {% else %}
-      shareUrl = window.location.href;
-    {% endif %}
-  } else {
-    shareUrl = "{{ request.url_root }}groups/{{ group.id }}";
-  }
+  shareBtn.addEventListener('click', async function() {
+    console.log('Share button clicked');
 
-  const shareData = {
-    title: `Join ${groupName} on Take Free Points`,
-    text: groupDescription,
-    url: shareUrl
-  };
+    const groupName = shareBtn.dataset.groupName;
+    const groupDescription = shareBtn.dataset.groupDesc;
+    const isPrivate = shareBtn.dataset.isPrivate === 'true';
+    const groupId = shareBtn.dataset.groupId;
+    const inviteCode = shareBtn.dataset.inviteCode;
 
-  const btn = document.getElementById('share-btn');
-  const originalHtml = btn.innerHTML;
+    console.log('Share data:', { groupName, isPrivate, groupId, inviteCode });
 
-  try {
-    // Try native share API first (works on mobile)
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      await navigator.share(shareData);
-      // Show success feedback
-      btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Shared!';
-      btn.classList.add('btn-primary');
-      btn.classList.remove('btn-ghost');
-      setTimeout(() => {
-        btn.innerHTML = originalHtml;
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-ghost');
-      }, 2000);
+    // Determine share URL: invite link for private, group detail for public
+    let shareUrl;
+    if (isPrivate && inviteCode) {
+      shareUrl = `${window.location.origin}/groups/invite/${inviteCode}`;
     } else {
-      // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(shareUrl);
-      btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
-      btn.classList.add('btn-primary');
-      btn.classList.remove('btn-ghost');
-      setTimeout(() => {
-        btn.innerHTML = originalHtml;
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-ghost');
-      }, 2000);
+      shareUrl = `${window.location.origin}/groups/${groupId}`;
     }
-  } catch (err) {
-    // If share was cancelled or failed, show error
-    if (err.name !== 'AbortError') {
-      console.error('Share failed:', err);
-      // Try clipboard as last resort
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
-        btn.classList.add('btn-primary');
-        btn.classList.remove('btn-ghost');
+
+    console.log('Share URL:', shareUrl);
+
+    const shareData = {
+      title: `Join ${groupName} on Take Free Points`,
+      text: groupDescription,
+      url: shareUrl
+    };
+
+    const originalHtml = shareBtn.innerHTML;
+
+    try {
+      // Try native share API first (works on mobile)
+      if (navigator.share) {
+        console.log('Using native share API');
+        await navigator.share(shareData);
+        // Show success feedback
+        shareBtn.innerHTML = '<span style="margin-right: 6px;">✓</span> Shared!';
+        shareBtn.classList.add('btn-primary');
+        shareBtn.classList.remove('btn-ghost');
         setTimeout(() => {
-          btn.innerHTML = originalHtml;
-          btn.classList.remove('btn-primary');
-          btn.classList.add('btn-ghost');
+          shareBtn.innerHTML = originalHtml;
+          shareBtn.classList.remove('btn-primary');
+          shareBtn.classList.add('btn-ghost');
         }, 2000);
-      } catch (clipErr) {
-        btn.innerHTML = '<span style="margin-right: 6px;">✗</span> Failed';
+      } else {
+        console.log('Using clipboard fallback');
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        shareBtn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
+        shareBtn.classList.add('btn-primary');
+        shareBtn.classList.remove('btn-ghost');
         setTimeout(() => {
-          btn.innerHTML = originalHtml;
+          shareBtn.innerHTML = originalHtml;
+          shareBtn.classList.remove('btn-primary');
+          shareBtn.classList.add('btn-ghost');
         }, 2000);
       }
+    } catch (err) {
+      console.error('Share error:', err);
+      // If share was cancelled or failed
+      if (err.name !== 'AbortError') {
+        // Try clipboard as last resort
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          shareBtn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
+          shareBtn.classList.add('btn-primary');
+          shareBtn.classList.remove('btn-ghost');
+          setTimeout(() => {
+            shareBtn.innerHTML = originalHtml;
+            shareBtn.classList.remove('btn-primary');
+            shareBtn.classList.add('btn-ghost');
+          }, 2000);
+        } catch (clipErr) {
+          console.error('Clipboard error:', clipErr);
+          shareBtn.innerHTML = '<span style="margin-right: 6px;">✗</span> Failed';
+          setTimeout(() => {
+            shareBtn.innerHTML = originalHtml;
+          }, 2000);
+        }
+      }
     }
-  }
-}
+  });
+});
 
 function copyInviteLink() {
   const link = document.getElementById('invite-link').textContent;

@@ -9,14 +9,25 @@
     <h1 class="vote-title">{{ poll.title }}</h1>
     <div class="vote-actions">
       <!-- Back removed -->
-      <button id="autofill-defaults" class="btn btn-ghost sm" type="button" disabled>+ Default</button>
+      <button
+        id="autofill-defaults"
+        class="btn btn-brand sm quick-fill-btn"
+        type="button"
+        disabled
+        title="Fill with your previous ballot or system defaults"
+      >
+        ⚡ Quick Fill
+      </button>
       <button id="clear-all" class="btn btn-ghost sm" type="button">Clear</button>
       <button form="vote-form" class="btn btn-primary sm" type="submit">Submit</button>
     </div>
   </header>
 
   <div class="vote-subbar">
-    <span class="muted">Drag on desktop. On mobile: tap “+” in a slot to search and add a team.</span>
+    <span class="muted">
+      <strong>💡 Tip:</strong> Use "⚡ Quick Fill" to start with your last ballot
+      <span class="hide-mobile">• Drag on desktop • Tap "+" on mobile to add teams</span>
+    </span>
     <span class="muted" id="selection-count">0 of {{ MAX_RANK }} selected</span>
   </div>
 
@@ -158,8 +169,62 @@
 /* Hide the sticky header entirely while picker is open */
 .picker-open #vote-header{ display:none; }
 
-/* strike-through look when “+ Default” is disabled */
+/* strike-through look when button is disabled */
 .btn.line-through{ text-decoration:line-through; text-decoration-thickness:2px; opacity:.6; }
+
+/* Quick Fill button styling */
+.btn-brand{
+  background: var(--brand, #6ee7ff);
+  color: var(--bg, #06080c);
+  font-weight: 600;
+  border: none;
+}
+.btn-brand:hover:not(:disabled){
+  background: #5dd6ee;
+  transform: translateY(-1px);
+}
+.btn-brand:disabled{
+  background: var(--panel-3, #1b1f29);
+  color: var(--muted, #9aa6b2);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Subtle pulse animation to draw attention when enabled */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(110, 231, 255, 0.4); }
+  50% { box-shadow: 0 0 8px 4px rgba(110, 231, 255, 0.2); }
+}
+.quick-fill-btn:not(:disabled){
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Hide on mobile */
+@media (max-width: 768px){
+  .hide-mobile{ display:none; }
+}
+
+/* Toast notification animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+}
 
 /* ---------- Ballot layout ---------- */
 @media (max-width: 768px){
@@ -495,6 +560,7 @@
   // autofill defaults
   function applyDefaults(){
     if (!DEFAULT_MAP || !isBallotEmpty()) return;
+    let filled = 0;
     for (let r = 1; r <= MAX_RANK; r++){
       const teamId = DEFAULT_MAP[String(r)] || DEFAULT_MAP[r];
       if (!teamId) continue;
@@ -502,6 +568,34 @@
       const zone = document.querySelector('.rank-dropzone[data-rank="'+ r +'"]');
       if (!team || !zone) continue;
       placeInZone(zone, { teamId: team.id, teamName: team.name, file: team.file || '' });
+      filled++;
+    }
+
+    // Show helpful message
+    if (filled > 0) {
+      console.log(`[Quick Fill] Filled ${filled} ranks from your previous ballot`);
+      // Create a temporary toast notification
+      const toast = document.createElement('div');
+      toast.textContent = `✓ Filled ${filled} ranks from your previous ballot`;
+      toast.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--brand, #6ee7ff);
+        color: var(--bg, #06080c);
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideDown 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
     }
   }
   autofillBtn?.addEventListener('click', () => { if (isBallotEmpty()) applyDefaults(); });

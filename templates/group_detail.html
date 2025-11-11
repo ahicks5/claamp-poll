@@ -35,7 +35,7 @@
         data-is-private="{{ 'true' if not group.is_public else 'false' }}"
         data-group-id="{{ group.id }}"
         data-invite-code="{{ group.invite_code or '' }}">
-        <span style="margin-right: 6px;">📤</span> Share Group
+        Share
       </button>
       {% if is_member %}
         {% if is_current_group %}
@@ -359,8 +359,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Share URL:', shareUrl);
 
     const shareData = {
-      title: `Join ${groupName} on Take Free Points`,
-      text: groupDescription,
+      title: `Join ${groupName} on TakeFreePoints!`,
+      text: `You're invited to join ${groupName} on TakeFreePoints.com! ${groupDescription} Rank teams and pick spreads to compete with your friends.`,
       url: shareUrl
     };
 

@@ -72,14 +72,14 @@
             {% endif %}
             <a href="{{ url_for('groups.group_detail', group_id=group.id) }}" class="btn btn-ghost">Details</a>
             <button
-              class="btn btn-ghost btn-icon share-group-btn"
+              class="btn btn-ghost share-group-btn"
               data-group-name="{{ group.name }}"
               data-group-desc="{{ group.description or 'Join our group!' }}"
               data-is-private="{{ 'true' if not group.is_public else 'false' }}"
               data-group-id="{{ group.id }}"
               data-invite-code="{{ group.invite_code or '' }}"
               title="Share group">
-              📤
+              Share
             </button>
           </div>
 
@@ -267,13 +267,6 @@
   pointer-events: none;
 }
 
-/* Icon button */
-.btn-icon {
-  min-width: unset;
-  padding: 10px 14px;
-  font-size: 1.2rem;
-}
-
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -356,8 +349,8 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Share URL:', shareUrl);
 
       const shareData = {
-        title: `Join ${groupName} on Take Free Points`,
-        text: groupDescription,
+        title: `Join ${groupName} on TakeFreePoints!`,
+        text: `You're invited to join ${groupName} on TakeFreePoints.com! ${groupDescription} Rank teams and pick spreads to compete with your friends.`,
         url: shareUrl
       };
 

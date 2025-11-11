@@ -72,8 +72,7 @@
 
           <!-- Group Actions -->
           <div class="group-card__actions">
-            {% set user_is_member = current_user in [m.user for m in group.members] %}
-            {% if user_is_member %}
+            {% if group.id in user_group_ids %}
               <span class="btn btn-ghost btn--disabled">Already a Member</span>
             {% else %}
               <a href="{{ url_for('groups.join', group_id=group.id) }}" class="btn btn-primary">Join Group</a>

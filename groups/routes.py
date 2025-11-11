@@ -183,24 +183,16 @@ def join_by_invite(invite_code: str):
             flash("Invalid invite code.", "danger")
             return redirect(url_for("auth.login"))
 
-        # If not logged in, show group preview and prompt to login
-        if not current_user.is_authenticated:
-            return render_template(
-                "groups_join_preview.html",
-                group=group,
-                invite_code=invite_code
-            )
+        # Check if user is already a member (if authenticated)
+        user_is_member = is_member(current_user.id, group.id, session) if current_user.is_authenticated else False
 
-        # User is logged in, add them to group
-        if add_user_to_group(current_user.id, group.id, session):
-            session.commit()
-            flash(f"Welcome to {group.name}!", "success")
-            # Switch to new group
-            switch_group_helper(current_user.id, group.id, session)
-        else:
-            flash("You are already a member of this group.", "info")
-
-        return redirect(url_for("groups.group_detail", group_id=group.id))
+        # Show group preview
+        return render_template(
+            "groups_join_preview.html",
+            group=group,
+            invite_code=invite_code,
+            user_is_member=user_is_member
+        )
     finally:
         session.close()
 

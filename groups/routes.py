@@ -122,12 +122,20 @@ def search():
         session.close()
 
 
-@bp.post("/switch/<int:group_id>")
+@bp.route("/switch/<int:group_id>", methods=["GET", "POST"])
 @login_required
 def switch(group_id: int):
     """Switch active group"""
     session = SessionLocal()
     try:
+        # Check if already the current group
+        from utils.group_helpers import get_current_group_id
+        current_group_id = get_current_group_id()
+
+        if current_group_id == group_id:
+            flash("You're already in this group!", "info")
+            return redirect(request.referrer or url_for("groups.groups_dashboard"))
+
         if switch_group_helper(current_user.id, group_id, session):
             flash("Switched to new group!", "success")
         else:
@@ -139,7 +147,7 @@ def switch(group_id: int):
         session.close()
 
 
-@bp.post("/join/<int:group_id>")
+@bp.route("/join/<int:group_id>", methods=["GET", "POST"])
 @login_required
 def join(group_id: int):
     """Join a public group"""
@@ -159,6 +167,16 @@ def join(group_id: int):
             flash("Cannot join private group without invite.", "danger")
             return redirect(url_for("groups.search"))
 
+        # Check if already a member
+        if is_member(current_user.id, group_id, session):
+            flash("You are already a member of this group.", "info")
+            # Switch to this group if not current
+            from utils.group_helpers import get_current_group_id
+            if get_current_group_id() != group_id:
+                switch_group_helper(current_user.id, group_id, session)
+                flash("Switched to this group!", "success")
+            return redirect(url_for("groups.group_detail", group_id=group_id))
+
         if add_user_to_group(current_user.id, group_id, session):
             session.commit()
             flash(f"Welcome to {group.name}!", "success")
@@ -166,6 +184,7 @@ def join(group_id: int):
             switch_group_helper(current_user.id, group_id, session)
             return redirect(url_for("groups.group_detail", group_id=group_id))
         else:
+            # This shouldn't happen since we checked is_member above, but just in case
             flash("You are already a member of this group.", "info")
             return redirect(url_for("groups.group_detail", group_id=group_id))
     finally:

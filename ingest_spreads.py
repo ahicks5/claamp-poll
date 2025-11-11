@@ -200,23 +200,22 @@ def run_ingestion():
         print(f"Season: {CURRENT_SEASON}, Week: {CURRENT_WEEK}")
         print(f"{'='*60}\n")
 
-        # Get CLAAMP group (default group for spreads ingestion)
-        claamp_group = session.execute(
-            select(Group).where(Group.name == "CLAAMP")
-        ).scalar_one_or_none()
+        # Get all groups - spreads should be available to all groups
+        all_groups = session.execute(
+            select(Group).order_by(Group.id)
+        ).scalars().all()
 
-        if not claamp_group:
-            print("[ERROR] CLAAMP group not found!")
+        if not all_groups:
+            print("[ERROR] No groups found!")
             print("[!] Please run migrate_groups.py first")
             sys.exit(1)
 
-        print(f"[✓] Using group: {claamp_group.name} (ID: {claamp_group.id})")
+        print(f"[✓] Found {len(all_groups)} group(s):")
+        for group in all_groups:
+            print(f"    - {group.name} (ID: {group.id})")
 
-        # Get or create the SpreadPoll for this week in CLAAMP group
-        poll = get_or_create_spread_poll(session, CURRENT_SEASON, CURRENT_WEEK, claamp_group.id)
-
-        # Fetch events from Bovada
-        print(f"[→] Fetching events from Bovada ({SPORT})...")
+        # Fetch events from Bovada (once, used for all groups)
+        print(f"\n[→] Fetching events from Bovada ({SPORT})...")
         events_df = fetch_events_for_sport(SPORT, live_only=False)
 
         if events_df.empty:
@@ -231,108 +230,118 @@ def run_ingestion():
         events_df['is_weekend'] = events_df['start_time_utc'].apply(is_weekend_game)
         weekend_events = events_df[events_df['is_weekend'] == True]
 
-        print(f"[✓] Filtered to {len(weekend_events)} weekend games (Friday & Saturday)")
+        print(f"[✓] Filtered to {len(weekend_events)} weekend games (Friday & Saturday)\n")
 
-        created_count = 0
-        updated_count = 0
-        skipped_count = 0
-        unmapped_teams = set()
+        # Process spreads for each group
+        for group in all_groups:
+            print(f"\n{'='*60}")
+            print(f"Processing spreads for group: {group.name} (ID: {group.id})")
+            print(f"{'='*60}")
 
-        # Process each weekend event
-        for idx, row in weekend_events.iterrows():
-            bovada_event_id = str(row.get('event_id', ''))
-            home_team_name = row.get('home_team')
-            away_team_name = row.get('away_team')
-            game_time_utc = row.get('start_time_utc')
-            # Convert to Eastern Time for storage and display
-            game_time = utc_to_et(game_time_utc)
-            game_day = row.get('day_of_week', 'Saturday')
-            status = row.get('status', 'scheduled')
+            # Get or create the SpreadPoll for this week in this group
+            poll = get_or_create_spread_poll(session, CURRENT_SEASON, CURRENT_WEEK, group.id)
 
-            if not home_team_name or not away_team_name:
-                print(f"[!] Skipping event {bovada_event_id}: missing team names")
-                skipped_count += 1
-                continue
+            created_count = 0
+            updated_count = 0
+            skipped_count = 0
+            unmapped_teams = set()
 
-            # Map teams
-            home_team_result = map_bovada_team(home_team_name, session)
-            away_team_result = map_bovada_team(away_team_name, session)
+            # Process each weekend event for this group
+            for idx, row in weekend_events.iterrows():
+                bovada_event_id = str(row.get('event_id', ''))
+                home_team_name = row.get('home_team')
+                away_team_name = row.get('away_team')
+                game_time_utc = row.get('start_time_utc')
+                # Convert to Eastern Time for storage and display
+                game_time = utc_to_et(game_time_utc)
+                game_day = row.get('day_of_week', 'Saturday')
+                status = row.get('status', 'scheduled')
 
-            if not home_team_result:
-                print(f"[!] Could not map home team: '{home_team_name}'")
-                unmapped_teams.add(home_team_name)
-                skipped_count += 1
-                continue
+                if not home_team_name or not away_team_name:
+                    print(f"[!] Skipping event {bovada_event_id}: missing team names")
+                    skipped_count += 1
+                    continue
 
-            if not away_team_result:
-                print(f"[!] Could not map away team: '{away_team_name}'")
-                unmapped_teams.add(away_team_name)
-                skipped_count += 1
-                continue
+                # Map teams
+                home_team_result = map_bovada_team(home_team_name, session)
+                away_team_result = map_bovada_team(away_team_name, session)
 
-            home_team, home_confidence = home_team_result
-            away_team, away_confidence = away_team_result
+                if not home_team_result:
+                    print(f"[!] Could not map home team: '{home_team_name}'")
+                    unmapped_teams.add(home_team_name)
+                    skipped_count += 1
+                    continue
 
-            # Fetch detailed markets (spread)
-            link = row.get('link')
-            home_spread = None
-            away_spread = None
+                if not away_team_result:
+                    print(f"[!] Could not map away team: '{away_team_name}'")
+                    unmapped_teams.add(away_team_name)
+                    skipped_count += 1
+                    continue
 
-            if link:
-                try:
-                    event_node = fetch_event_node_by_link(link)
-                    if event_node:
-                        markets = extract_key_markets(
-                            ev_node=event_node,
-                            home_id=str(row.get('home_competitor_id', '')),
-                            away_id=str(row.get('away_competitor_id', '')),
-                            home_name=home_team_name,
-                            away_name=away_team_name,
-                        )
-                        home_spread = markets.get('home_spread')
-                        away_spread = markets.get('away_spread')
-                except Exception as e:
-                    print(f"[!] Error fetching markets for {bovada_event_id}: {e}")
+                home_team, home_confidence = home_team_result
+                away_team, away_confidence = away_team_result
 
-            # Convert spread to string if numeric
-            if home_spread is not None:
-                home_spread = str(home_spread)
-            if away_spread is not None:
-                away_spread = str(away_spread)
+                # Fetch detailed markets (spread)
+                link = row.get('link')
+                home_spread = None
+                away_spread = None
 
-            # Create or update the game
-            game, action = upsert_spread_game(
-                session=session,
-                poll=poll,
-                bovada_event_id=bovada_event_id,
-                home_team=home_team,
-                away_team=away_team,
-                home_spread=home_spread,
-                away_spread=away_spread,
-                game_time=game_time,
-                game_day=game_day,
-                status=status,
-            )
+                if link:
+                    try:
+                        event_node = fetch_event_node_by_link(link)
+                        if event_node:
+                            markets = extract_key_markets(
+                                ev_node=event_node,
+                                home_id=str(row.get('home_competitor_id', '')),
+                                away_id=str(row.get('away_competitor_id', '')),
+                                home_name=home_team_name,
+                                away_name=away_team_name,
+                            )
+                            home_spread = markets.get('home_spread')
+                            away_spread = markets.get('away_spread')
+                    except Exception as e:
+                        print(f"[!] Error fetching markets for {bovada_event_id}: {e}")
 
-            if action == "created":
-                created_count += 1
-                print(f"[+] Created: {away_team.name} @ {home_team.name} (Spread: {home_spread})")
-            else:
-                updated_count += 1
-                print(f"[↻] Updated: {away_team.name} @ {home_team.name} (Spread: {home_spread})")
+                # Convert spread to string if numeric
+                if home_spread is not None:
+                    home_spread = str(home_spread)
+                if away_spread is not None:
+                    away_spread = str(away_spread)
 
-        # Commit all changes
+                # Create or update the game
+                game, action = upsert_spread_game(
+                    session=session,
+                    poll=poll,
+                    bovada_event_id=bovada_event_id,
+                    home_team=home_team,
+                    away_team=away_team,
+                    home_spread=home_spread,
+                    away_spread=away_spread,
+                    game_time=game_time,
+                    game_day=game_day,
+                    status=status,
+                )
+
+                if action == "created":
+                    created_count += 1
+                    print(f"[+] Created: {away_team.name} @ {home_team.name} (Spread: {home_spread})")
+                else:
+                    updated_count += 1
+                    print(f"[↻] Updated: {away_team.name} @ {home_team.name} (Spread: {home_spread})")
+
+            # Summary for this group
+            print(f"\n[✓] Group '{group.name}' complete:")
+            print(f"    Created: {created_count}")
+            print(f"    Updated: {updated_count}")
+            print(f"    Skipped: {skipped_count}")
+            if unmapped_teams:
+                print(f"    Unmapped teams: {len(unmapped_teams)}")
+
+        # Commit all changes for all groups
         session.commit()
 
         print(f"\n{'='*60}")
-        print(f"Ingestion Complete!")
-        print(f"  Created: {created_count}")
-        print(f"  Updated: {updated_count}")
-        print(f"  Skipped: {skipped_count}")
-        if unmapped_teams:
-            print(f"\n[!] Unmapped teams ({len(unmapped_teams)}):")
-            for team in sorted(unmapped_teams):
-                print(f"    - {team}")
+        print(f"All Groups - Ingestion Complete!")
         print(f"{'='*60}\n")
 
     except Exception as e:

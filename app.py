@@ -12,6 +12,7 @@ from auth import bp as auth_bp
 from poll import bp as poll_bp
 from spreads import bp as spreads_bp
 from groups import bp as groups_bp
+from admin import bp as admin_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-override")
@@ -58,6 +59,7 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(poll_bp)
 app.register_blueprint(spreads_bp)
 app.register_blueprint(groups_bp)
+app.register_blueprint(admin_bp)
 
 # ---------------- TEMP DIAGNOSTICS: keep while stabilizing ----------------
 from sqlalchemy import inspect

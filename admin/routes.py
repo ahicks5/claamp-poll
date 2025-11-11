@@ -452,8 +452,10 @@ def ballots():
 
         # Get all polls and users for filters
         all_polls = s.execute(
-            select(Poll).order_by(Poll.season.desc(), Poll.week.desc())
-        ).scalars().all()
+            select(Poll)
+            .options(joinedload(Poll.group))
+            .order_by(Poll.season.desc(), Poll.week.desc())
+        ).unique().scalars().all()
 
         all_users = s.execute(
             select(User).order_by(User.username.asc())

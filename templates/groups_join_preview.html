@@ -47,11 +47,19 @@
           </form>
           <p class="join-preview__note muted">You're already a member of this group</p>
         {% else %}
-          <form method="POST" action="{{ url_for('groups.join', group_id=group.id) }}">
-            <button type="submit" class="btn btn-primary btn-lg">
-              Join {{ group.name }}
-            </button>
-          </form>
+          {% if group.is_public %}
+            <form method="POST" action="{{ url_for('groups.join', group_id=group.id) }}">
+              <button type="submit" class="btn btn-primary btn-lg">
+                Join {{ group.name }}
+              </button>
+            </form>
+          {% else %}
+            <form method="POST" action="{{ url_for('groups.join_by_invite_submit', invite_code=invite_code) }}">
+              <button type="submit" class="btn btn-primary btn-lg">
+                Join {{ group.name }}
+              </button>
+            </form>
+          {% endif %}
           <p class="join-preview__note muted">Click to join and start participating</p>
         {% endif %}
       {% else %}

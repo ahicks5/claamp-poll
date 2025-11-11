@@ -71,6 +71,12 @@
               <a href="{{ url_for('groups.switch', group_id=group.id) }}" class="btn btn-primary">Switch to This Group</a>
             {% endif %}
             <a href="{{ url_for('groups.group_detail', group_id=group.id) }}" class="btn btn-ghost">Details</a>
+            <button
+              class="btn btn-ghost btn-icon"
+              onclick="shareGroup('{{ group.name }}', '{{ group.description or 'Join our group!' }}', {{ 'true' if not group.is_public else 'false' }}, '{{ group.id }}', '{{ group.invite_code or '' }}')"
+              title="Share group">
+              📤
+            </button>
           </div>
 
         </div>
@@ -257,6 +263,13 @@
   pointer-events: none;
 }
 
+/* Icon button */
+.btn-icon {
+  min-width: unset;
+  padding: 10px 14px;
+  font-size: 1.2rem;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -308,5 +321,57 @@
   }
 }
 </style>
+
+<script>
+// Share group via native share or copy to clipboard
+async function shareGroup(groupName, groupDescription, isPrivate, groupId, inviteCode) {
+  // Determine share URL: invite link for private, group detail for public
+  const baseUrl = window.location.origin;
+  let shareUrl;
+  if (isPrivate && inviteCode) {
+    shareUrl = `${baseUrl}/groups/invite/${inviteCode}`;
+  } else {
+    shareUrl = `${baseUrl}/groups/${groupId}`;
+  }
+
+  const shareData = {
+    title: `Join ${groupName} on Take Free Points`,
+    text: groupDescription,
+    url: shareUrl
+  };
+
+  try {
+    // Try native share API first (works on mobile)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      await navigator.share(shareData);
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      // Show temporary notification
+      const notification = document.createElement('div');
+      notification.textContent = 'Link copied to clipboard!';
+      notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 12px 20px; border-radius: 8px; z-index: 10000; font-weight: 500;';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2000);
+    }
+  } catch (err) {
+    // If share was cancelled, do nothing
+    if (err.name !== 'AbortError') {
+      console.error('Share failed:', err);
+      // Try clipboard as last resort
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        const notification = document.createElement('div');
+        notification.textContent = 'Link copied to clipboard!';
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 12px 20px; border-radius: 8px; z-index: 10000; font-weight: 500;';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+      } catch (clipErr) {
+        console.error('Clipboard failed:', clipErr);
+      }
+    }
+  }
+}
+</script>
 
 {% endblock %}

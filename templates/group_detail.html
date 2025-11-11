@@ -27,6 +27,9 @@
 
     <!-- Header Actions -->
     <div class="group-header__actions">
+      <button class="btn btn-ghost" onclick="shareGroup()" id="share-btn">
+        <span style="margin-right: 6px;">📤</span> Share Group
+      </button>
       {% if is_member %}
         {% if is_current_group %}
           <span class="btn btn-ghost btn--disabled">Current Group</span>
@@ -322,6 +325,83 @@
 </style>
 
 <script>
+// Share group via native share or copy to clipboard
+async function shareGroup() {
+  const groupName = "{{ group.name }}";
+  const groupDescription = "{{ group.description or 'Join our group!' }}";
+  const isPrivate = {{ 'true' if not group.is_public else 'false' }};
+
+  // Determine share URL: invite link for private, group detail for public
+  let shareUrl;
+  if (isPrivate) {
+    {% if group.invite_code %}
+      shareUrl = "{{ request.url_root }}groups/invite/{{ group.invite_code }}";
+    {% else %}
+      shareUrl = window.location.href;
+    {% endif %}
+  } else {
+    shareUrl = "{{ request.url_root }}groups/{{ group.id }}";
+  }
+
+  const shareData = {
+    title: `Join ${groupName} on Take Free Points`,
+    text: groupDescription,
+    url: shareUrl
+  };
+
+  const btn = document.getElementById('share-btn');
+  const originalHtml = btn.innerHTML;
+
+  try {
+    // Try native share API first (works on mobile)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      await navigator.share(shareData);
+      // Show success feedback
+      btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Shared!';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-ghost');
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-ghost');
+      }, 2000);
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-ghost');
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-ghost');
+      }, 2000);
+    }
+  } catch (err) {
+    // If share was cancelled or failed, show error
+    if (err.name !== 'AbortError') {
+      console.error('Share failed:', err);
+      // Try clipboard as last resort
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        btn.innerHTML = '<span style="margin-right: 6px;">✓</span> Link Copied!';
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-ghost');
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.classList.remove('btn-primary');
+          btn.classList.add('btn-ghost');
+        }, 2000);
+      } catch (clipErr) {
+        btn.innerHTML = '<span style="margin-right: 6px;">✗</span> Failed';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+        }, 2000);
+      }
+    }
+  }
+}
+
 function copyInviteLink() {
   const link = document.getElementById('invite-link').textContent;
   navigator.clipboard.writeText(link).then(() => {

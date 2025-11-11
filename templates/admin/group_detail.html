@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} – Group Management{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>{{ group.name }}</h1>
+        <p class="muted">{{ group.description or 'No description' }}</p>
+      </div>
+      <a href="{{ url_for('admin.groups') }}" class="btn btn-ghost">← Back to Groups</a>
+    </div>
+  </div>
+
+  <!-- Group Info -->
+  <div class="card">
+    <h2>Group Details</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Type:</span>
+        {% if group.is_public %}
+          <span class="badge badge-public">Public</span>
+        {% else %}
+          <span class="badge badge-private">Private</span>
+        {% endif %}
+      </div>
+      {% if not group.is_public %}
+      <div class="info-item">
+        <span class="info-label">Invite Code:</span>
+        <code>{{ group.invite_code }}</code>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Invite Link:</span>
+        <code>{{ request.host_url }}groups/invite/{{ group.invite_code }}</code>
+      </div>
+      {% endif %}
+      <div class="info-item">
+        <span class="info-label">Created:</span>
+        {{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'Unknown' }}
+      </div>
+      <div class="info-item">
+        <span class="info-label">Members:</span>
+        {{ memberships|length }}
+      </div>
+      <div class="info-item">
+        <span class="info-label">Polls:</span>
+        {{ polls|length }}
+      </div>
+      <div class="info-item">
+        <span class="info-label">Spread Polls:</span>
+        {{ spread_polls|length }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Members -->
+  <div class="card">
+    <h2>Members ({{ memberships|length }})</h2>
+
+    {% if memberships %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for membership in memberships %}
+            <tr>
+              <td>{{ membership.user.username }}</td>
+              <td>{{ membership.user.email }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.change_user_role', user_id=membership.user_id, group_id=group.id) }}" style="display: inline;">
+                  <select name="role" onchange="this.form.submit()" class="role-select">
+                    <option value="member" {% if membership.role == 'member' %}selected{% endif %}>Member</option>
+                    <option value="admin" {% if membership.role == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="owner" {% if membership.role == 'owner' %}selected{% endif %}>Owner</option>
+                  </select>
+                </form>
+              </td>
+              <td>{{ membership.joined_at.strftime('%Y-%m-%d') if membership.joined_at else 'Unknown' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.remove_user_from_group', user_id=membership.user_id, group_id=group.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-sm" onclick="return confirm('Remove {{ membership.user.username }} from {{ group.name }}?')">Remove</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No members in this group</p>
+    {% endif %}
+
+    <!-- Add Member -->
+    {% if non_members %}
+    <h3 class="mt-3">Add Member</h3>
+    <form method="POST" action="{{ url_for('admin.add_user_to_group_post', user_id=0) }}" class="add-member-form" id="addMemberForm">
+      <input type="hidden" name="group_id" value="{{ group.id }}">
+      <select name="user_id" required class="user-select" id="userSelect">
+        <option value="">Select user...</option>
+        {% for user in non_members %}
+          <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+        {% endfor %}
+      </select>
+      <select name="role" class="role-select">
+        <option value="member">Member</option>
+        <option value="admin">Admin</option>
+        <option value="owner">Owner</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Add Member</button>
+    </form>
+    <script>
+      document.getElementById('addMemberForm').addEventListener('submit', function(e) {
+        const userId = document.getElementById('userSelect').value;
+        this.action = `/admin/users/${userId}/add-to-group`;
+      });
+    </script>
+    {% else %}
+      <p class="muted mt-2">All users are already members of this group</p>
+    {% endif %}
+  </div>
+
+  <!-- Polls -->
+  <div class="card">
+    <h2>Polls ({{ polls|length }})</h2>
+    {% if polls %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Season</th>
+              <th>Week</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for poll in polls %}
+            <tr>
+              <td>
+                <a href="{{ url_for('poll.results', poll_id=poll.id) }}" class="link">{{ poll.title }}</a>
+              </td>
+              <td>{{ poll.season }}</td>
+              <td>{{ poll.week }}</td>
+              <td>
+                {% if poll.is_open %}
+                  <span class="status-badge status-badge--open">Open</span>
+                {% else %}
+                  <span class="status-badge status-badge--closed">Closed</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No polls in this group</p>
+    {% endif %}
+  </div>
+
+  <!-- Spread Polls -->
+  <div class="card">
+    <h2>Spread Polls ({{ spread_polls|length }})</h2>
+    {% if spread_polls %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Week</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for spread_poll in spread_polls %}
+            <tr>
+              <td>{{ spread_poll.season }}</td>
+              <td>{{ spread_poll.week }}</td>
+              <td>
+                {% if spread_poll.is_open %}
+                  <span class="status-badge status-badge--open">Open</span>
+                {% else %}
+                  <span class="status-badge status-badge--closed">Closed</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No spread polls in this group</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.info-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.info-label {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-public {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.badge-private {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+
+.role-select {
+  padding: 4px 8px;
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 6px;
+  color: var(--text, #e9ecef);
+  font-size: 0.75rem;
+}
+
+.add-member-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.user-select {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  color: var(--text, #e9ecef);
+  font-size: 0.875rem;
+}
+
+.link {
+  color: var(--brand, #6ee7ff);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge--open {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.status-badge--closed {
+  background: rgba(168, 178, 200, 0.1);
+  color: var(--muted, #9aa6b2);
+  border: 1px solid var(--line, #1f2633);
+}
+</style>
+
+{% endblock %}

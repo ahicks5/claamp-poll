@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}User Management – Admin{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>User Management</h1>
+        <p class="muted">Manage user accounts and group memberships</p>
+      </div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">← Back to Admin</a>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="card">
+    <form method="GET" class="search-form">
+      <input
+        type="text"
+        name="q"
+        placeholder="Search by username or email..."
+        value="{{ search_query }}"
+        class="search-input"
+      >
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('admin.users') }}" class="btn btn-ghost">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card">
+    <h2>All Users ({{ user_data|length }})</h2>
+
+    {% if user_data %}
+      <div class="users-list">
+        {% for data in user_data %}
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-header">
+              <h3>{{ data.user.username }}</h3>
+              {% if data.user.is_admin %}
+                <span class="badge badge-admin">Admin</span>
+              {% endif %}
+            </div>
+            <p class="user-email">{{ data.user.email }}</p>
+            <p class="user-meta">
+              Joined: {{ data.user.created_at.strftime('%b %d, %Y') if data.user.created_at else 'Unknown' }}
+              {% if data.user.last_login_at %}
+                • Last login: {{ data.user.last_login_at.strftime('%b %d, %Y') }}
+              {% endif %}
+            </p>
+          </div>
+
+          <div class="user-groups">
+            <h4>Groups ({{ data.groups|length }})</h4>
+            {% if data.groups %}
+              <div class="group-tags">
+                {% for group in data.groups %}
+                <div class="group-tag">
+                  <span class="group-name">{{ group.name }}</span>
+                  <span class="group-role">{{ data.roles[group.id] }}</span>
+                  <form method="POST" action="{{ url_for('admin.remove_user_from_group', user_id=data.user.id, group_id=group.id) }}" style="display: inline;">
+                    <button type="submit" class="btn-remove" onclick="return confirm('Remove {{ data.user.username }} from {{ group.name }}?')">×</button>
+                  </form>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="muted-small">Not in any groups</p>
+            {% endif %}
+
+            <!-- Add to Group Form -->
+            <form method="POST" action="{{ url_for('admin.add_user_to_group_post', user_id=data.user.id) }}" class="add-group-form">
+              <select name="group_id" required class="group-select">
+                <option value="">Select group...</option>
+                {% for group in all_groups %}
+                  <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+              </select>
+              <select name="role" class="role-select">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+              </select>
+              <button type="submit" class="btn btn-sm">Add</button>
+            </form>
+          </div>
+
+          <div class="user-actions">
+            {% if data.user.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin.toggle_admin', user_id=data.user.id) }}" style="display: inline;">
+                <button type="submit" class="btn btn-sm">
+                  {% if data.user.is_admin %}Remove Admin{% else %}Make Admin{% endif %}
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No users found</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 16px;
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  color: var(--text, #e9ecef);
+  font-size: 0.875rem;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.user-card {
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 10px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--text, #e9ecef);
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-admin {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.user-email {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.user-meta {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.user-groups h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.875rem;
+  color: var(--muted, #9aa6b2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.group-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.875rem;
+}
+
+.group-name {
+  color: var(--text, #e9ecef);
+  font-weight: 500;
+}
+
+.group-role {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.75rem;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--muted, #9aa6b2);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.btn-remove:hover {
+  color: #ff6b6b;
+}
+
+.muted-small {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.add-group-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.group-select, .role-select {
+  padding: 6px 10px;
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 6px;
+  color: var(--text, #e9ecef);
+  font-size: 0.75rem;
+}
+
+.group-select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.role-select {
+  width: 90px;
+}
+
+.user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+  .user-card {
+    grid-template-columns: 1fr;
+  }
+
+  .user-actions {
+    align-items: flex-start;
+  }
+}
+</style>
+
+{% endblock %}

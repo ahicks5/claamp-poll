@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Group Management – Admin{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>Group Management</h1>
+        <p class="muted">Manage groups and their members</p>
+      </div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">← Back to Admin</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>All Groups ({{ group_data|length }})</h2>
+
+    {% if group_data %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Members</th>
+              <th>Polls</th>
+              <th>Spreads</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in group_data %}
+            <tr>
+              <td>
+                <a href="{{ url_for('admin.group_detail', group_id=data.group.id) }}" class="link">
+                  {{ data.group.name }}
+                </a>
+              </td>
+              <td>
+                {% if data.group.is_public %}
+                  <span class="badge badge-public">Public</span>
+                {% else %}
+                  <span class="badge badge-private">Private</span>
+                {% endif %}
+              </td>
+              <td>{{ data.member_count }}</td>
+              <td>{{ data.poll_count }}</td>
+              <td>{{ data.spread_count }}</td>
+              <td>
+                <a href="{{ url_for('admin.group_detail', group_id=data.group.id) }}" class="btn btn-sm">Manage</a>
+                {% if data.group.name != 'CLAAMP' %}
+                  <form method="POST" action="{{ url_for('admin.delete_group', group_id=data.group.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-sm" onclick="return confirm('Delete {{ data.group.name }}? This will delete all polls and ballots in this group!')">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No groups found</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.link {
+  color: var(--brand, #6ee7ff);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-public {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.badge-private {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+</style>
+
+{% endblock %}

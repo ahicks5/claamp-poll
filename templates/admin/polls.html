@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Poll Management – Admin{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>Poll Management</h1>
+        <p class="muted">View and manage all polls</p>
+      </div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">← Back to Admin</a>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="card">
+    <form method="GET" class="filter-form">
+      <label>Filter by Group:</label>
+      <select name="group_id" onchange="this.form.submit()" class="filter-select">
+        <option value="">All Groups</option>
+        {% for group in all_groups %}
+          <option value="{{ group.id }}" {% if group.id == group_filter %}selected{% endif %}>
+            {{ group.name }}
+          </option>
+        {% endfor %}
+      </select>
+      {% if group_filter %}
+        <a href="{{ url_for('admin.polls') }}" class="btn btn-ghost">Clear Filter</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>All Polls ({{ poll_data|length }})</h2>
+
+    {% if poll_data %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Title</th>
+              <th>Season</th>
+              <th>Week</th>
+              <th>Status</th>
+              <th>Ballots</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in poll_data %}
+            <tr>
+              <td>{{ data.poll.group.name }}</td>
+              <td>
+                <a href="{{ url_for('poll.results', poll_id=data.poll.id) }}" class="link">
+                  {{ data.poll.title }}
+                </a>
+              </td>
+              <td>{{ data.poll.season }}</td>
+              <td>{{ data.poll.week }}</td>
+              <td>
+                {% if data.poll.is_open %}
+                  <span class="status-badge status-badge--open">Open</span>
+                {% else %}
+                  <span class="status-badge status-badge--closed">Closed</span>
+                {% endif %}
+              </td>
+              <td>{{ data.ballot_count }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.delete_poll', poll_id=data.poll.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-sm" onclick="return confirm('Delete this poll and all its ballots?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No polls found</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-form label {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  color: var(--text, #e9ecef);
+  font-size: 0.875rem;
+  min-width: 200px;
+}
+
+.link {
+  color: var(--brand, #6ee7ff);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge--open {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.status-badge--closed {
+  background: rgba(168, 178, 200, 0.1);
+  color: var(--muted, #9aa6b2);
+  border: 1px solid var(--line, #1f2633);
+}
+</style>
+
+{% endblock %}

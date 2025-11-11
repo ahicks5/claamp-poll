@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Statistics – Admin{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>Statistics</h1>
+        <p class="muted">System-wide statistics and insights</p>
+      </div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">← Back to Admin</a>
+    </div>
+  </div>
+
+  <!-- Overview Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-detail">{{ admin_users }} admins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Groups</div>
+      <div class="stat-value">{{ total_groups }}</div>
+      <div class="stat-detail">{{ public_groups }} public, {{ private_groups }} private</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Polls</div>
+      <div class="stat-value">{{ total_polls }}</div>
+      <div class="stat-detail">{{ open_polls }} currently open</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Ballots</div>
+      <div class="stat-value">{{ total_ballots }}</div>
+      <div class="stat-detail">Submitted ballots</div>
+    </div>
+  </div>
+
+  <!-- Most Active Users -->
+  <div class="card">
+    <h2>Most Active Users (by ballot count)</h2>
+    {% if active_users %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Username</th>
+              <th>Ballots Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in active_users %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.ballot_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No ballot activity yet</p>
+    {% endif %}
+  </div>
+
+  <!-- Groups by Member Count -->
+  <div class="card">
+    <h2>Groups by Member Count</h2>
+    {% if groups_by_members %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Group Name</th>
+              <th>Members</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for group in groups_by_members %}
+            <tr>
+              <td>{{ group.name }}</td>
+              <td>{{ group.member_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No groups yet</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: var(--brand, #6ee7ff);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-detail {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – TakeFreePoints{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <h1>Admin Dashboard</h1>
+    <p class="muted">System overview and management tools</p>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">{{ user_count }}</div>
+      <a href="{{ url_for('admin.users') }}" class="stat-link">Manage Users →</a>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Groups</div>
+      <div class="stat-value">{{ group_count }}</div>
+      <a href="{{ url_for('admin.groups') }}" class="stat-link">Manage Groups →</a>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Polls</div>
+      <div class="stat-value">{{ poll_count }}</div>
+      <a href="{{ url_for('admin.polls') }}" class="stat-link">Manage Polls →</a>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Spread Polls</div>
+      <div class="stat-value">{{ spread_poll_count }}</div>
+      <a href="{{ url_for('spreads.admin_panel') }}" class="stat-link">Manage →</a>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Submitted Ballots</div>
+      <div class="stat-value">{{ ballot_count }}</div>
+      <a href="{{ url_for('admin.ballots') }}" class="stat-link">Manage Ballots →</a>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Statistics</div>
+      <div class="stat-value">📊</div>
+      <a href="{{ url_for('admin.stats') }}" class="stat-link">View Stats →</a>
+    </div>
+  </div>
+
+  <!-- Navigation Cards -->
+  <div class="admin-nav-grid">
+    <a href="{{ url_for('admin.users') }}" class="admin-nav-card">
+      <h3>👥 User Management</h3>
+      <p>View, edit, and manage user accounts and group memberships</p>
+    </a>
+    <a href="{{ url_for('admin.groups') }}" class="admin-nav-card">
+      <h3>🏆 Group Management</h3>
+      <p>Create, modify, and delete groups</p>
+    </a>
+    <a href="{{ url_for('admin.polls') }}" class="admin-nav-card">
+      <h3>📋 Poll Management</h3>
+      <p>View and manage all polls across groups</p>
+    </a>
+    <a href="{{ url_for('admin.ballots') }}" class="admin-nav-card">
+      <h3>🗳️ Ballot Management</h3>
+      <p>View, delete, and move user ballots</p>
+    </a>
+    <a href="{{ url_for('poll.admin_panel') }}" class="admin-nav-card">
+      <h3>⚙️ Poll Admin</h3>
+      <p>Create and close polls for current group</p>
+    </a>
+    <a href="{{ url_for('spreads.admin_panel') }}" class="admin-nav-card">
+      <h3>📊 Spreads Admin</h3>
+      <p>Manage spread polls and games</p>
+    </a>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="card">
+    <h2>Recent Users</h2>
+    {% if recent_users %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Admin</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in recent_users %}
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ '✓' if user.is_admin else '—' }}</td>
+              <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No users yet</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Recent Polls</h2>
+    {% if recent_polls %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Title</th>
+              <th>Season</th>
+              <th>Week</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for poll in recent_polls %}
+            <tr>
+              <td>{{ poll.group.name }}</td>
+              <td>{{ poll.title }}</td>
+              <td>{{ poll.season }}</td>
+              <td>{{ poll.week }}</td>
+              <td>
+                {% if poll.is_open %}
+                  <span class="status-badge status-badge--open">Open</span>
+                {% else %}
+                  <span class="status-badge status-badge--closed">Closed</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No polls yet</p>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: var(--brand, #6ee7ff);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-link {
+  color: var(--text, #e9ecef);
+  font-size: 0.875rem;
+  text-decoration: none;
+  margin-top: auto;
+  transition: color 0.2s;
+}
+
+.stat-link:hover {
+  color: var(--brand, #6ee7ff);
+}
+
+.admin-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+
+.admin-nav-card {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 24px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.admin-nav-card:hover {
+  border-color: var(--brand, #6ee7ff);
+  transform: translateY(-2px);
+}
+
+.admin-nav-card h3 {
+  color: var(--text, #e9ecef);
+  font-size: 1.125rem;
+  margin: 0 0 8px 0;
+}
+
+.admin-nav-card p {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px 0;
+}
+
+.page-header .muted {
+  margin: 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge--open {
+  background: rgba(110, 231, 255, 0.15);
+  color: var(--brand, #6ee7ff);
+  border: 1px solid var(--brand, #6ee7ff);
+}
+
+.status-badge--closed {
+  background: rgba(168, 178, 200, 0.1);
+  color: var(--muted, #9aa6b2);
+  border: 1px solid var(--line, #1f2633);
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Ballot Management – Admin{% endblock %}
+{% block content %}
+
+<section class="container stack">
+  <div class="page-header">
+    <div class="header-content">
+      <div>
+        <h1>Ballot Management</h1>
+        <p class="muted">View, delete, and move ballots</p>
+      </div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">← Back to Admin</a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card">
+    <form method="GET" class="filter-form">
+      <div class="filter-group">
+        <label>Poll:</label>
+        <select name="poll_id" onchange="this.form.submit()" class="filter-select">
+          <option value="">All Polls</option>
+          {% for poll in all_polls %}
+            <option value="{{ poll.id }}" {% if poll.id == poll_filter %}selected{% endif %}>
+              {{ poll.title }} ({{ poll.season }} W{{ poll.week }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>User:</label>
+        <select name="user_id" onchange="this.form.submit()" class="filter-select">
+          <option value="">All Users</option>
+          {% for user in all_users %}
+            <option value="{{ user.id }}" {% if user.id == user_filter %}selected{% endif %}>
+              {{ user.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if poll_filter or user_filter %}
+        <a href="{{ url_for('admin.ballots') }}" class="btn btn-ghost">Clear Filters</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Submitted Ballots ({{ ballots|length }})</h2>
+
+    {% if ballots %}
+      <div class="table-wrap mt-2">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Poll</th>
+              <th>Group</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ballot in ballots %}
+            <tr>
+              <td>{{ ballot.user.username if ballot.user else 'Unknown' }}</td>
+              <td>{{ ballot.poll.title }}</td>
+              <td>{{ ballot.poll.group.name }}</td>
+              <td>{{ ballot.submitted_at.strftime('%Y-%m-%d %H:%M') if ballot.submitted_at else 'Not submitted' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.delete_ballot', ballot_id=ballot.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-sm" onclick="return confirm('Delete this ballot?')">Delete</button>
+                </form>
+                <button class="btn btn-sm" onclick="showMoveForm({{ ballot.id }}, '{{ ballot.user.username }}', '{{ ballot.poll.title }}')">Move</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No ballots found</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Move Ballot Modal -->
+<div id="moveModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h3>Move Ballot</h3>
+    <p id="moveInfo"></p>
+    <form id="moveForm" method="POST">
+      <label>Move to Poll:</label>
+      <select name="new_poll_id" required class="filter-select">
+        {% for poll in all_polls %}
+          <option value="{{ poll.id }}">
+            {{ poll.title }} ({{ poll.season }} W{{ poll.week }}) - {{ poll.group.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Move Ballot</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-form {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-group label {
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  background: var(--bg, #06080c);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 8px;
+  color: var(--text, #e9ecef);
+  font-size: 0.875rem;
+  min-width: 200px;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--panel-1, #0c111a);
+  border: 1px solid var(--line, #1f2633);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h3 {
+  margin: 0 0 16px 0;
+  color: var(--text, #e9ecef);
+}
+
+.modal-content label {
+  display: block;
+  margin: 16px 0 8px 0;
+  color: var(--muted, #9aa6b2);
+  font-size: 0.875rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+</style>
+
+<script>
+function showMoveForm(ballotId, username, pollTitle) {
+  document.getElementById('moveInfo').textContent = `Moving ballot from ${username} for "${pollTitle}"`;
+  document.getElementById('moveForm').action = `/admin/ballots/${ballotId}/move`;
+  document.getElementById('moveModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('moveModal').style.display = 'none';
+}
+</script>
+
+{% endblock %}

@@ -216,6 +216,42 @@ def join_by_invite(invite_code: str):
         session.close()
 
 
+@bp.post("/invite/<invite_code>/join")
+@login_required
+def join_by_invite_submit(invite_code: str):
+    """Actually join a group via invite code (POST)"""
+    session = SessionLocal()
+    try:
+        group = get_group_by_invite_code(invite_code, session)
+
+        if not group:
+            flash("Invalid or expired invite code.", "danger")
+            return redirect(url_for("groups.search"))
+
+        # Check if already a member
+        if is_member(current_user.id, group.id, session):
+            flash("You are already a member of this group.", "info")
+            # Switch to this group if not current
+            from utils.group_helpers import get_current_group_id
+            if get_current_group_id() != group.id:
+                switch_group_helper(current_user.id, group.id, session)
+                flash("Switched to this group!", "success")
+            return redirect(url_for("groups.group_detail", group_id=group.id))
+
+        # Add user to group
+        if add_user_to_group(current_user.id, group.id, session):
+            session.commit()
+            flash(f"Welcome to {group.name}!", "success")
+            # Switch to new group
+            switch_group_helper(current_user.id, group.id, session)
+            return redirect(url_for("groups.group_detail", group_id=group.id))
+        else:
+            flash("Unable to join group.", "danger")
+            return redirect(url_for("groups.search"))
+    finally:
+        session.close()
+
+
 @bp.get("/create")
 @login_required
 def create_form():

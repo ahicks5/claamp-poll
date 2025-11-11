@@ -284,12 +284,35 @@ def vote_form(poll_id: Optional[int] = None):
         ).scalars().all()
         rank_map = {it.rank: it.team_id for it in items}
 
-        defaults_rows = s.execute(
-            select(DefaultBallot)
-            .where(or_(DefaultBallot.poll_id == poll.id, DefaultBallot.poll_id.is_(None)))
-            .order_by(DefaultBallot.rank.asc())
-        ).scalars().all()
-        default_rank_map = {row.rank: row.team_id for row in defaults_rows}
+        # Try to get user's most recent ballot from this group as default
+        most_recent_ballot = s.execute(
+            select(Ballot)
+            .options(joinedload(Ballot.items), joinedload(Ballot.poll))
+            .join(Poll, Ballot.poll_id == Poll.id)
+            .where(
+                Ballot.user_id == current_user.id,
+                Ballot.submitted_at.isnot(None),
+                Poll.group_id == current_group.id,
+                Ballot.poll_id != poll.id  # Don't use current poll (they're editing it)
+            )
+            .order_by(Ballot.submitted_at.desc())
+            .limit(1)
+        ).unique().scalars().first()
+
+        # If user has a previous ballot, use it as default
+        default_rank_map = {}
+        default_source = "system"  # Track where the default came from
+        if most_recent_ballot and most_recent_ballot.items:
+            default_rank_map = {item.rank: item.team_id for item in most_recent_ballot.items}
+            default_source = "user"
+        else:
+            # Fall back to system default
+            defaults_rows = s.execute(
+                select(DefaultBallot)
+                .where(or_(DefaultBallot.poll_id == poll.id, DefaultBallot.poll_id.is_(None)))
+                .order_by(DefaultBallot.rank.asc())
+            ).scalars().all()
+            default_rank_map = {row.rank: row.team_id for row in defaults_rows}
 
     return render_template(
         "poll_vote.html",
@@ -297,6 +320,7 @@ def vote_form(poll_id: Optional[int] = None):
         teams=teams,
         rank_map=rank_map,
         default_rank_map=default_rank_map,
+        default_source=default_source,
         MAX_RANK=MAX_RANK,
         logo_map=logo_map
     )

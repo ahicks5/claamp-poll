@@ -316,6 +316,7 @@
   const LOGO_BASE   = "{{ url_for('static', filename='images/logos/') }}";
   const RANK_MAP    = {{ (rank_map or {}) | tojson }};
   const DEFAULT_MAP = {{ (default_rank_map or {}) | tojson }};
+  const DEFAULT_SOURCE = "{{ default_source }}";
 
   // Flat team index
   const TEAMS = [
@@ -573,10 +574,16 @@
 
     // Show helpful message
     if (filled > 0) {
-      console.log(`[Quick Fill] Filled ${filled} ranks from your previous ballot`);
+      // Different message based on source
+      const message = DEFAULT_SOURCE === 'user'
+        ? `✓ Filled ${filled} ranks with your teams from last week`
+        : `✓ Filled ${filled} ranks with recent CFP rankings`;
+
+      console.log(`[Quick Fill] ${message} (source: ${DEFAULT_SOURCE})`);
+
       // Create a temporary toast notification
       const toast = document.createElement('div');
-      toast.textContent = `✓ Filled ${filled} ranks from your previous ballot`;
+      toast.textContent = message;
       toast.style.cssText = `
         position: fixed;
         top: 80px;
@@ -638,6 +645,7 @@
   console.log('[VotePage] MAX_RANK:', MAX_RANK);
   console.log('[VotePage] RANK_MAP:', RANK_MAP);
   console.log('[VotePage] DEFAULT_MAP:', DEFAULT_MAP);
+  console.log('[VotePage] DEFAULT_SOURCE:', DEFAULT_SOURCE, DEFAULT_SOURCE === 'user' ? '(Your teams!)' : '(System default)');
   console.log('[VotePage] TEAMS count:', Object.keys(TEAMS).length);
 })();
 </script>

@@ -15,7 +15,18 @@
 
   <!-- Group Info -->
   <div class="card">
-    <h2>Group Details</h2>
+    <div class="card-header-with-action">
+      <h2>Group Details</h2>
+      <form method="POST" action="{{ url_for('admin.toggle_group_privacy', group_id=group.id) }}" style="display: inline;">
+        <button type="submit" class="btn btn-primary btn-sm">
+          {% if group.is_public %}
+            🔒 Make Private
+          {% else %}
+            🌐 Make Public
+          {% endif %}
+        </button>
+      </form>
+    </div>
     <div class="info-grid">
       <div class="info-item">
         <span class="info-label">Type:</span>
@@ -210,6 +221,18 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.card-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.card-header-with-action h2 {
+  margin: 0;
 }
 
 .info-grid {

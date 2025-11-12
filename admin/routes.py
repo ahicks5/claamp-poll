@@ -358,6 +358,39 @@ def delete_group(group_id: int):
     return redirect(url_for("admin.groups"))
 
 
+@bp.post("/groups/<int:group_id>/toggle-privacy")
+@login_required
+def toggle_group_privacy(group_id: int):
+    """Toggle a group between public and private"""
+    require_admin()
+
+    with SessionLocal() as s:
+        group = s.get(Group, group_id)
+
+        if not group:
+            flash("Group not found.", "danger")
+            return redirect(url_for("admin.groups"))
+
+        # Toggle the privacy setting
+        was_public = group.is_public
+        group.is_public = not group.is_public
+
+        # If switching to private, ensure we have an invite code
+        if not group.is_public and not group.invite_code:
+            from utils.group_helpers import generate_invite_code
+            group.invite_code = generate_invite_code()
+
+        s.commit()
+
+        # Flash appropriate message
+        if was_public:
+            flash(f"'{group.name}' is now PRIVATE. Invite code: {group.invite_code}", "success")
+        else:
+            flash(f"'{group.name}' is now PUBLIC and searchable by anyone.", "success")
+
+    return redirect(url_for("admin.group_detail", group_id=group_id))
+
+
 @bp.get("/polls")
 @login_required
 def polls():

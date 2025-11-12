@@ -290,9 +290,10 @@ def group_detail(group_id: int):
         # Get all members with details
         memberships = s.execute(
             select(GroupMembership)
+            .join(GroupMembership.user)
             .options(joinedload(GroupMembership.user))
             .where(GroupMembership.group_id == group_id)
-            .order_by(GroupMembership.role.desc(), GroupMembership.user.has(User.username))
+            .order_by(GroupMembership.role.desc(), User.username.asc())
         ).unique().scalars().all()
 
         # Get all users not in this group

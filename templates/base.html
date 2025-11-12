@@ -7,6 +7,14 @@
   <meta name="theme-color" content="#0c111a" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:title" content="{% block og_title %}TakeFreePoints - Compete on Sports Picks{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}Rank teams and pick spreads. Compete with friends across AP Poll rankings and NCAA spread picks.{% endblock %}" />
+  <meta property="og:image" content="{{ url_for('static', filename='images/site/main_logo.png', _external=True) }}" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="{{ url_for('static', filename='images/site/main_logo.png', _external=True) }}" />
+
   <title>{% block title %}TakeFreePoints{% endblock %}</title>
 
   <style>
@@ -34,8 +42,8 @@
   <header class="site-header" role="banner">
     <div class="site-header__inner">
       <a class="brand" href="{{ url_for('root') if current_user.is_authenticated else url_for('auth.login') }}">
-        <span class="brand__dot"></span>
-        <span class="brand__text">TFP</span>
+        <img src="{{ url_for('static', filename='images/site/main_logo.png') }}" alt="TakeFreePoints" class="brand__logo" />
+        <span class="brand__text sr-only">TFP</span>
       </a>
 
       <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav">

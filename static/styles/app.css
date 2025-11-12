@@ -60,6 +60,25 @@
   box-shadow: 0 0 0 3px rgba(59,130,246,.15);
 }
 
+.brand__logo {
+  height: 36px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+}
+
+.brand:hover .brand__logo {
+  opacity: 0.85;
+}
+
+/* Responsive logo sizing */
+@media (min-width: 768px) {
+  .brand__logo {
+    height: 42px;
+  }
+}
+
 /* Mobile nav (collapsed by default) */
 .nav-toggle {
   display: inline-flex;

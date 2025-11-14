@@ -13,6 +13,19 @@
     </div>
   </div>
 
+  <!-- Edit Description -->
+  <div class="card">
+    <h2>Group Description</h2>
+    <form method="POST" action="{{ url_for('admin.update_group_description', group_id=group.id) }}" class="description-form">
+      <textarea
+        name="description"
+        class="description-input"
+        placeholder="Enter group description..."
+        rows="3">{{ group.description or '' }}</textarea>
+      <button type="submit" class="btn btn-primary">Update Description</button>
+    </form>
+  </div>
+
   <!-- Group Info -->
   <div class="card">
     <div class="card-header-with-action">
@@ -329,6 +342,100 @@
   background: rgba(168, 178, 200, 0.1);
   color: var(--muted, #9aa6b2);
   border: 1px solid var(--line, #1f2633);
+}
+
+.description-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.description-input {
+  width: 100%;
+  padding: 12px;
+  background: var(--bg, #06080c);
+  border: 2px solid var(--line, #1f2633);
+  border-radius: 8px;
+  color: var(--text, #e9ecef);
+  font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.description-input:focus {
+  outline: none;
+  border-color: var(--brand, #6ee7ff);
+}
+
+.description-input::placeholder {
+  color: var(--muted, #9aa6b2);
+}
+
+.description-form .btn {
+  align-self: flex-start;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .header-content {
+    gap: 12px;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .card-header-with-action {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-member-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-select {
+    width: 100%;
+  }
+
+  .description-form .btn {
+    width: 100%;
+  }
+
+  /* Mobile Table - Switch to Card Layout */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+    font-size: 0.875rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
 }
 </style>
 

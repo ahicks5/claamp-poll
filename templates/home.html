@@ -3,9 +3,55 @@
 {% block title %}TakeFreePoints - Home{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+<div class="container" style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
   <h1 style="text-align: center; margin-bottom: 2rem;">Welcome to Take Free Points</h1>
 
+  <!-- Groups Section -->
+  {% if current_group %}
+  <div style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="margin: 0; color: #6ee7ff;">My Groups</h2>
+      <a href="{{ url_for('groups.groups_dashboard') }}" class="btn btn-ghost" style="font-size: 0.9rem;">
+        Manage Groups →
+      </a>
+    </div>
+
+    <div class="groups-quick-view">
+      {% for group in user_groups[:3] %}
+        <div class="group-quick-card {% if current_group and group.id == current_group.id %}active{% endif %}">
+          <div class="group-quick-header">
+            <h3>{{ group.name }}</h3>
+            {% if current_group and group.id == current_group.id %}
+              <span class="badge-current">Current</span>
+            {% endif %}
+          </div>
+          {% if group.description %}
+            <p class="group-quick-desc">{{ group.description[:80] }}{% if group.description|length > 80 %}...{% endif %}</p>
+          {% endif %}
+          <div class="group-quick-actions">
+            <a href="{{ url_for('poll.dashboard') }}?group={{ group.id }}" class="btn btn-sm">Polls</a>
+            <a href="{{ url_for('spreads.dashboard') }}?group={{ group.id }}" class="btn btn-sm">Spreads</a>
+            {% if current_group and group.id != current_group.id %}
+              <a href="{{ url_for('groups.switch', group_id=group.id) }}" class="btn btn-sm btn-primary">Switch</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+
+      {% if user_groups|length > 3 %}
+        <a href="{{ url_for('groups.groups_dashboard') }}" class="group-quick-card group-quick-more">
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <h3>View All Groups</h3>
+            <p style="margin: 0; color: #9ca3af; font-size: 0.9rem;">+{{ user_groups|length - 3 }} more</p>
+          </div>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Main Navigation Cards -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 3rem;">
     <!-- Polls Card -->
     <a href="{{ url_for('poll.dashboard') }}" style="text-decoration: none; color: inherit;">
@@ -38,6 +84,119 @@
     .card:hover {
       transform: translateY(-4px);
       border-color: #6ee7ff;
+    }
+
+    /* Groups Quick View */
+    .groups-quick-view {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .group-quick-card {
+      background: #141b26;
+      border: 1px solid #2a3441;
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .group-quick-card:hover {
+      transform: translateY(-2px);
+      border-color: #6ee7ff;
+      box-shadow: 0 4px 12px rgba(110, 231, 255, 0.1);
+    }
+
+    .group-quick-card.active {
+      border-color: #6ee7ff;
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.1), rgba(110, 231, 255, 0.05));
+    }
+
+    .group-quick-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .group-quick-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #eaeef7;
+    }
+
+    .badge-current {
+      background: #6ee7ff;
+      color: #0c111a;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .group-quick-desc {
+      color: #9ca3af;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin: 0 0 1rem 0;
+    }
+
+    .group-quick-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .group-quick-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 150px;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: 1px solid #2a3441;
+      background: #1f2937;
+      color: #eaeef7;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-sm:hover {
+      border-color: #6ee7ff;
+      background: #2a3441;
+    }
+
+    .btn-sm.btn-primary {
+      background: #6ee7ff;
+      color: #0c111a;
+      border-color: #6ee7ff;
+    }
+
+    .btn-sm.btn-primary:hover {
+      background: #5dd6ee;
+    }
+
+    @media (max-width: 768px) {
+      .groups-quick-view {
+        grid-template-columns: 1fr;
+      }
+
+      .group-quick-actions {
+        width: 100%;
+      }
+
+      .group-quick-actions .btn-sm {
+        flex: 1;
+      }
     }
   </style>
 </div>

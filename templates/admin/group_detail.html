@@ -250,7 +250,7 @@
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 16px;
   margin-top: 16px;
 }
@@ -380,21 +380,34 @@
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
   .header-content {
     gap: 12px;
   }
 
   .page-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .card-header-with-action {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
   }
 
   .info-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .add-member-form {
@@ -414,6 +427,10 @@
   .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   .table {
@@ -424,17 +441,22 @@
   .table th,
   .table td {
     padding: 0.5rem;
+    font-size: 0.85rem;
   }
 }
 
 @media (max-width: 480px) {
   .page-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .btn-sm {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     padding: 0.3rem 0.6rem;
+  }
+
+  .description-input {
+    font-size: 0.9rem;
   }
 }
 </style>

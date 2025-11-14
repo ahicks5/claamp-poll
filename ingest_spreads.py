@@ -130,7 +130,11 @@ def upsert_spread_game(
     game_day: Optional[str],
     status: Optional[str],
 ) -> SpreadGame:
-    """Create or update a SpreadGame"""
+    """Create or update a SpreadGame
+
+    Strategy: Keep games even if removed from Bovada. Only update spreads if newer.
+    This prevents games from disappearing when Bovada temporarily removes them.
+    """
 
     # Check if game already exists by bovada_event_id OR by team matchup
     existing = None
@@ -160,14 +164,20 @@ def upsert_spread_game(
         has_started = game_has_started(existing.game_time)
 
         existing.bovada_event_id = bovada_event_id
-        existing.game_time = game_time
-        existing.game_day = game_day
-        existing.status = status or 'scheduled'
+        # Only update game_time if the new one is provided and different
+        if game_time:
+            existing.game_time = game_time
+        if game_day:
+            existing.game_day = game_day
+        if status:
+            existing.status = status
 
-        # Only update spreads if game hasn't started yet
+        # Only update spreads if game hasn't started yet AND new spreads are provided
         if not has_started:
-            existing.home_spread = home_spread
-            existing.away_spread = away_spread
+            if home_spread is not None:
+                existing.home_spread = home_spread
+            if away_spread is not None:
+                existing.away_spread = away_spread
 
         game = existing
         action = "updated" if not has_started else "updated (no spread change)"

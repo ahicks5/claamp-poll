@@ -78,7 +78,8 @@
               data-is-private="{{ 'true' if not group.is_public else 'false' }}"
               data-group-id="{{ group.id }}"
               data-invite-code="{{ group.invite_code or '' }}"
-              title="Share group">
+              title="Share group"
+              style="flex: 1;">
               Share
             </button>
           </div>
@@ -237,6 +238,12 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.group-card__actions .btn {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
 }
 
 /* Pills */

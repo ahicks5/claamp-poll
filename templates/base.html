@@ -89,6 +89,7 @@
 
             <!-- Regular Nav Links -->
             <li><a class="site-nav__link" href="{{ url_for('root') }}">Home</a></li>
+            <li><a class="site-nav__link" href="{{ url_for('groups.groups_dashboard') }}">Groups</a></li>
             <li><a class="site-nav__link" href="{{ url_for('poll.dashboard') }}">Polls</a></li>
             <li><a class="site-nav__link" href="{{ url_for('spreads.dashboard') }}">Spreads</a></li>
             {% if current_user.is_authenticated and current_user.is_admin %}

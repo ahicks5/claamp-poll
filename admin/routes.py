@@ -391,6 +391,28 @@ def toggle_group_privacy(group_id: int):
     return redirect(url_for("admin.group_detail", group_id=group_id))
 
 
+@bp.post("/groups/<int:group_id>/update-description")
+@login_required
+def update_group_description(group_id: int):
+    """Update a group's description"""
+    require_admin()
+
+    description = request.form.get("description", "").strip()
+
+    with SessionLocal() as s:
+        group = s.get(Group, group_id)
+
+        if not group:
+            flash("Group not found.", "danger")
+            return redirect(url_for("admin.groups"))
+
+        group.description = description if description else None
+        s.commit()
+        flash(f"Updated description for '{group.name}'.", "success")
+
+    return redirect(url_for("admin.group_detail", group_id=group_id))
+
+
 @bp.get("/polls")
 @login_required
 def polls():

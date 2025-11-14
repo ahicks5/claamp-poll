@@ -142,6 +142,104 @@
   color: var(--muted, #9aa6b2);
   border: 1px solid var(--line, #1f2633);
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .header-content {
+    gap: 12px;
+  }
+
+  .filter-form {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  /* Mobile Table - Switch to Card Layout */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr {
+    display: block;
+  }
+
+  .table tr {
+    background: var(--panel-2, #10141c);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--line, #1f2633);
+  }
+
+  .table td:last-child {
+    border-bottom: none;
+    padding-top: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--fg-muted, #a8b2c8);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .table td:nth-child(1)::before { content: "Group"; }
+  .table td:nth-child(2)::before { content: "Title"; }
+  .table td:nth-child(3)::before { content: "Season"; }
+  .table td:nth-child(4)::before { content: "Week"; }
+  .table td:nth-child(5)::before { content: "Status"; }
+  .table td:nth-child(6)::before { content: "Ballots"; }
+  .table td:nth-child(7)::before { content: "Actions"; }
+
+  .table td:nth-child(7) form {
+    width: 100%;
+  }
+
+  .table td:nth-child(7) form button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
+}
 </style>
 
 {% endblock %}

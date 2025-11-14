@@ -95,6 +95,9 @@
             {% if current_user.is_authenticated and current_user.is_admin %}
               <li><a class="site-nav__link" href="{{ url_for('admin.dashboard') }}">Admin</a></li>
             {% endif %}
+            <li class="username-display">
+              <span class="username-label">{{ current_user.username }}</span>
+            </li>
             <li><a class="site-nav__link" href="{{ url_for('auth.logout') }}">Logout</a></li>
           {% else %}
             <li><a class="site-nav__link" href="{{ url_for('auth.login') }}">Login</a></li>
@@ -227,6 +230,23 @@
       background: var(--panel-1, #0c111a);
     }
 
+    /* Username Display */
+    .username-display {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .username-label {
+      color: var(--brand, #6ee7ff);
+      font-weight: 500;
+      font-size: 0.9rem;
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.15), rgba(110, 231, 255, 0.05));
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(110, 231, 255, 0.3);
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .group-switcher {
@@ -240,6 +260,15 @@
         left: 0;
         right: 0;
         min-width: 100%;
+      }
+      .username-display {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 16px;
+      }
+      .username-label {
+        width: 100%;
+        text-align: center;
       }
     }
   </style>

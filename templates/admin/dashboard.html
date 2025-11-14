@@ -143,7 +143,7 @@
 <style>
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 16px;
   margin: 24px 0;
 }
@@ -184,7 +184,7 @@
 
 .admin-nav-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px;
   margin: 32px 0;
 }
@@ -251,22 +251,27 @@
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+    gap: 10px;
   }
 
   .stat-card {
-    padding: 16px;
+    padding: 14px;
   }
 
   .stat-value {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .stat-label,
   .stat-link {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .admin-nav-grid {
@@ -287,13 +292,17 @@
   }
 
   .page-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   /* Make tables scrollable */
   .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   .table {
@@ -309,19 +318,39 @@
 
 @media (max-width: 480px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
-  .page-header h1 {
-    font-size: 1.5rem;
+  .stat-card {
+    padding: 12px;
   }
 
   .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stat-link {
+    font-size: 0.7rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.25rem;
   }
 
   .admin-nav-card {
-    padding: 16px;
+    padding: 14px;
+  }
+
+  .admin-nav-card h3 {
+    font-size: 0.95rem;
+  }
+
+  .admin-nav-card p {
+    font-size: 0.75rem;
   }
 }
 </style>

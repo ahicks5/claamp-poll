@@ -4,7 +4,10 @@
 
 {% block content %}
 <div class="container" style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
-  <h1 style="text-align: center; margin-bottom: 2rem;">Welcome to Take Free Points</h1>
+  <h1 style="text-align: center; margin-bottom: 1rem;">Welcome to Take Free Points</h1>
+  <p style="text-align: center; color: #9ca3af; font-size: 1.1rem; max-width: 700px; margin: 0 auto 3rem auto; line-height: 1.6;">
+    Compete with friends on NCAA football predictions. Make your picks, climb the leaderboard, and prove you know college football.
+  </p>
 
   <!-- Groups Section -->
   {% if current_group %}
@@ -51,39 +54,147 @@
   </div>
   {% endif %}
 
-  <!-- Main Navigation Cards -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 3rem;">
-    <!-- Polls Card -->
-    <a href="{{ url_for('poll.dashboard') }}" style="text-decoration: none; color: inherit;">
-      <div class="card" style="padding: 2rem; text-align: center; transition: transform 0.2s; cursor: pointer; border: 2px solid #2a3441; background: #141b26;">
-        <h2 style="margin-top: 0; color: #6ee7ff;">Polls</h2>
-        <p style="color: #9ca3af; line-height: 1.6;">
-          Vote on weekly Top 25 rankings. Submit your ballot and see how your picks compare to the consensus.
-        </p>
-        <div style="margin-top: 1.5rem;">
-          <span class="btn btn-primary">Go to Polls →</span>
-        </div>
-      </div>
-    </a>
+  <!-- What is Take Free Points -->
+  <div class="info-section">
+    <div class="info-card">
+      <div class="info-icon">📊</div>
+      <h3>Top 25 Polls</h3>
+      <p>Rank your top 25 NCAA football teams each week. Submit your ballot and see how your rankings compare to the group consensus. Track your picks throughout the season.</p>
+    </div>
 
-    <!-- Spreads Card -->
-    <a href="{{ url_for('spreads.dashboard') }}" style="text-decoration: none; color: inherit;">
-      <div class="card" style="padding: 2rem; text-align: center; transition: transform 0.2s; cursor: pointer; border: 2px solid #2a3441; background: #141b26;">
-        <h2 style="margin-top: 0; color: #6ee7ff;">Spreads</h2>
-        <p style="color: #9ca3af; line-height: 1.6;">
-          Pick against the spread for weekly NCAA games. Track your record and compete on the leaderboard.
-        </p>
-        <div style="margin-top: 1.5rem;">
-          <span class="btn btn-primary">Go to Spreads →</span>
+    <div class="info-card">
+      <div class="info-icon">🎯</div>
+      <h3>Spread Picks</h3>
+      <p>Pick against the spread for NCAA games every week. Choose which teams you think will cover and compete on the leaderboard. Track your win-loss record and prove your predictive skills.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="info-icon">👥</div>
+      <h3>Compete in Groups</h3>
+      <p>Join or create groups with friends, coworkers, or fellow fans. Each group has its own polls, spreads, and leaderboards. Switch between groups to compete in multiple circles.</p>
+    </div>
+  </div>
+
+  <!-- How it Works -->
+  <div class="how-it-works">
+    <h2 style="text-align: center; color: #6ee7ff; margin-bottom: 2rem;">How It Works</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h4>Join or Create a Group</h4>
+          <p>Start by joining an existing group or creating your own. Groups let you compete with specific people.</p>
         </div>
       </div>
-    </a>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h4>Make Your Picks</h4>
+          <p>Each week, submit your Top 25 poll ballot and pick against the spread for upcoming games.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h4>Compete & Track Results</h4>
+          <p>See how you stack up against others in your group. Track your spread record and consensus rankings.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <style>
-    .card:hover {
+    /* Info Section */
+    .info-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+
+    .info-card {
+      background: #141b26;
+      border: 1px solid #2a3441;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .info-card:hover {
       transform: translateY(-4px);
       border-color: #6ee7ff;
+      box-shadow: 0 4px 12px rgba(110, 231, 255, 0.1);
+    }
+
+    .info-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .info-card h3 {
+      margin: 0 0 1rem 0;
+      color: #eaeef7;
+      font-size: 1.25rem;
+    }
+
+    .info-card p {
+      margin: 0;
+      color: #9ca3af;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      margin: 4rem 0 2rem 0;
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(110, 231, 255, 0.05), rgba(110, 231, 255, 0.02));
+      border-radius: 12px;
+      border: 1px solid #2a3441;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      background: #6ee7ff;
+      color: #0c111a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .step-content h4 {
+      margin: 0 0 0.5rem 0;
+      color: #eaeef7;
+      font-size: 1.1rem;
+    }
+
+    .step-content p {
+      margin: 0;
+      color: #9ca3af;
+      line-height: 1.6;
     }
 
     /* Groups Quick View */
@@ -188,6 +299,20 @@
     @media (max-width: 768px) {
       .groups-quick-view {
         grid-template-columns: 1fr;
+      }
+
+      .info-section {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        gap: 1rem;
+      }
+
+      .step-number {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
       }
 
       .group-quick-actions {

@@ -5,9 +5,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, scoped_session
 from dotenv import load_dotenv
 
-# Load environment variables from .env file in nba-props directory
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(env_path)
+# Load environment variables - try multiple locations
+# 1. Try nba-props/.env (development)
+nba_props_env = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+# 2. Try root .env (if running from root directory)
+root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+
+# Load both (later ones override earlier ones)
+load_dotenv(root_env, override=False)  # Load root .env first
+load_dotenv(nba_props_env, override=True)  # NBA props .env takes precedence
 
 DATABASE_URL = os.getenv("NBA_DATABASE_URL", "sqlite:///nba_props.db")
 

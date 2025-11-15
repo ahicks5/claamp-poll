@@ -8,7 +8,13 @@ from datetime import datetime, timedelta
 from typing import List
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
+
+# Load environment variables early
+from dotenv import load_dotenv
+load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
+load_dotenv(os.path.join(os.path.dirname(PROJECT_ROOT), '.env'))
 
 from database import get_session, Team, Player, Game, PlayerGameStats
 from services.nba_api_client import NBAAPIClient

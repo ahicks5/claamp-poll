@@ -11,6 +11,11 @@ from typing import List, Dict, Optional
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
+# Load environment variables early
+from dotenv import load_dotenv
+load_dotenv(os.path.join(PROJECT_ROOT, '.env'))  # Load nba-props/.env
+load_dotenv(os.path.join(os.path.dirname(PROJECT_ROOT), '.env'))  # Also try root .env
+
 from database import get_session, Team, Player, Game, PropLine, PlayerGameStats
 from services.nba_api_client import NBAAPIClient
 from services.odds_api_client import OddsAPIClient

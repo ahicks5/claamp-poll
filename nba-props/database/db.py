@@ -48,7 +48,7 @@ def init_db():
     """Initialize database - create all tables."""
     from .models import Player, Team, Game, PlayerGameStats, PropLine, Prediction, Result
     Base.metadata.create_all(bind=engine)
-    print("✓ Database initialized successfully")
+    print("[OK] Database initialized successfully")
 
 
 def get_session():

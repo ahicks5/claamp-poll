@@ -49,7 +49,7 @@ def populate_teams(session, nba_client):
         session.add(team)
 
     session.commit()
-    logger.info(f"✓ Teams populated: {session.query(Team).count()} teams in database")
+    logger.info(f"Teams populated: {session.query(Team).count()} teams in database")
 
 
 def populate_players(session, nba_client):
@@ -101,7 +101,7 @@ def populate_players(session, nba_client):
             logger.debug(f"Committed batch of players...")
 
     session.commit()
-    logger.info(f"✓ Players populated: {session.query(Player).count()} players in database")
+    logger.info(f"Players populated: {session.query(Player).count()} players in database")
 
 
 def main():
@@ -132,14 +132,14 @@ def main():
         populate_players(session, nba_client)
 
         logger.info("\n" + "=" * 60)
-        logger.info("✓ Database initialization complete!")
+        logger.info("[OK] Database initialization complete!")
         logger.info("=" * 60)
         logger.info(f"\nDatabase stats:")
         logger.info(f"  Teams: {session.query(Team).count()}")
         logger.info(f"  Players: {session.query(Player).count()}")
 
     except Exception as e:
-        logger.error(f"\n✗ Error during initialization: {e}")
+        logger.error(f"\n[ERROR] Error during initialization: {e}")
         session.rollback()
         raise
     finally:

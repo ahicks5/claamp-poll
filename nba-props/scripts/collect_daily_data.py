@@ -8,19 +8,23 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
 
 from database import get_session, Team, Player, Game, PropLine, PlayerGameStats
 from services.nba_api_client import NBAAPIClient
 from services.odds_api_client import OddsAPIClient
 
-# Configure logging
+# Configure logging with proper path
+LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)  # Create logs directory if it doesn't exist
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('logs/daily_collection.log')
+        logging.FileHandler(os.path.join(LOG_DIR, 'daily_collection.log'))
     ]
 )
 logger = logging.getLogger(__name__)

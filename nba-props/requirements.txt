@@ -12,5 +12,9 @@ SQLAlchemy==2.0.35          # ORM and database toolkit
 pandas==2.1.4               # Data manipulation and analysis
 numpy==1.26.3               # Numerical computing
 
+# Machine Learning
+xgboost==2.0.3              # Gradient boosting for predictions
+scikit-learn==1.4.0         # ML utilities and metrics
+
 # Utilities
 pytz==2024.1                # Timezone support

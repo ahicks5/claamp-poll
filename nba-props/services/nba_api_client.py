@@ -45,7 +45,7 @@ class NBAAPIClient:
 
         try:
             teams_data = teams.get_teams()
-            logger.info(f"✓ Found {len(teams_data)} teams")
+            logger.info(f"Found {len(teams_data)} teams")
             return teams_data
         except Exception as e:
             logger.error(f"Error fetching teams: {e}")
@@ -63,7 +63,7 @@ class NBAAPIClient:
 
         try:
             all_players = players.get_active_players()
-            logger.info(f"✓ Found {len(all_players)} active players")
+            logger.info(f"Found {len(all_players)} active players")
             return all_players
         except Exception as e:
             logger.error(f"Error fetching players: {e}")
@@ -122,7 +122,7 @@ class NBAAPIClient:
                 season_type_all_star=season_type
             )
             df = gamelog.get_data_frames()[0]
-            logger.debug(f"✓ Found {len(df)} games for player {player_id}")
+            logger.debug(f"Found {len(df)} games for player {player_id}")
             return df
         except Exception as e:
             logger.error(f"Error fetching game log for player {player_id}: {e}")
@@ -143,7 +143,7 @@ class NBAAPIClient:
             board = scoreboard.ScoreBoard()
             games_data = board.games.get_dict()
 
-            logger.info(f"✓ Found {len(games_data)} games today")
+            logger.info(f"Found {len(games_data)} games today")
             return games_data
         except Exception as e:
             logger.warning(f"Error with live scoreboard, trying legacy endpoint: {e}")
@@ -164,7 +164,7 @@ class NBAAPIClient:
                 return []
 
             games = df.to_dict('records')
-            logger.info(f"✓ Found {len(games)} games today (legacy)")
+            logger.info(f"Found {len(games)} games today (legacy)")
             return games
         except Exception as e:
             logger.error(f"Error fetching today's games (legacy): {e}")
@@ -193,7 +193,7 @@ class NBAAPIClient:
                 return []
 
             games = df.to_dict('records')
-            logger.info(f"✓ Found {len(games)} games for {date_str}")
+            logger.info(f"Found {len(games)} games for {date_str}")
             return games
         except Exception as e:
             logger.error(f"Error fetching games for {date_str}: {e}")
@@ -221,7 +221,7 @@ class NBAAPIClient:
             player_stats = dfs[0]  # PlayerStats
             team_stats = dfs[1]    # TeamStats
 
-            logger.debug(f"✓ Got box score for game {game_id}: {len(player_stats)} player entries")
+            logger.debug(f"Got box score for game {game_id}: {len(player_stats)} player entries")
             return player_stats, team_stats
         except Exception as e:
             logger.error(f"Error fetching box score for game {game_id}: {e}")
@@ -247,13 +247,13 @@ class NBAAPIClient:
             # Try exact match first
             for player in all_players:
                 if player['full_name'].lower() == name.lower():
-                    logger.debug(f"✓ Found exact match: {player['full_name']}")
+                    logger.debug(f"Found exact match: {player['full_name']}")
                     return player
 
             # Try partial match
             for player in all_players:
                 if name.lower() in player['full_name'].lower():
-                    logger.debug(f"✓ Found partial match: {player['full_name']}")
+                    logger.debug(f"Found partial match: {player['full_name']}")
                     return player
 
             logger.warning(f"No player found matching: {name}")

@@ -100,7 +100,8 @@ class OddsAPIClient:
             return []
 
         # Filter games within the specified days ahead
-        cutoff = datetime.utcnow() + timedelta(days=days_ahead)
+        from datetime import timezone
+        cutoff = datetime.now(timezone.utc) + timedelta(days=days_ahead)
         upcoming_games = []
 
         for game in data:
@@ -108,7 +109,7 @@ class OddsAPIClient:
             if commence_time <= cutoff:
                 upcoming_games.append(game)
 
-        logger.info(f"✓ Found {len(upcoming_games)} upcoming games")
+        logger.info(f"Found {len(upcoming_games)} upcoming games")
         return upcoming_games
 
     def get_player_props(self, event_id: str, regions: str = 'us') -> Optional[Dict]:
@@ -136,7 +137,7 @@ class OddsAPIClient:
             logger.warning(f"No player props data returned for event {event_id}")
             return None
 
-        logger.info(f"✓ Got player props for event {event_id}")
+        logger.info(f"Got player props for event {event_id}")
         return data
 
     def get_all_player_props_for_today(self) -> List[Dict]:
@@ -174,7 +175,7 @@ class OddsAPIClient:
                     'props': props
                 })
 
-        logger.info(f"✓ Fetched props for {len(all_props)} games")
+        logger.info(f"Fetched props for {len(all_props)} games")
         return all_props
 
     def parse_player_props(self, props_data: Dict) -> List[Dict]:

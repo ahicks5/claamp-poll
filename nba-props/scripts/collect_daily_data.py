@@ -60,7 +60,7 @@ class DailyDataCollector:
             # Step 1: Fetch upcoming games from Odds API
             logger.info("Step 1: Fetching upcoming games from Odds API...")
             upcoming_games = self.odds_client.get_upcoming_games(days_ahead=days_ahead)
-            logger.info(f"✓ Found {len(upcoming_games)} upcoming games\n")
+            logger.info(f"Found {len(upcoming_games)} upcoming games\n")
 
             if not upcoming_games:
                 logger.info("No upcoming games found. Exiting.")
@@ -85,7 +85,7 @@ class DailyDataCollector:
                 away_team = self._find_team_by_name(away_team_name)
 
                 if not home_team or not away_team:
-                    logger.warning(f"  ✗ Could not match teams in database")
+                    logger.warning(f"  [ERROR] Could not match teams in database")
                     continue
 
                 # Create or get game
@@ -97,11 +97,11 @@ class DailyDataCollector:
                 )
 
                 if not game:
-                    logger.warning(f"  ✗ Could not create game record")
+                    logger.warning(f"  [ERROR] Could not create game record")
                     continue
 
                 games_created += 1
-                logger.info(f"  ✓ Game record created (ID: {game.id})")
+                logger.info(f"  Game record created (ID: {game.id})")
 
                 # Fetch player props for this game
                 logger.info(f"  Fetching player props...")
@@ -114,7 +114,7 @@ class DailyDataCollector:
                     # Store props
                     props_added = self._store_prop_lines(game, parsed_props)
                     props_collected += props_added
-                    logger.info(f"  ✓ Stored {props_added} prop lines")
+                    logger.info(f"  Stored {props_added} prop lines")
                 else:
                     logger.info(f"  No props available yet")
 
@@ -134,11 +134,11 @@ class DailyDataCollector:
             if usage['requests_remaining']:
                 logger.info(f"  Requests remaining: {usage['requests_remaining']}")
 
-            logger.info("\n✓ Daily collection complete!")
+            logger.info("\n[OK] Daily collection complete!")
             logger.info("=" * 60)
 
         except Exception as e:
-            logger.error(f"\n✗ Error during collection: {e}")
+            logger.error(f"\n[ERROR] Error during collection: {e}")
             self.session.rollback()
             raise
 
@@ -200,7 +200,7 @@ class DailyDataCollector:
                 logger.error(f"Error updating game {game.nba_game_id}: {e}")
                 continue
 
-        logger.info(f"✓ Updated {stats_updated} player stat records")
+        logger.info(f"Updated {stats_updated} player stat records")
 
     def _find_team_by_name(self, team_name: str) -> Optional[Team]:
         """

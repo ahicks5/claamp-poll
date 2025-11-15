@@ -121,17 +121,56 @@ python scripts/init_database.py
 - **Daily Cost:** ~10-20 requests per collection
 - **NBA API:** Unlimited (but rate limited to 600ms between calls)
 
+## Machine Learning Commands
+
+### Train Models
+```bash
+# Train on points props (most common)
+python scripts/train_model.py --prop-type points
+
+# Train on other prop types
+python scripts/train_model.py --prop-type rebounds
+python scripts/train_model.py --prop-type assists
+```
+
+### Generate Predictions
+```bash
+# Get today's predictions
+python scripts/generate_predictions.py --prop-type points --min-confidence 0.65
+
+# Save to database
+python scripts/generate_predictions.py --prop-type points --save-to-db
+```
+
+### Backtest Model
+```bash
+# Test on last 30 days
+python scripts/backtest_model.py --prop-type points --days-back 30
+
+# Custom settings
+python scripts/backtest_model.py --days-back 60 --min-confidence 0.70 --unit-size 100
+```
+
 ## Quick Start Flow
 
 ```bash
-# First time
+# First time setup
 pip install -r requirements.txt
 python scripts/init_database.py
 
+# Collect data for 2-3 weeks
+python scripts/collect_daily_data.py  # Run daily
+python scripts/backfill_historical.py --season 2024-25
+
+# Train model (after collecting enough data)
+python scripts/train_model.py --prop-type points
+
 # Daily routine (morning)
 python scripts/collect_daily_data.py
+python scripts/generate_predictions.py --prop-type points
 python scripts/query_data.py props
 
-# Weekly (load more history)
-python scripts/backfill_historical.py --season 2024-25
+# Weekly maintenance
+python scripts/train_model.py --prop-type points
+python scripts/backtest_model.py --days-back 30
 ```

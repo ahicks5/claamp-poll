@@ -90,6 +90,9 @@ class ResultsTracker:
         # Show overall accuracy
         self._show_overall_accuracy()
 
+        # Return count of results recorded
+        return self.results_recorded
+
     def _record_result(self, prediction: Prediction):
         """Record the result of a single prediction."""
         # Get the player's actual stats for this game

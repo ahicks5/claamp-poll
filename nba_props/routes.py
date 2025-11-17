@@ -195,3 +195,46 @@ def api_stats():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@bp.route("/api/refresh-results")
+@login_required
+def api_refresh_results():
+    """
+    Refresh actual results for completed games.
+
+    This endpoint:
+    1. Tracks results for recently completed games
+    2. Returns updated predictions with actual scores
+
+    Safe to call frequently - only fetches games that haven't been tracked yet.
+    Uses free NBA API (not rate-limited).
+    """
+    try:
+        # Import here to avoid circular imports
+        import sys
+        import os
+        nba_props_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'nba-props')
+        if nba_props_path not in sys.path:
+            sys.path.insert(0, nba_props_path)
+
+        from scripts.track_results import ResultsTracker
+
+        tracker = ResultsTracker()
+        results_tracked = tracker.track_recent_results(days_back=3)
+
+        # Return success with count
+        return jsonify({
+            'success': True,
+            'message': f'Tracked {results_tracked} new results',
+            'results_tracked': results_tracked
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'message': 'Failed to refresh results'
+        }), 500

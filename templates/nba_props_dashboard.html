@@ -59,6 +59,10 @@
     <button id="refresh-btn" class="btn btn-secondary">
       <span class="refresh-icon">↻</span> Refresh
     </button>
+
+    <button id="refresh-results-btn" class="btn btn-primary">
+      <span class="refresh-icon">⟳</span> Refresh Results
+    </button>
   </div>
 
   <!-- Loading State -->
@@ -110,11 +114,15 @@
     <ul class="legend__list">
       <li><strong>Line:</strong> Current betting line (over/under number)</li>
       <li><strong>Prediction:</strong> Our AI model's prediction for the player's stat</li>
+      <li><strong>Actual:</strong> Real result after game completes (✓ = win, ✗ = loss, - = pending)</li>
       <li><strong>Edge:</strong> Difference between prediction and line (positive favors OVER, negative favors UNDER)</li>
       <li><strong>Play:</strong> Recommended bet (OVER if model predicts above line, UNDER if below)</li>
     </ul>
     <p class="legend__note">
-      <strong>Note:</strong> Model has ~57% accuracy. Only bet what you can afford to lose. These are predictions, not guarantees.
+      <strong>Tip:</strong> Click "Refresh Results" to fetch actual scores from completed games. Uses free NBA API - safe to use frequently!
+    </p>
+    <p class="legend__note">
+      <strong>Note:</strong> Model uses contrarian betting logic. When Vegas sets unusual lines (±6 pts from average), we trust Vegas instead of fighting the line.
     </p>
   </div>
 </div>
@@ -241,6 +249,22 @@
   .btn-secondary:hover {
     background: var(--panel-2, #10141c);
     border-color: var(--brand, #6ee7ff);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #6ee7ff, #4db8ff);
+    color: #0c111a;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4db8ff, #3a9fe6);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .refresh-icon {
@@ -516,7 +540,50 @@
       loadPredictions();
       loadStats();
     });
+
+    document.getElementById('refresh-results-btn').addEventListener('click', function() {
+      refreshResults();
+    });
   });
+
+  async function refreshResults() {
+    const btn = document.getElementById('refresh-results-btn');
+    const originalText = btn.innerHTML;
+
+    try {
+      // Disable button and show loading
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; margin: 0;"></span> Refreshing...';
+
+      // Call the refresh results API
+      const response = await fetch('/nba-props/api/refresh-results');
+      const data = await response.json();
+
+      if (data.success) {
+        // Show success message
+        btn.innerHTML = `✓ ${data.message}`;
+
+        // Reload predictions to show updated actual scores
+        await loadPredictions();
+        await loadStats();
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Failed to refresh results');
+      }
+    } catch (error) {
+      console.error('Error refreshing results:', error);
+      btn.innerHTML = '✗ Error';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 2000);
+    }
+  }
 
   async function loadStats() {
     try {

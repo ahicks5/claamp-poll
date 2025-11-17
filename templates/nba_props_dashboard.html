@@ -1,0 +1,594 @@
+{% extends "base.html" %}
+
+{% block title %}NBA Props - TakeFreePoints{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">NBA Player Props</h1>
+    <p class="page-subtitle">AI-powered predictions for today's games</p>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__value" id="stat-today">-</div>
+      <div class="stat-card__label">Today's Plays</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value" id="stat-accuracy">-</div>
+      <div class="stat-card__label">Model Accuracy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value" id="stat-total">-</div>
+      <div class="stat-card__label">Total Predictions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value" id="stat-updated">-</div>
+      <div class="stat-card__label">Last Updated</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label for="prop-type-filter" class="filter-label">Prop Type:</label>
+      <select id="prop-type-filter" class="filter-select">
+        <option value="">All Props</option>
+        <option value="points">Points</option>
+        <option value="rebounds">Rebounds</option>
+        <option value="assists">Assists</option>
+        <option value="threes">3-Pointers</option>
+        <option value="blocks">Blocks</option>
+        <option value="steals">Steals</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="min-edge-filter" class="filter-label">Min Edge:</label>
+      <select id="min-edge-filter" class="filter-select">
+        <option value="0">All</option>
+        <option value="1">1.0+</option>
+        <option value="1.5" selected>1.5+</option>
+        <option value="2">2.0+</option>
+        <option value="2.5">2.5+</option>
+        <option value="3">3.0+</option>
+      </select>
+    </div>
+
+    <button id="refresh-btn" class="btn btn-secondary">
+      <span class="refresh-icon">↻</span> Refresh
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading predictions...</p>
+  </div>
+
+  <!-- Error State -->
+  <div id="error" class="error-state" style="display:none;">
+    <p class="error-message" id="error-message"></p>
+    <p class="error-help">Run the daily workflow to generate predictions:</p>
+    <code class="error-code">python nba-props/scripts/daily_workflow.py</code>
+  </div>
+
+  <!-- Empty State -->
+  <div id="empty" class="empty-state" style="display:none;">
+    <p>No predictions match your filters.</p>
+    <p class="muted">Try adjusting the filters above.</p>
+  </div>
+
+  <!-- Predictions Table -->
+  <div id="predictions-container" style="display:none;">
+    <div class="table-responsive">
+      <table class="predictions-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Stat</th>
+            <th class="text-center">Line</th>
+            <th class="text-center">Prediction</th>
+            <th class="text-center">Edge</th>
+            <th class="text-center">Play</th>
+            <th>Game</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="predictions-tbody">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" id="legend" style="display:none;">
+    <h3 class="legend__title">How to Read This</h3>
+    <ul class="legend__list">
+      <li><strong>Line:</strong> Current betting line (over/under number)</li>
+      <li><strong>Prediction:</strong> Our AI model's prediction for the player's stat</li>
+      <li><strong>Edge:</strong> Difference between prediction and line (positive favors OVER, negative favors UNDER)</li>
+      <li><strong>Play:</strong> Recommended bet (OVER if model predicts above line, UNDER if below)</li>
+    </ul>
+    <p class="legend__note">
+      <strong>Note:</strong> Model has ~57% accuracy. Only bet what you can afford to lose. These are predictions, not guarantees.
+    </p>
+  </div>
+</div>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    background: linear-gradient(135deg, #6ee7ff, #4db8ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .page-subtitle {
+    font-size: 1.1rem;
+    color: var(--fg-muted, #a8b2c8);
+    margin: 0;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--panel-2, #10141c);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .stat-card__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--brand, #6ee7ff);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-card__label {
+    font-size: 0.9rem;
+    color: var(--fg-muted, #a8b2c8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Filters */
+  .filters-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--panel-2, #10141c);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg-muted, #a8b2c8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .filter-select {
+    padding: 0.5rem 1rem;
+    background: var(--panel-1, #0c111a);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 6px;
+    color: var(--fg, #eaeef7);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .filter-select:focus {
+    outline: 2px solid var(--brand, #6ee7ff);
+    outline-offset: 2px;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-secondary {
+    background: var(--panel-1, #0c111a);
+    border: 1px solid var(--line, #1f2633);
+    color: var(--fg, #eaeef7);
+  }
+
+  .btn-secondary:hover {
+    background: var(--panel-2, #10141c);
+    border-color: var(--brand, #6ee7ff);
+  }
+
+  .refresh-icon {
+    font-size: 1.2rem;
+    display: inline-block;
+    transition: transform 0.3s ease;
+  }
+
+  .btn:active .refresh-icon {
+    transform: rotate(180deg);
+  }
+
+  /* Table */
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .predictions-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel-2, #10141c);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .predictions-table thead {
+    background: var(--panel-1, #0c111a);
+  }
+
+  .predictions-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--fg-muted, #a8b2c8);
+    border-bottom: 2px solid var(--line, #1f2633);
+  }
+
+  .predictions-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--line, #1f2633);
+  }
+
+  .predictions-table tbody tr {
+    transition: background 0.2s ease;
+  }
+
+  .predictions-table tbody tr:hover {
+    background: var(--panel-1, #0c111a);
+  }
+
+  .text-center {
+    text-align: center !important;
+  }
+
+  .play-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .play-over {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+
+  .play-under {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .edge-positive {
+    color: #22c55e;
+    font-weight: 600;
+  }
+
+  .edge-negative {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  .prop-type {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background: var(--panel-1, #0c111a);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* States */
+  .loading-state, .error-state, .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--line, #1f2633);
+    border-top-color: var(--brand, #6ee7ff);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-message {
+    color: #ef4444;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .error-help {
+    color: var(--fg-muted, #a8b2c8);
+    margin: 0.5rem 0;
+  }
+
+  .error-code {
+    display: inline-block;
+    background: var(--panel-1, #0c111a);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Legend */
+  .legend {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--panel-2, #10141c);
+    border: 1px solid var(--line, #1f2633);
+    border-radius: 8px;
+  }
+
+  .legend__title {
+    font-size: 1.1rem;
+    margin: 0 0 1rem;
+    color: var(--brand, #6ee7ff);
+  }
+
+  .legend__list {
+    margin: 0 0 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .legend__list li {
+    margin-bottom: 0.5rem;
+    color: var(--fg, #eaeef7);
+  }
+
+  .legend__note {
+    margin: 1rem 0 0;
+    padding: 1rem;
+    background: var(--panel-1, #0c111a);
+    border-left: 3px solid var(--brand, #6ee7ff);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--fg-muted, #a8b2c8);
+  }
+
+  .muted {
+    color: var(--fg-muted, #a8b2c8);
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filters-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filter-group {
+      width: 100%;
+    }
+
+    .predictions-table {
+      font-size: 0.85rem;
+    }
+
+    .predictions-table th,
+    .predictions-table td {
+      padding: 0.5rem;
+    }
+  }
+</style>
+
+<script>
+  // State
+  let allPlays = [];
+  let currentFilters = {
+    propType: '',
+    minEdge: 1.5
+  };
+
+  // Load predictions on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    loadPredictions();
+    loadStats();
+
+    // Setup filter listeners
+    document.getElementById('prop-type-filter').addEventListener('change', function() {
+      currentFilters.propType = this.value;
+      filterAndDisplayPlays();
+    });
+
+    document.getElementById('min-edge-filter').addEventListener('change', function() {
+      currentFilters.minEdge = parseFloat(this.value);
+      filterAndDisplayPlays();
+    });
+
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+      loadPredictions();
+      loadStats();
+    });
+  });
+
+  async function loadStats() {
+    try {
+      const response = await fetch('/nba-props/api/stats');
+      const data = await response.json();
+
+      if (data.success) {
+        const stats = data.stats;
+        document.getElementById('stat-today').textContent = stats.today_predictions || 0;
+        document.getElementById('stat-accuracy').textContent = stats.accuracy ? `${stats.accuracy}%` : 'N/A';
+        document.getElementById('stat-total').textContent = stats.total_predictions || 0;
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  }
+
+  async function loadPredictions() {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const empty = document.getElementById('empty');
+    const container = document.getElementById('predictions-container');
+    const legend = document.getElementById('legend');
+
+    // Show loading
+    loading.style.display = 'block';
+    error.style.display = 'none';
+    empty.style.display = 'none';
+    container.style.display = 'none';
+    legend.style.display = 'none';
+
+    try {
+      const response = await fetch('/nba-props/api/predictions?play_only=true');
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || data.error || 'Failed to load predictions');
+      }
+
+      allPlays = data.plays;
+
+      // Update "Last Updated" stat
+      if (data.updated) {
+        const updatedDate = new Date(data.updated);
+        document.getElementById('stat-updated').textContent = updatedDate.toLocaleTimeString();
+      }
+
+      // Filter and display
+      filterAndDisplayPlays();
+
+    } catch (err) {
+      loading.style.display = 'none';
+      error.style.display = 'block';
+      document.getElementById('error-message').textContent = err.message;
+    }
+  }
+
+  function filterAndDisplayPlays() {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const empty = document.getElementById('empty');
+    const container = document.getElementById('predictions-container');
+    const legend = document.getElementById('legend');
+    const tbody = document.getElementById('predictions-tbody');
+
+    // Filter plays
+    let filtered = allPlays;
+
+    if (currentFilters.propType) {
+      filtered = filtered.filter(p => p.stat === currentFilters.propType);
+    }
+
+    if (currentFilters.minEdge > 0) {
+      filtered = filtered.filter(p => Math.abs(p.edge) >= currentFilters.minEdge);
+    }
+
+    // Sort by edge (highest first)
+    filtered.sort((a, b) => Math.abs(b.edge) - Math.abs(a.edge));
+
+    // Hide loading
+    loading.style.display = 'none';
+
+    // Show results or empty state
+    if (filtered.length === 0) {
+      empty.style.display = 'block';
+      container.style.display = 'none';
+      legend.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+      container.style.display = 'block';
+      legend.style.display = 'block';
+
+      // Render table
+      tbody.innerHTML = filtered.map(play => {
+        const edgeClass = play.edge > 0 ? 'edge-positive' : 'edge-negative';
+        const playClass = play.play === 'OVER' ? 'play-over' : 'play-under';
+
+        return `
+          <tr>
+            <td><strong>${play.player}</strong></td>
+            <td><span class="prop-type">${play.stat}</span></td>
+            <td class="text-center">${play.line.toFixed(1)}</td>
+            <td class="text-center"><strong>${play.prediction.toFixed(1)}</strong></td>
+            <td class="text-center ${edgeClass}">${play.edge > 0 ? '+' : ''}${play.edge.toFixed(1)}</td>
+            <td class="text-center"><span class="play-badge ${playClass}">${play.play}</span></td>
+            <td>${play.game}</td>
+            <td>${play.time}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+</script>
+{% endblock %}

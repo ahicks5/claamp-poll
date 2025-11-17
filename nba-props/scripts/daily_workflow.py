@@ -144,7 +144,7 @@ class DailyWorkflow:
 
     def _generate_predictions(self, save_to_db=True):
         """Generate predictions using the regression model."""
-        from scripts.generate_predictions_regression import PredictionGenerator
+        from scripts.generate_predictions_regression import RegressionPredictionGenerator
 
         # Check if model exists
         model_path = os.path.join(PROJECT_ROOT, 'models', 'points_regression_model.pkl')
@@ -153,13 +153,41 @@ class DailyWorkflow:
             logger.warning("  python scripts/train_model_no_odds.py --prop-type points")
             return []
 
-        generator = PredictionGenerator('points')
-        predictions = generator.generate_predictions(
-            min_edge=1.5,  # Lower threshold to see more predictions
-            save_to_db=save_to_db
-        )
+        try:
+            generator = RegressionPredictionGenerator('points', min_edge=1.5)
 
-        return predictions
+            # Generate predictions DataFrame
+            predictions_df = generator.generate_predictions_for_today()
+
+            # Convert to list of dicts for compatibility with export
+            predictions = []
+            if not predictions_df.empty:
+                for _, row in predictions_df.iterrows():
+                    # Get game info
+                    game = self.session.query(Game).get(row['game_id'])
+                    if game:
+                        game_info = f"{game.away_team.abbreviation} @ {game.home_team.abbreviation}"
+                        game_time = game.game_time or 'TBD'
+                    else:
+                        game_info = 'TBD'
+                        game_time = 'TBD'
+
+                    predictions.append({
+                        'player_name': row['player_name'],
+                        'prop_type': row['prop_type'],
+                        'line': float(row['line']),
+                        'prediction': float(row['predicted_value']),
+                        'edge': float(row['edge']),
+                        'recommendation': row['recommendation'],
+                        'game_info': game_info,
+                        'game_time': game_time
+                    })
+
+            return predictions
+
+        except Exception as e:
+            logger.error(f"Error generating predictions: {e}")
+            return []
 
     def _export_predictions(self, predictions):
         """Export predictions to JSON file for website consumption."""

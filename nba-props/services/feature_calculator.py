@@ -71,6 +71,8 @@ class FeatureCalculator:
         """
         Calculate features related to the prop line itself.
 
+        NOW INCLUDES CONTRARIAN LOGIC: When Vegas sets unusual lines, trust them!
+
         Args:
             player_id: Player ID
             game_id: Game ID
@@ -78,35 +80,72 @@ class FeatureCalculator:
             current_line: Current line value
 
         Returns:
-            Dictionary of line-related features
+            Dictionary of line-related features including contrarian signals
         """
         features = {}
 
-        # Get historical lines for this player/prop type
-        historical_lines = self._get_historical_lines(player_id, prop_type, limit=10)
+        # Get historical lines for this player/prop type (expand to 20 for better baseline)
+        historical_lines = self._get_historical_lines(player_id, prop_type, limit=20)
 
         if historical_lines:
-            # Calculate line movement
-            features['line_vs_avg'] = current_line - np.mean(historical_lines)
-            features['line_vs_recent'] = current_line - np.mean(historical_lines[-5:])
+            # Calculate average historical line
+            avg_line = np.mean(historical_lines)
+            recent_avg = np.mean(historical_lines[-5:]) if len(historical_lines) >= 5 else avg_line
+
+            # CONTRARIAN LOGIC: Calculate deviation from normal
+            deviation = current_line - avg_line
+            recent_deviation = current_line - recent_avg
+
+            features['line_vs_avg'] = deviation
+            features['line_vs_recent'] = recent_deviation
+            features['avg_historical_line'] = avg_line
 
             # Line movement volatility
             if len(historical_lines) > 1:
                 features['line_std'] = np.std(historical_lines)
-                features['line_movement'] = historical_lines[-1] - historical_lines[-2]
+                features['line_movement'] = historical_lines[-1] - historical_lines[-2] if len(historical_lines) >= 2 else 0
             else:
                 features['line_std'] = 0
                 features['line_movement'] = 0
 
-            # Sharp line movement detection (Vegas trap indicator)
-            if len(historical_lines) >= 5:
-                recent_avg = np.mean(historical_lines[-5:])
-                features['sharp_movement'] = abs(current_line - recent_avg)
-                # Flag if line moved more than 2.5 (sharp movement)
-                features['is_sharp_movement'] = 1 if features['sharp_movement'] > 2.5 else 0
+            # VEGAS TRAP DETECTION
+            # When line deviates significantly, Vegas usually knows something
+            features['sharp_movement'] = abs(recent_deviation)
+
+            # Flag unusual lines (Vegas knows something we don't)
+            # Threshold: 4+ points from recent average = unusual
+            # Threshold: 6+ points from season average = VERY unusual (trust Vegas completely)
+            features['is_unusual_line'] = 1 if abs(recent_deviation) > 4.0 else 0
+            features['is_vegas_trap'] = 1 if abs(deviation) > 6.0 else 0
+
+            # Contrarian signal strength (0-1 scale)
+            # Higher = more likely to trust Vegas over model
+            if abs(deviation) > 6.0:
+                features['contrarian_strength'] = min(abs(deviation) / 15.0, 1.0)  # Cap at 1.0
             else:
-                features['sharp_movement'] = 0
-                features['is_sharp_movement'] = 0
+                features['contrarian_strength'] = 0.0
+
+            # Direction of Vegas signal
+            # +1 = line way up (bet OVER), -1 = line way down (bet UNDER), 0 = normal
+            if deviation > 6.0:
+                features['vegas_signal_direction'] = 1  # Line jumped up - Vegas likes OVER
+            elif deviation < -6.0:
+                features['vegas_signal_direction'] = -1  # Line dropped - Vegas likes UNDER
+            else:
+                features['vegas_signal_direction'] = 0  # Normal line - use model
+
+        else:
+            # No historical lines - can't calculate deviation
+            features['line_vs_avg'] = 0
+            features['line_vs_recent'] = 0
+            features['avg_historical_line'] = current_line
+            features['line_std'] = 0
+            features['line_movement'] = 0
+            features['sharp_movement'] = 0
+            features['is_unusual_line'] = 0
+            features['is_vegas_trap'] = 0
+            features['contrarian_strength'] = 0
+            features['vegas_signal_direction'] = 0
 
         return features
 

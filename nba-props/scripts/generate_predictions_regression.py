@@ -106,6 +106,14 @@ class RegressionPredictionGenerator:
                 # Add home/away
                 features['is_home'] = 1 if player.team_id == game.home_team_id else 0
 
+                # Calculate line deviation features (CONTRARIAN LOGIC)
+                line_features = self.feature_calc.calculate_prop_line_features(
+                    player_id=prop.player_id,
+                    game_id=game.id,
+                    prop_type=self.prop_type,
+                    current_line=prop.line_value
+                )
+
                 # Prepare features for model
                 feature_vector = []
                 for col in self.feature_cols:
@@ -117,16 +125,36 @@ class RegressionPredictionGenerator:
                 # Calculate edge (how much over/under the line)
                 edge = predicted_value - prop.line_value
 
-                # Determine recommendation based on edge
-                if edge >= self.min_edge:
-                    recommendation = 'OVER'
-                    confidence = min(0.5 + (edge / 20), 0.95)  # Rough confidence estimate
-                elif edge <= -self.min_edge:
-                    recommendation = 'UNDER'
-                    confidence = min(0.5 + (abs(edge) / 20), 0.95)
+                # CONTRARIAN LOGIC: Override model when Vegas sets unusual lines
+                is_vegas_trap = line_features.get('is_vegas_trap', 0)
+                vegas_signal = line_features.get('vegas_signal_direction', 0)
+                line_deviation = line_features.get('line_vs_avg', 0)
+
+                if is_vegas_trap == 1 and vegas_signal != 0:
+                    # Vegas trap detected! Trust Vegas, not the model
+                    if vegas_signal > 0:
+                        # Line jumped way up - Vegas knows player will go OVER
+                        recommendation = 'OVER'
+                        confidence = 0.70  # High confidence - trust Vegas
+                        edge = abs(line_deviation)  # Use deviation as edge
+                        logger.info(f"  VEGAS TRAP: {player.full_name} line at {prop.line_value:.1f} (avg: {line_features.get('avg_historical_line', 0):.1f}, deviation: {line_deviation:+.1f}) -> TRUSTING VEGAS (OVER)")
+                    else:
+                        # Line dropped way down - Vegas knows player will go UNDER
+                        recommendation = 'UNDER'
+                        confidence = 0.70  # High confidence - trust Vegas
+                        edge = -abs(line_deviation)  # Use deviation as edge (negative)
+                        logger.info(f"  VEGAS TRAP: {player.full_name} line at {prop.line_value:.1f} (avg: {line_features.get('avg_historical_line', 0):.1f}, deviation: {line_deviation:+.1f}) -> TRUSTING VEGAS (UNDER)")
                 else:
-                    recommendation = 'NO PLAY'
-                    confidence = 0.5
+                    # Normal line - use model prediction
+                    if edge >= self.min_edge:
+                        recommendation = 'OVER'
+                        confidence = min(0.5 + (edge / 20), 0.95)
+                    elif edge <= -self.min_edge:
+                        recommendation = 'UNDER'
+                        confidence = min(0.5 + (abs(edge) / 20), 0.95)
+                    else:
+                        recommendation = 'NO PLAY'
+                        confidence = 0.5
 
                 predictions.append({
                     'player_name': player.full_name,
@@ -143,7 +171,11 @@ class RegressionPredictionGenerator:
                     'last_10_avg': features.get(f'{self.prop_type}_avg_last_10', 0),
                     'season_avg': features.get(f'{self.prop_type}_season_avg', 0),
                     'minutes_avg': features.get('minutes_avg', 0),
-                    'is_home': features.get('is_home', 0)
+                    'is_home': features.get('is_home', 0),
+                    # Contrarian features
+                    'line_deviation': line_features.get('line_vs_avg', 0),
+                    'is_vegas_trap': is_vegas_trap,
+                    'avg_historical_line': line_features.get('avg_historical_line', prop.line_value)
                 })
 
             except Exception as e:

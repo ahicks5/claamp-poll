@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
 load_dotenv(os.path.join(os.path.dirname(PROJECT_ROOT), '.env'))
 
-from database import get_session
+from database import get_session, Game, PropLine
 from services.odds_api_client import OddsAPIClient
 from services.nba_api_client import NBAAPIClient
 
@@ -129,15 +129,18 @@ class DailyWorkflow:
         """Collect today's prop lines from The Odds API."""
         from scripts.collect_daily_data import DailyDataCollector
 
-        collector = DailyDataCollector(
-            self.odds_client,
-            self.nba_client,
-            self.session
-        )
+        collector = DailyDataCollector()
 
         # Collect for today only
-        stats = collector.collect_daily_data(days_ahead=1)
-        return stats.get('props_added', 0)
+        collector.run(days_ahead=1)
+
+        # Count props from database
+        today = datetime.now().date()
+        props_count = self.session.query(PropLine).join(Game).filter(
+            Game.game_date == today
+        ).count()
+
+        return props_count
 
     def _generate_predictions(self, save_to_db=True):
         """Generate predictions using the regression model."""

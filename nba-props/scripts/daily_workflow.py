@@ -195,10 +195,23 @@ class DailyWorkflow:
 
     def _export_predictions(self, predictions):
         """Export predictions to JSON file for website consumption."""
+        # Deduplicate predictions - keep only one per player/prop_type with highest absolute edge
+        unique_predictions = {}
+        for pred in predictions:
+            key = (pred['player_name'], pred['prop_type'])
+            if key not in unique_predictions or abs(pred['edge']) > abs(unique_predictions[key]['edge']):
+                unique_predictions[key] = pred
+
+        # Convert back to list
+        deduped_predictions = list(unique_predictions.values())
+
+        # Sort by absolute edge (highest first)
+        deduped_predictions.sort(key=lambda x: abs(x['edge']), reverse=True)
+
         export_data = {
             'generated_at': datetime.now(timezone.utc).isoformat(),
-            'total_predictions': len(predictions),
-            'predictions': predictions
+            'total_predictions': len(deduped_predictions),
+            'predictions': deduped_predictions
         }
 
         # Export to JSON file
@@ -209,22 +222,28 @@ class DailyWorkflow:
         # Also export a simplified version for quick display
         simplified = {
             'updated': datetime.now(timezone.utc).isoformat(),
-            'count': len(predictions),
-            'plays': [
-                {
-                    'player': pred['player_name'],
-                    'stat': pred['prop_type'],
-                    'line': pred['line'],
-                    'prediction': pred['prediction'],
-                    'play': pred['recommendation'],
-                    'edge': pred['edge'],
-                    'game': pred.get('game_info', 'TBD'),
-                    'time': pred.get('game_time', 'TBD')
-                }
-                for pred in predictions
-                if pred['recommendation'] in ['OVER', 'UNDER']  # Only show plays, not NO PLAY
-            ]
+            'count': 0,  # Will be set after filtering
+            'plays': []
         }
+
+        # Filter to only plays (OVER/UNDER) and convert format
+        plays = [
+            {
+                'player': pred['player_name'],
+                'stat': pred['prop_type'],
+                'line': pred['line'],
+                'prediction': pred['prediction'],
+                'play': pred['recommendation'],
+                'edge': pred['edge'],
+                'game': pred.get('game_info', 'TBD'),
+                'time': pred.get('game_time', 'TBD')
+            }
+            for pred in deduped_predictions
+            if pred['recommendation'] in ['OVER', 'UNDER']  # Only show plays, not NO PLAY
+        ]
+
+        simplified['plays'] = plays
+        simplified['count'] = len(plays)
 
         simplified_path = os.path.join(self.export_dir, 'plays.json')
         with open(simplified_path, 'w') as f:

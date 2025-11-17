@@ -26,6 +26,7 @@ load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
 load_dotenv(os.path.join(os.path.dirname(PROJECT_ROOT), '.env'))
 
 from database import get_session, Prediction, Result, Player, Game, PlayerGameStats
+from sqlalchemy import Integer
 
 # Configure logging
 logging.basicConfig(
@@ -216,7 +217,7 @@ class ResultsTracker:
         by_prop_type = self.session.query(
             Prediction.prop_type,
             func.count(Result.id).label('count'),
-            func.sum(Result.was_correct.cast(db.Integer)).label('wins')
+            func.sum(Result.was_correct.cast(Integer)).label('wins')
         ).join(Result).group_by(Prediction.prop_type).all()
 
         if by_prop_type:

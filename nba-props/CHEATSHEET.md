@@ -118,8 +118,23 @@ python scripts/init_database.py
 ## API Limits
 
 - **Odds API Free Tier:** 500 requests/month
+- **Odds API Pro Tier:** 20,000 requests/month ($30/month)
 - **Daily Cost:** ~10-20 requests per collection
 - **NBA API:** Unlimited (but rate limited to 600ms between calls)
+
+## Historical Data Collection
+
+### Backfill Historical Odds (Requires Pro Plan)
+```bash
+# Backfill current season's historical prop odds
+python scripts/backfill_historical_odds.py --season 2025-26
+
+# Test with limited games first
+python scripts/backfill_historical_odds.py --season 2025-26 --limit 5
+
+# Slower rate (be gentle on API)
+python scripts/backfill_historical_odds.py --season 2025-26 --delay 2.0
+```
 
 ## Machine Learning Commands
 
@@ -153,24 +168,49 @@ python scripts/backtest_model.py --days-back 60 --min-confidence 0.70 --unit-siz
 
 ## Quick Start Flow
 
+### Option A: With Historical Odds (Pro Plan)
 ```bash
 # First time setup
 pip install -r requirements.txt
 python scripts/init_database.py
 
-# Collect data for 2-3 weeks
-python scripts/collect_daily_data.py  # Run daily
-python scripts/backfill_historical.py --season 2024-25
+# Backfill historical game stats
+python scripts/backfill_historical.py --season 2025-26
 
-# Train model (after collecting enough data)
+# Backfill historical prop odds (requires Pro plan)
+python scripts/backfill_historical_odds.py --season 2025-26
+
+# Train full model with odds
 python scripts/train_model.py --prop-type points
 
 # Daily routine (morning)
 python scripts/collect_daily_data.py
-python scripts/generate_predictions.py --prop-type points
+python scripts/generate_predictions.py --prop-type points --min-confidence 0.65
 python scripts/query_data.py props
 
 # Weekly maintenance
 python scripts/train_model.py --prop-type points
 python scripts/backtest_model.py --days-back 30
+```
+
+### Option B: Stats-Only (Free)
+```bash
+# First time setup
+pip install -r requirements.txt
+python scripts/init_database.py
+
+# Backfill historical game stats
+python scripts/backfill_historical.py --season 2025-26
+
+# Train regression model (no odds needed)
+python scripts/train_model_no_odds.py --prop-type points
+
+# Collect daily odds going forward
+python scripts/collect_daily_data.py  # Run daily
+
+# Daily predictions using regression model
+python scripts/generate_predictions_regression.py --prop-type points --min-edge 2.0
+
+# After 2-3 weeks, upgrade to full model
+python scripts/train_model.py --prop-type points
 ```

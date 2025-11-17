@@ -18,3 +18,7 @@ scikit-learn==1.4.0         # ML utilities and metrics
 
 # Utilities
 pytz==2024.1                # Timezone support
+
+# Web API
+Flask==3.0.0                # Lightweight web framework for API
+flask-cors==4.0.0           # CORS support for API endpoints

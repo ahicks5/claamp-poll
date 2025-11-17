@@ -12,7 +12,26 @@ pip install -r requirements.txt
 python scripts/init_database.py
 ```
 
-## Daily Commands
+## Daily Workflow (RECOMMENDED!)
+
+### One Command Does Everything:
+```bash
+# Run this every morning - collects data, generates predictions, exports for website!
+python scripts/daily_workflow.py
+```
+
+**What it does:**
+- Collects today's prop lines from The Odds API
+- Generates predictions using your trained model
+- Saves predictions to database
+- **Exports to JSON for your website** (`exports/plays.json`)
+- Shows you the top 10 plays
+
+**See `DAILY_WORKFLOW_GUIDE.md` for complete details and website integration!**
+
+---
+
+## Daily Commands (Individual Scripts)
 
 ### Collect Today's Data
 ```bash
@@ -124,16 +143,15 @@ python scripts/init_database.py
 
 ## Historical Data Collection
 
-### Backfill Historical Odds (Requires Pro Plan)
+### Backfill Historical Odds (NOT WORKING - API Limitation)
+**NOTE:** The Odds API's historical endpoint does NOT support player props (only game odds).
+Historical player prop data is not available even with Pro plan.
+
+**Solution:** Collect daily data going forward - after 2-3 weeks you'll have enough historical data.
+
 ```bash
-# Backfill current season's historical prop odds
-python scripts/backfill_historical_odds.py --season 2025-26
-
-# Test with limited games first
-python scripts/backfill_historical_odds.py --season 2025-26 --limit 5
-
-# Slower rate (be gentle on API)
-python scripts/backfill_historical_odds.py --season 2025-26 --delay 2.0
+# This doesn't work for player props (only game odds):
+# python scripts/backfill_historical_odds.py --season 2025-26
 ```
 
 ## Machine Learning Commands

@@ -34,7 +34,7 @@ class HistoricalDataBackfill:
         self.nba_client = NBAAPIClient()
         self.session = get_session()
 
-    def backfill_season_games(self, season: str = "2024-25", limit: int = None):
+    def backfill_season_games(self, season: str = "2025-26", limit: int = None):
         """
         Backfill games and player stats for an entire season.
 

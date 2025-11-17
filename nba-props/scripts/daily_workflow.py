@@ -224,6 +224,8 @@ class DailyWorkflow:
 
     def _export_predictions(self, predictions):
         """Export predictions to JSON file for website consumption."""
+        from database import Prediction, Result, PlayerGameStats
+
         # Deduplicate predictions - keep only one per player/prop_type with highest absolute edge
         unique_predictions = {}
         for pred in predictions:
@@ -248,7 +250,7 @@ class DailyWorkflow:
         with open(export_path, 'w') as f:
             json.dump(export_data, f, indent=2)
 
-        # Also export a simplified version for quick display
+        # Also export a simplified version for quick display (with actual results if available)
         simplified = {
             'updated': datetime.now(timezone.utc).isoformat(),
             'count': 0,  # Will be set after filtering
@@ -256,20 +258,56 @@ class DailyWorkflow:
         }
 
         # Filter to only plays (OVER/UNDER) and convert format
-        plays = [
-            {
+        plays = []
+        for pred in deduped_predictions:
+            if pred['recommendation'] not in ['OVER', 'UNDER']:
+                continue
+
+            # Try to find actual result for this prediction
+            actual = None
+            was_correct = None
+            try:
+                # Find the prediction in DB by player name and prop type
+                from database import Player
+                player = self.session.query(Player).filter_by(
+                    full_name=pred['player_name']
+                ).first()
+
+                if player:
+                    # Get today's game
+                    today = datetime.now().date()
+                    from database import Game
+                    game = self.session.query(Game).filter(
+                        Game.game_date == today
+                    ).first()
+
+                    if game:
+                        # Find prediction
+                        db_pred = self.session.query(Prediction).filter(
+                            Prediction.player_id == player.id,
+                            Prediction.game_id == game.id,
+                            Prediction.prop_type == pred['prop_type']
+                        ).first()
+
+                        if db_pred and db_pred.result:
+                            actual = float(db_pred.result.actual_value) if db_pred.result.actual_value is not None else None
+                            was_correct = db_pred.result.was_correct
+            except Exception as e:
+                # If we can't find result, just continue without it
+                pass
+
+            plays.append({
                 'player': pred['player_name'],
                 'stat': pred['prop_type'],
                 'line': pred['line'],
                 'prediction': pred['prediction'],
+                'actual': actual,
+                'was_correct': was_correct,
                 'play': pred['recommendation'],
                 'edge': pred['edge'],
                 'game': pred.get('game_info', 'TBD'),
                 'time': pred.get('game_time', 'TBD')
-            }
-            for pred in deduped_predictions
-            if pred['recommendation'] in ['OVER', 'UNDER']  # Only show plays, not NO PLAY
-        ]
+            })
 
         simplified['plays'] = plays
         simplified['count'] = len(plays)

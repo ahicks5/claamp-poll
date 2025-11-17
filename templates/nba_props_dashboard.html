@@ -90,6 +90,7 @@
             <th>Stat</th>
             <th class="text-center">Line</th>
             <th class="text-center">Prediction</th>
+            <th class="text-center">Actual</th>
             <th class="text-center">Edge</th>
             <th class="text-center">Play</th>
             <th>Game</th>
@@ -328,6 +329,16 @@
     font-weight: 600;
   }
 
+  .result-win {
+    color: #22c55e;
+    font-weight: 700;
+  }
+
+  .result-loss {
+    color: #ef4444;
+    font-weight: 700;
+  }
+
   .prop-type {
     display: inline-block;
     padding: 0.25rem 0.5rem;
@@ -457,6 +468,34 @@
     minEdge: 1.5
   };
 
+  // Format game time from "2025-11-16 21:11:00" to "11/16 8:00pm ET"
+  function formatGameTime(timeStr) {
+    try {
+      // Parse the datetime string
+      const date = new Date(timeStr);
+
+      // Convert to ET (UTC-5 or UTC-4 depending on DST)
+      const etOffset = -5; // Standard Time
+      const etDate = new Date(date.getTime() + (etOffset * 60 * 60 * 1000));
+
+      // Format date as MM/DD
+      const month = etDate.getUTCMonth() + 1;
+      const day = etDate.getUTCDate();
+
+      // Format time as H:MMam/pm
+      let hours = etDate.getUTCHours();
+      const minutes = etDate.getUTCMinutes();
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      hours = hours % 12 || 12;
+
+      const minutesStr = minutes.toString().padStart(2, '0');
+
+      return `${month}/${day} ${hours}:${minutesStr}${ampm} ET`;
+    } catch (e) {
+      return timeStr;
+    }
+  }
+
   // Load predictions on page load
   document.addEventListener('DOMContentLoaded', function() {
     loadPredictions();
@@ -575,16 +614,39 @@
         const edgeClass = play.edge > 0 ? 'edge-positive' : 'edge-negative';
         const playClass = play.play === 'OVER' ? 'play-over' : 'play-under';
 
+        // Format actual value
+        let actualHtml = '<span class="muted">-</span>';
+        let resultClass = '';
+        if (play.actual !== null && play.actual !== undefined) {
+          const wasCorrect = play.was_correct;
+          if (wasCorrect === true) {
+            resultClass = 'result-win';
+            actualHtml = `<span class="${resultClass}">✓ ${play.actual.toFixed(1)}</span>`;
+          } else if (wasCorrect === false) {
+            resultClass = 'result-loss';
+            actualHtml = `<span class="${resultClass}">✗ ${play.actual.toFixed(1)}</span>`;
+          } else {
+            actualHtml = `<strong>${play.actual.toFixed(1)}</strong>`;
+          }
+        }
+
+        // Format time from "2025-11-16 21:11:00" to "11/16 8:00pm ET"
+        let formattedTime = play.time;
+        if (play.time && play.time !== 'TBD') {
+          formattedTime = formatGameTime(play.time);
+        }
+
         return `
           <tr>
             <td><strong>${play.player}</strong></td>
             <td><span class="prop-type">${play.stat}</span></td>
             <td class="text-center">${play.line.toFixed(1)}</td>
             <td class="text-center"><strong>${play.prediction.toFixed(1)}</strong></td>
+            <td class="text-center">${actualHtml}</td>
             <td class="text-center ${edgeClass}">${play.edge > 0 ? '+' : ''}${play.edge.toFixed(1)}</td>
             <td class="text-center"><span class="play-badge ${playClass}">${play.play}</span></td>
             <td>${play.game}</td>
-            <td>${play.time}</td>
+            <td>${formattedTime}</td>
           </tr>
         `;
       }).join('');

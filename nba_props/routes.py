@@ -70,14 +70,16 @@ def api_predictions():
 
         # If JSON doesn't exist, try database
         try:
-            from database import get_session, Prediction, Player, Game, Team
+            from database import get_session, Prediction, Player, Game, Team, Result, PlayerGameStats
             from sqlalchemy import and_
+            from sqlalchemy.orm import joinedload
 
             session = get_session()
 
-            # Get today's predictions
+            # Get today's predictions (with results if available)
             today = date.today()
             query = session.query(Prediction).join(Player).join(Game)
+            query = query.outerjoin(Result)  # Left join to get results if they exist
             query = query.filter(Game.game_date == today)
 
             # Apply filters
@@ -102,15 +104,24 @@ def api_predictions():
                 if play_only and pred.recommendation not in ['OVER', 'UNDER']:
                     continue
 
+                # Get actual result if available
+                actual = None
+                was_correct = None
+                if pred.result:
+                    actual = pred.result.actual_value
+                    was_correct = pred.result.was_correct
+
                 plays.append({
                     'player': pred.player.full_name,
                     'stat': pred.prop_type,
                     'line': float(pred.line_value),
                     'prediction': float(pred.predicted_value),
+                    'actual': float(actual) if actual is not None else None,
+                    'was_correct': was_correct,
                     'play': pred.recommendation,
                     'edge': float(edge),
                     'game': f"{pred.game.away_team.abbreviation} @ {pred.game.home_team.abbreviation}",
-                    'time': pred.game.game_time or 'TBD'
+                    'time': str(pred.game.game_time) if pred.game.game_time else 'TBD'
                 })
 
             session.close()

@@ -164,7 +164,7 @@ def api_stats():
 
         # Get results (if any)
         total_results = session.query(Result).count()
-        correct_results = session.query(Result).filter(Result.is_correct == True).count()
+        correct_results = session.query(Result).filter(Result.was_correct == True).count()
 
         accuracy = (correct_results / total_results * 100) if total_results > 0 else None
 
@@ -211,13 +211,7 @@ def api_refresh_results():
     Uses free NBA API (not rate-limited).
     """
     try:
-        # Import here to avoid circular imports
-        import sys
-        import os
-        nba_props_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'nba-props')
-        if nba_props_path not in sys.path:
-            sys.path.insert(0, nba_props_path)
-
+        # Import ResultsTracker (NBA_PROPS_DIR already in sys.path)
         from scripts.track_results import ResultsTracker
 
         tracker = ResultsTracker()

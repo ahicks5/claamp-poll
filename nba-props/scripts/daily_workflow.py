@@ -167,7 +167,11 @@ class DailyWorkflow:
                     game = self.session.query(Game).get(row['game_id'])
                     if game:
                         game_info = f"{game.away_team.abbreviation} @ {game.home_team.abbreviation}"
-                        game_time = game.game_time or 'TBD'
+                        # Convert game_time to string if it's a datetime/time object
+                        if game.game_time:
+                            game_time = str(game.game_time)
+                        else:
+                            game_time = 'TBD'
                     else:
                         game_info = 'TBD'
                         game_time = 'TBD'

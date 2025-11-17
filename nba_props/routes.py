@@ -70,14 +70,16 @@ def api_predictions():
 
         # If JSON doesn't exist, try database
         try:
-            from database import get_session, Prediction, Player, Game, Team
+            from database import get_session, Prediction, Player, Game, Team, Result, PlayerGameStats
             from sqlalchemy import and_
+            from sqlalchemy.orm import joinedload
 
             session = get_session()
 
-            # Get today's predictions
+            # Get today's predictions (with results if available)
             today = date.today()
             query = session.query(Prediction).join(Player).join(Game)
+            query = query.outerjoin(Result)  # Left join to get results if they exist
             query = query.filter(Game.game_date == today)
 
             # Apply filters
@@ -102,15 +104,24 @@ def api_predictions():
                 if play_only and pred.recommendation not in ['OVER', 'UNDER']:
                     continue
 
+                # Get actual result if available
+                actual = None
+                was_correct = None
+                if pred.result:
+                    actual = pred.result.actual_value
+                    was_correct = pred.result.was_correct
+
                 plays.append({
                     'player': pred.player.full_name,
                     'stat': pred.prop_type,
                     'line': float(pred.line_value),
                     'prediction': float(pred.predicted_value),
+                    'actual': float(actual) if actual is not None else None,
+                    'was_correct': was_correct,
                     'play': pred.recommendation,
                     'edge': float(edge),
                     'game': f"{pred.game.away_team.abbreviation} @ {pred.game.home_team.abbreviation}",
-                    'time': pred.game.game_time or 'TBD'
+                    'time': str(pred.game.game_time) if pred.game.game_time else 'TBD'
                 })
 
             session.close()
@@ -183,4 +194,47 @@ def api_stats():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+
+@bp.route("/api/refresh-results")
+@login_required
+def api_refresh_results():
+    """
+    Refresh actual results for completed games.
+
+    This endpoint:
+    1. Tracks results for recently completed games
+    2. Returns updated predictions with actual scores
+
+    Safe to call frequently - only fetches games that haven't been tracked yet.
+    Uses free NBA API (not rate-limited).
+    """
+    try:
+        # Import here to avoid circular imports
+        import sys
+        import os
+        nba_props_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'nba-props')
+        if nba_props_path not in sys.path:
+            sys.path.insert(0, nba_props_path)
+
+        from scripts.track_results import ResultsTracker
+
+        tracker = ResultsTracker()
+        results_tracked = tracker.track_recent_results(days_back=3)
+
+        # Return success with count
+        return jsonify({
+            'success': True,
+            'message': f'Tracked {results_tracked} new results',
+            'results_tracked': results_tracked
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'message': 'Failed to refresh results'
         }), 500

@@ -59,6 +59,10 @@
     <button id="refresh-btn" class="btn btn-secondary">
       <span class="refresh-icon">↻</span> Refresh
     </button>
+
+    <button id="refresh-results-btn" class="btn btn-primary">
+      <span class="refresh-icon">⟳</span> Refresh Results
+    </button>
   </div>
 
   <!-- Loading State -->
@@ -90,6 +94,7 @@
             <th>Stat</th>
             <th class="text-center">Line</th>
             <th class="text-center">Prediction</th>
+            <th class="text-center">Actual</th>
             <th class="text-center">Edge</th>
             <th class="text-center">Play</th>
             <th>Game</th>
@@ -109,11 +114,15 @@
     <ul class="legend__list">
       <li><strong>Line:</strong> Current betting line (over/under number)</li>
       <li><strong>Prediction:</strong> Our AI model's prediction for the player's stat</li>
+      <li><strong>Actual:</strong> Real result after game completes (✓ = win, ✗ = loss, - = pending)</li>
       <li><strong>Edge:</strong> Difference between prediction and line (positive favors OVER, negative favors UNDER)</li>
       <li><strong>Play:</strong> Recommended bet (OVER if model predicts above line, UNDER if below)</li>
     </ul>
     <p class="legend__note">
-      <strong>Note:</strong> Model has ~57% accuracy. Only bet what you can afford to lose. These are predictions, not guarantees.
+      <strong>Tip:</strong> Click "Refresh Results" to fetch actual scores from completed games. Uses free NBA API - safe to use frequently!
+    </p>
+    <p class="legend__note">
+      <strong>Note:</strong> Model uses contrarian betting logic. When Vegas sets unusual lines (±6 pts from average), we trust Vegas instead of fighting the line.
     </p>
   </div>
 </div>
@@ -242,6 +251,22 @@
     border-color: var(--brand, #6ee7ff);
   }
 
+  .btn-primary {
+    background: linear-gradient(135deg, #6ee7ff, #4db8ff);
+    color: #0c111a;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4db8ff, #3a9fe6);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .refresh-icon {
     font-size: 1.2rem;
     display: inline-block;
@@ -326,6 +351,16 @@
   .edge-negative {
     color: #ef4444;
     font-weight: 600;
+  }
+
+  .result-win {
+    color: #22c55e;
+    font-weight: 700;
+  }
+
+  .result-loss {
+    color: #ef4444;
+    font-weight: 700;
   }
 
   .prop-type {
@@ -457,6 +492,34 @@
     minEdge: 1.5
   };
 
+  // Format game time from "2025-11-16 21:11:00" to "11/16 8:00pm ET"
+  function formatGameTime(timeStr) {
+    try {
+      // Parse the datetime string
+      const date = new Date(timeStr);
+
+      // Convert to ET (UTC-5 or UTC-4 depending on DST)
+      const etOffset = -5; // Standard Time
+      const etDate = new Date(date.getTime() + (etOffset * 60 * 60 * 1000));
+
+      // Format date as MM/DD
+      const month = etDate.getUTCMonth() + 1;
+      const day = etDate.getUTCDate();
+
+      // Format time as H:MMam/pm
+      let hours = etDate.getUTCHours();
+      const minutes = etDate.getUTCMinutes();
+      const ampm = hours >= 12 ? 'pm' : 'am';
+      hours = hours % 12 || 12;
+
+      const minutesStr = minutes.toString().padStart(2, '0');
+
+      return `${month}/${day} ${hours}:${minutesStr}${ampm} ET`;
+    } catch (e) {
+      return timeStr;
+    }
+  }
+
   // Load predictions on page load
   document.addEventListener('DOMContentLoaded', function() {
     loadPredictions();
@@ -477,7 +540,50 @@
       loadPredictions();
       loadStats();
     });
+
+    document.getElementById('refresh-results-btn').addEventListener('click', function() {
+      refreshResults();
+    });
   });
+
+  async function refreshResults() {
+    const btn = document.getElementById('refresh-results-btn');
+    const originalText = btn.innerHTML;
+
+    try {
+      // Disable button and show loading
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width: 16px; height: 16px; margin: 0;"></span> Refreshing...';
+
+      // Call the refresh results API
+      const response = await fetch('/nba-props/api/refresh-results');
+      const data = await response.json();
+
+      if (data.success) {
+        // Show success message
+        btn.innerHTML = `✓ ${data.message}`;
+
+        // Reload predictions to show updated actual scores
+        await loadPredictions();
+        await loadStats();
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Failed to refresh results');
+      }
+    } catch (error) {
+      console.error('Error refreshing results:', error);
+      btn.innerHTML = '✗ Error';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 2000);
+    }
+  }
 
   async function loadStats() {
     try {
@@ -575,16 +681,39 @@
         const edgeClass = play.edge > 0 ? 'edge-positive' : 'edge-negative';
         const playClass = play.play === 'OVER' ? 'play-over' : 'play-under';
 
+        // Format actual value
+        let actualHtml = '<span class="muted">-</span>';
+        let resultClass = '';
+        if (play.actual !== null && play.actual !== undefined) {
+          const wasCorrect = play.was_correct;
+          if (wasCorrect === true) {
+            resultClass = 'result-win';
+            actualHtml = `<span class="${resultClass}">✓ ${play.actual.toFixed(1)}</span>`;
+          } else if (wasCorrect === false) {
+            resultClass = 'result-loss';
+            actualHtml = `<span class="${resultClass}">✗ ${play.actual.toFixed(1)}</span>`;
+          } else {
+            actualHtml = `<strong>${play.actual.toFixed(1)}</strong>`;
+          }
+        }
+
+        // Format time from "2025-11-16 21:11:00" to "11/16 8:00pm ET"
+        let formattedTime = play.time;
+        if (play.time && play.time !== 'TBD') {
+          formattedTime = formatGameTime(play.time);
+        }
+
         return `
           <tr>
             <td><strong>${play.player}</strong></td>
             <td><span class="prop-type">${play.stat}</span></td>
             <td class="text-center">${play.line.toFixed(1)}</td>
             <td class="text-center"><strong>${play.prediction.toFixed(1)}</strong></td>
+            <td class="text-center">${actualHtml}</td>
             <td class="text-center ${edgeClass}">${play.edge > 0 ? '+' : ''}${play.edge.toFixed(1)}</td>
             <td class="text-center"><span class="play-badge ${playClass}">${play.play}</span></td>
             <td>${play.game}</td>
-            <td>${play.time}</td>
+            <td>${formattedTime}</td>
           </tr>
         `;
       }).join('');

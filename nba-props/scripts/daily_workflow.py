@@ -5,10 +5,10 @@ ONE-COMMAND DAILY WORKFLOW
 Run this once per day to get fresh predictions.
 
 This script:
-1. Collects today's prop lines from The Odds API
-2. Generates predictions using your trained model
-3. Exports predictions to JSON for website display
-4. Stores predictions in database
+1. Updates player stats for recently completed games
+2. Collects today's prop lines from The Odds API
+3. Generates predictions using your trained model (with contrarian logic)
+4. Exports predictions to JSON for website display
 """
 import sys
 import os
@@ -69,21 +69,27 @@ class DailyWorkflow:
         print("")
 
         try:
-            # Step 1: Collect today's prop lines
-            print("[1/3] Collecting today's prop lines...")
+            # Step 1: Update completed games with player stats
+            print("[1/4] Updating completed games with player stats...")
+            stats_updated = self._update_completed_games()
+            print(f"      Updated {stats_updated} game stats")
+            print("")
+
+            # Step 2: Collect today's prop lines
+            print("[2/4] Collecting today's prop lines...")
             props_collected = self._collect_todays_props()
             print(f"      Collected {props_collected} prop lines")
             print("")
 
-            # Step 2: Generate predictions
-            print("[2/3] Generating predictions...")
+            # Step 3: Generate predictions
+            print("[3/4] Generating predictions...")
             predictions = self._generate_predictions(save_to_db=save_to_db)
             print(f"      Generated {len(predictions)} predictions")
             print("")
 
-            # Step 3: Export for website
+            # Step 4: Export for website
             if export_json:
-                print("[3/3] Exporting predictions for website...")
+                print("[4/4] Exporting predictions for website...")
                 export_path = self._export_predictions(predictions)
                 print(f"      Exported to: {export_path}")
                 print("")
@@ -92,6 +98,7 @@ class DailyWorkflow:
             print("=" * 60)
             print("DAILY WORKFLOW COMPLETE!")
             print("=" * 60)
+            print(f"Player stats updated: {stats_updated}")
             print(f"Prop lines collected: {props_collected}")
             print(f"Predictions generated: {len(predictions)}")
             print(f"API requests used: ~{self.odds_client.requests_used}")
@@ -99,7 +106,7 @@ class DailyWorkflow:
 
             # Show top predictions
             if predictions:
-                print("TOP PREDICTIONS (Highest Confidence):")
+                print("TOP PREDICTIONS (Highest Edge):")
                 print("-" * 60)
                 sorted_preds = sorted(
                     predictions,
@@ -115,6 +122,7 @@ class DailyWorkflow:
 
             print("Next steps:")
             print("  - Check exports/predictions.json for website data")
+            print("  - Track results: python scripts/track_results.py")
             print("  - View predictions: python scripts/query_data.py predictions")
             print("  - Train model (weekly): python scripts/train_model_no_odds.py")
             print("")
@@ -124,6 +132,27 @@ class DailyWorkflow:
             import traceback
             traceback.print_exc()
             raise
+
+    def _update_completed_games(self):
+        """Update player stats for completed games."""
+        from scripts.collect_daily_data import DailyDataCollector
+
+        collector = DailyDataCollector()
+
+        # Update completed games from the last 2 days
+        collector.update_completed_games()
+
+        # Count how many stats we have
+        from database import PlayerGameStats
+        from datetime import timedelta
+
+        recent_date = datetime.now().date() - timedelta(days=2)
+        stats_count = self.session.query(PlayerGameStats).join(Game).filter(
+            Game.game_date >= recent_date,
+            Game.status == 'final'
+        ).count()
+
+        return stats_count
 
     def _collect_todays_props(self):
         """Collect today's prop lines from The Odds API."""

@@ -68,7 +68,7 @@ class Game(Base):
     __tablename__ = "nba_games"
 
     id = Column(Integer, primary_key=True)
-    nba_game_id = Column(String(20), unique=True, nullable=False, index=True)  # NBA API game ID
+    nba_game_id = Column(String(64), unique=True, nullable=False, index=True)  # NBA/Odds API game ID
 
     game_date = Column(Date, nullable=False, index=True)
     game_time = Column(DateTime(timezone=True), nullable=True)

@@ -99,11 +99,13 @@ def test_database():
 
     try:
         from database import engine, get_session
+        from sqlalchemy import text
 
         # Test connection
         start_time = time.time()
         with engine.connect() as conn:
-            result = conn.execute(engine.dialect.dialect_description)
+            # Simple test query that works on all databases
+            conn.execute(text("SELECT 1"))
         connect_time = time.time() - start_time
 
         logger.info(f"  ✓ Connection successful ({connect_time:.2f}s)")

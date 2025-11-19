@@ -28,10 +28,44 @@ class NBAAPIClient:
         )
         # Rate limiting - NBA API is unofficial and can block aggressive requests
         self.request_delay = 0.6  # 600ms between requests to be safe
+        self.timeout = int(os.getenv("NBA_API_TIMEOUT", "90"))  # 90 second timeout for Heroku
+        self.max_retries = int(os.getenv("NBA_API_MAX_RETRIES", "2"))
+
+        # Configure nba_api library defaults
+        self._configure_nba_api()
+
+    def _configure_nba_api(self):
+        """Configure nba_api library for Heroku compatibility."""
+        try:
+            from nba_api.stats.library.http import NBAStatsHTTP
+            # Increase timeout for Heroku's slower network
+            NBAStatsHTTP.timeout = self.timeout
+            logger.info(f"NBA API configured with {self.timeout}s timeout")
+        except Exception as e:
+            logger.warning(f"Could not configure NBAStatsHTTP timeout: {e}")
 
     def _rate_limit(self):
         """Enforce rate limiting between requests."""
         time.sleep(self.request_delay)
+
+    def _retry_request(self, func, *args, **kwargs):
+        """Retry a request with exponential backoff."""
+        kwargs['timeout'] = self.timeout
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                if attempt > 0:
+                    wait_time = 2 ** attempt  # Exponential backoff: 2s, 4s, 8s
+                    logger.info(f"Retry {attempt}/{self.max_retries} after {wait_time}s...")
+                    time.sleep(wait_time)
+
+                return func(*args, **kwargs)
+
+            except Exception as e:
+                if attempt == self.max_retries:
+                    logger.error(f"Failed after {self.max_retries} retries: {e}")
+                    raise
+                logger.warning(f"Request failed (attempt {attempt + 1}), retrying: {e}")
 
     def get_all_teams(self) -> List[Dict]:
         """
@@ -83,7 +117,10 @@ class NBAAPIClient:
         self._rate_limit()
 
         try:
-            player_info = commonplayerinfo.CommonPlayerInfo(player_id=player_id)
+            player_info = self._retry_request(
+                commonplayerinfo.CommonPlayerInfo,
+                player_id=player_id
+            )
             df = player_info.get_data_frames()[0]
 
             if df.empty:
@@ -116,7 +153,8 @@ class NBAAPIClient:
         self._rate_limit()
 
         try:
-            gamelog = playergamelog.PlayerGameLog(
+            gamelog = self._retry_request(
+                playergamelog.PlayerGameLog,
                 player_id=player_id,
                 season=season,
                 season_type_all_star=season_type

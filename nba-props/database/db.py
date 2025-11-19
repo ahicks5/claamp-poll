@@ -21,13 +21,39 @@ DATABASE_URL = os.getenv("NBA_DATABASE_URL", "sqlite:///nba_props.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create engine with connection pooling
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    future=True,
-    echo=False  # Set to True for SQL query debugging
-)
+# Determine database type for driver-specific configuration
+is_postgres = DATABASE_URL.startswith("postgresql://")
+is_mysql = DATABASE_URL.startswith("mysql://")
+is_sqlite = DATABASE_URL.startswith("sqlite://")
+
+# Configure engine options based on database type
+engine_kwargs = {
+    "pool_pre_ping": True,
+    "future": True,
+    "echo": False  # Set to True for SQL query debugging
+}
+
+# Add database-specific configurations
+if is_postgres:
+    # PostgreSQL on Heroku - use connection pooling
+    engine_kwargs["pool_size"] = 5
+    engine_kwargs["max_overflow"] = 10
+    engine_kwargs["pool_recycle"] = 3600  # Recycle connections after 1 hour
+    print(f"[DB] Configuring PostgreSQL connection")
+elif is_mysql:
+    # MySQL - add charset and connection settings
+    if "?" not in DATABASE_URL:
+        DATABASE_URL += "?charset=utf8mb4"
+    engine_kwargs["pool_size"] = 5
+    engine_kwargs["max_overflow"] = 10
+    print(f"[DB] Configuring MySQL connection")
+elif is_sqlite:
+    # SQLite - no pooling needed
+    engine_kwargs["pool_pre_ping"] = False
+    print(f"[DB] Configuring SQLite connection (local dev)")
+
+# Create engine with appropriate configuration
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 # Session factory
 SessionLocal = scoped_session(

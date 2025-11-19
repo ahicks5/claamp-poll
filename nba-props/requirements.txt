@@ -7,6 +7,8 @@ python-dotenv==1.0.1        # Environment variable management
 
 # Database
 SQLAlchemy==2.0.35          # ORM and database toolkit
+psycopg2-binary==2.9.9      # PostgreSQL adapter (Heroku)
+PyMySQL==1.1.0              # MySQL adapter (local development)
 
 # Data processing
 pandas==2.1.4               # Data manipulation and analysis
@@ -22,3 +24,4 @@ pytz==2024.1                # Timezone support
 # Web API
 Flask==3.0.0                # Lightweight web framework for API
 flask-cors==4.0.0           # CORS support for API endpoints
+gunicorn==21.2.0            # WSGI server for production (Heroku)

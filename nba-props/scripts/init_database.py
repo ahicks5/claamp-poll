@@ -52,13 +52,22 @@ def populate_teams(session, nba_client):
     logger.info(f"Teams populated: {session.query(Team).count()} teams in database")
 
 
-def populate_players(session, nba_client):
-    """Populate players table with all active NBA players."""
+def populate_players(session, nba_client, fetch_details=False):
+    """
+    Populate players table with all active NBA players.
+
+    Args:
+        fetch_details: If True, fetch detailed info (position, team, etc.) - SLOW!
+                       If False, just load basic player names and IDs - FAST!
+    """
     logger.info("Populating active players...")
+    if not fetch_details:
+        logger.info("(Skipping detailed player info for speed - this is OK!)")
 
     players_data = nba_client.get_all_active_players()
+    players_added = 0
 
-    for player_data in players_data:
+    for i, player_data in enumerate(players_data):
         # Check if player already exists
         existing = session.query(Player).filter_by(nba_player_id=player_data['id']).first()
 
@@ -66,17 +75,24 @@ def populate_players(session, nba_client):
             logger.debug(f"Player {player_data['full_name']} already exists, skipping")
             continue
 
-        # Try to get additional player info
-        player_info = nba_client.get_player_info(player_data['id'])
-
-        # Find team by abbreviation if available
+        # Only fetch detailed info if requested (this is SLOW and often times out)
+        player_info = None
         team = None
-        if player_info and 'TEAM_ABBREVIATION' in player_info:
-            team_abbr = player_info.get('TEAM_ABBREVIATION')
-            if team_abbr:
-                team = session.query(Team).filter_by(abbreviation=team_abbr).first()
 
-        # Create new player
+        if fetch_details:
+            try:
+                player_info = nba_client.get_player_info(player_data['id'])
+
+                # Find team by abbreviation if available
+                if player_info and 'TEAM_ABBREVIATION' in player_info:
+                    team_abbr = player_info.get('TEAM_ABBREVIATION')
+                    if team_abbr:
+                        team = session.query(Team).filter_by(abbreviation=team_abbr).first()
+            except Exception as e:
+                logger.warning(f"Could not fetch details for {player_data['full_name']}: {e}")
+                player_info = None
+
+        # Create new player with basic info
         player = Player(
             nba_player_id=player_data['id'],
             full_name=player_data['full_name'],
@@ -94,6 +110,11 @@ def populate_players(session, nba_client):
             player.weight = player_info.get('WEIGHT')
 
         session.add(player)
+        players_added += 1
+
+        # Progress indicator every 100 players
+        if (i + 1) % 100 == 0:
+            logger.info(f"  Processed {i + 1}/{len(players_data)} players...")
 
         # Commit every 50 players to avoid holding too much in memory
         if len(session.new) >= 50:
@@ -102,10 +123,21 @@ def populate_players(session, nba_client):
 
     session.commit()
     logger.info(f"Players populated: {session.query(Player).count()} players in database")
+    logger.info(f"  New players added: {players_added}")
 
 
 def main():
     """Initialize database and populate reference data."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Initialize NBA props database')
+    parser.add_argument(
+        '--fetch-details',
+        action='store_true',
+        help='Fetch detailed player info (position, team, etc.) - SLOW and may timeout'
+    )
+    args = parser.parse_args()
+
     logger.info("=" * 60)
     logger.info("NBA Props Database Initialization")
     logger.info("=" * 60)
@@ -126,10 +158,14 @@ def main():
         logger.info("\nStep 3: Populating teams...")
         populate_teams(session, nba_client)
 
-        # Populate players (this may take a while due to rate limiting)
+        # Populate players
         logger.info("\nStep 4: Populating players...")
-        logger.info("(This may take several minutes due to API rate limiting...)")
-        populate_players(session, nba_client)
+        if args.fetch_details:
+            logger.info("(This may take several minutes due to API rate limiting and timeouts...)")
+        else:
+            logger.info("(Fast mode - loading names only, ~10 seconds)")
+
+        populate_players(session, nba_client, fetch_details=args.fetch_details)
 
         logger.info("\n" + "=" * 60)
         logger.info("[OK] Database initialization complete!")
@@ -137,6 +173,11 @@ def main():
         logger.info(f"\nDatabase stats:")
         logger.info(f"  Teams: {session.query(Team).count()}")
         logger.info(f"  Players: {session.query(Player).count()}")
+
+        if not args.fetch_details:
+            logger.info("\nNote: Player details (position, team, etc.) were skipped for speed.")
+            logger.info("This is fine - the system will work without them!")
+            logger.info("To fetch details later, run: python scripts/init_database.py --fetch-details")
 
     except Exception as e:
         logger.error(f"\n[ERROR] Error during initialization: {e}")

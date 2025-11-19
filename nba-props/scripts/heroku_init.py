@@ -43,15 +43,16 @@ def test_database_connection():
     logger.info("="*60)
 
     try:
-        from database import get_session, Player
-        session = get_session()
+        from database import engine
+        from sqlalchemy import text
 
-        # Try a simple query
-        count = session.query(Player).count()
+        # Test connection with a simple query that doesn't require tables
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT 1"))
+            result.fetchone()
+
         logger.info(f"✓ Database connection successful!")
-        logger.info(f"  Current players in DB: {count}")
-
-        session.close()
+        logger.info(f"  Connected to: {engine.url.database}")
         return True
     except Exception as e:
         logger.error(f"✗ Database connection failed: {e}")

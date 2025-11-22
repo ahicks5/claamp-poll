@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TakeFreePoints.com{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 2rem;">📊 Dashboard - Today's Action</h1>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-label">Current Bankroll</div>
+        <div class="stat-value">${{ "%.2f"|format(current_bankroll) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Today's P&L</div>
+        <div class="stat-value {{ 'positive' if total_pnl_today > 0 else 'negative' if total_pnl_today < 0 else '' }}">
+            ${{ "%.2f"|format(total_pnl_today) }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Overall Win Rate</div>
+        <div class="stat-value">{{ "%.1f"|format(win_rate) }}%</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Profit</div>
+        <div class="stat-value {{ 'positive' if total_profit > 0 else 'negative' if total_profit < 0 else '' }}">
+            ${{ "%.2f"|format(total_profit) }}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 style="margin-bottom: 1rem;">🎯 Today's Bets</h2>
+    <div style="margin-bottom: 1rem;">
+        <span style="margin-right: 20px;">✅ Won: <strong>{{ won_count }}</strong></span>
+        <span style="margin-right: 20px;">❌ Lost: <strong>{{ lost_count }}</strong></span>
+        <span>⏳ Pending: <strong>{{ pending_count }}</strong></span>
+    </div>
+
+    {% if todays_bets %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Prop</th>
+                    <th>Pick</th>
+                    <th>Line</th>
+                    <th>Stake</th>
+                    <th>Status</th>
+                    <th>P&L</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in todays_bets %}
+                <tr>
+                    <td>{{ bet.player_name }}</td>
+                    <td>{{ bet.prop_type }}</td>
+                    <td>{{ bet.pick|upper }} {{ bet.line_value }}</td>
+                    <td>{{ bet.predicted_value }} (edge: {{ "%.1f"|format(bet.edge) }})</td>
+                    <td>${{ "%.2f"|format(bet.stake) }}</td>
+                    <td>
+                        {% if bet.status == 'won' %}✅ Won
+                        {% elif bet.status == 'lost' %}❌ Lost
+                        {% elif bet.status == 'pending' %}⏳ Pending
+                        {% else %}{{ bet.status }}
+                        {% endif %}
+                    </td>
+                    <td class="{{ 'positive' if bet.profit_loss and bet.profit_loss > 0 else 'negative' if bet.profit_loss and bet.profit_loss < 0 else '' }}">
+                        {% if bet.profit_loss is not none %}
+                            ${{ "%.2f"|format(bet.profit_loss) }}
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center; padding: 2rem; color: #666;">No bets placed today yet</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>💡 Recommended Plays</h2>
+        <form method="POST" action="{{ url_for('dashboard.generate_bets') }}">
+            <button type="submit" class="btn">🤖 Auto-Generate Bets</button>
+        </form>
+    </div>
+
+    {% if recommended_plays %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Game</th>
+                    <th>Prop</th>
+                    <th>Prediction</th>
+                    <th>Line</th>
+                    <th>Edge</th>
+                    <th>Pick</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for play in recommended_plays %}
+                <tr>
+                    <td><strong>{{ play.player_name }}</strong></td>
+                    <td>{{ play.game_description }}</td>
+                    <td>{{ play.prop_type }}</td>
+                    <td>{{ "%.1f"|format(play.predicted_value) }}</td>
+                    <td>{{ "%.1f"|format(play.line_value) }}</td>
+                    <td class="{{ 'positive' if play.edge > 0 else 'negative' }}">
+                        {{ "%+.1f"|format(play.edge) }}
+                    </td>
+                    <td><strong>{{ play.recommended_pick|upper }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center; padding: 2rem; color: #666;">No plays meet strategy criteria today</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 style="margin-bottom: 1rem;">📅 Recent Performance (Last 7 Days)</h2>
+    {% if recent_performance %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Bets</th>
+                    <th>W-L</th>
+                    <th>Win Rate</th>
+                    <th>Staked</th>
+                    <th>P&L</th>
+                    <th>ROI</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perf in recent_performance %}
+                <tr>
+                    <td>{{ perf.date }}</td>
+                    <td>{{ perf.bets_placed }}</td>
+                    <td>{{ perf.bets_won }}-{{ perf.bets_lost }}</td>
+                    <td>{{ "%.1f"|format(perf.win_rate * 100) if perf.win_rate else '0.0' }}%</td>
+                    <td>${{ "%.2f"|format(perf.total_staked) }}</td>
+                    <td class="{{ 'positive' if perf.net_profit_loss > 0 else 'negative' if perf.net_profit_loss < 0 else '' }}">
+                        ${{ "%.2f"|format(perf.net_profit_loss) }}
+                    </td>
+                    <td class="{{ 'positive' if perf.roi and perf.roi > 0 else 'negative' if perf.roi and perf.roi < 0 else '' }}">
+                        {{ "%.1f"|format(perf.roi * 100) if perf.roi else '0.0' }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center; padding: 2rem; color: #666;">No performance data yet</p>
+    {% endif %}
+</div>
+
+<div class="card" style="background: #f8f8f8;">
+    <h3>⚙️ Active Strategy: {{ strategy.name }}</h3>
+    <p>Min edge: {{ strategy.min_edge }} | Bet sizing: {{ strategy.bet_sizing_method }}
+        {% if strategy.bet_sizing_method == 'kelly' %}({{ (strategy.kelly_fraction * 100)|int }}% Kelly){% endif %}
+    </p>
+</div>
+{% endblock %}

@@ -1,243 +1,248 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint, Index, func, Text
+"""
+TakeFreePoints.com - Data-driven sports betting models
+Main database models for user management and betting strategy tracking
+"""
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float, Date, Text, Index, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from db import Base
 from datetime import datetime, timezone
 
+
+# ============================================================
+# USER & AUTHENTICATION
+# ============================================================
+
 class User(Base):
+    """User accounts for TakeFreePoints.com"""
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True)
     username = Column(String(80), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False)
     pw_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
+
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    group_memberships = relationship("GroupMembership", back_populates="user", cascade="all, delete-orphan")
+    strategies = relationship("Strategy", back_populates="user", cascade="all, delete-orphan")
+    bet_journal_entries = relationship("BetJournal", back_populates="user", cascade="all, delete-orphan")
 
-    # Flask-Login helpers (simple properties)
+    # Flask-Login helpers
     @property
-    def is_authenticated(self): return True
-    @property
-    def is_active(self): return True
-    @property
-    def is_anonymous(self): return False
-    def get_id(self): return str(self.id)
+    def is_authenticated(self):
+        return True
 
-    # Helper to get user's groups
     @property
-    def groups(self):
-        return [membership.group for membership in self.group_memberships]
+    def is_active(self):
+        return True
 
-class Team(Base):
-    __tablename__ = "teams"
-    id = Column(Integer, primary_key=True)
-    name = Column(String(128), unique=True, nullable=False, index=True)
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
+
+    def __repr__(self):
+        return f"<User {self.username}>"
+
 
 # ============================================================
-# GROUPS SYSTEM MODELS
+# BETTING STRATEGY SYSTEM
 # ============================================================
 
-class Group(Base):
-    """A group that can contain polls and spreads"""
-    __tablename__ = "groups"
+class Strategy(Base):
+    """
+    Betting strategies for systematic play selection
+    Each strategy defines rules for which bets to take and how to size them
+    """
+    __tablename__ = "strategies"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(128), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Strategy identity
+    name = Column(String(128), nullable=False)  # e.g., "NBA Props - Conservative"
     description = Column(Text, nullable=True)
-    is_public = Column(Boolean, default=True, nullable=False)
-    invite_code = Column(String(32), unique=True, nullable=True, index=True)  # For private groups
-    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relationships
-    members = relationship("GroupMembership", back_populates="group", cascade="all, delete-orphan")
-    polls = relationship("Poll", back_populates="group")
-    spread_polls = relationship("SpreadPoll", back_populates="group")
-    creator = relationship("User", foreign_keys=[created_by_user_id])
+    # Sport & market filters
+    sport = Column(String(50), nullable=False, default="NBA")  # NBA, NFL, MLB, etc.
+    prop_types = Column(String(255), nullable=True)  # Comma-separated: "points,rebounds,assists"
 
-class GroupMembership(Base):
-    """Many-to-many relationship between users and groups"""
-    __tablename__ = "group_memberships"
+    # Selection criteria
+    min_edge = Column(Float, nullable=False, default=1.5)  # Minimum edge to trigger a bet (in stat units)
+    min_confidence = Column(Float, nullable=True)  # Minimum model confidence (0-1)
 
-    id = Column(Integer, primary_key=True)
-    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    joined_at = Column(DateTime(timezone=True), server_default=func.now())
-    role = Column(String(20), default="member", nullable=False)  # owner, admin, member
+    # Bankroll management
+    initial_bankroll = Column(Float, nullable=False, default=100.0)  # Starting amount ($)
+    bet_sizing_method = Column(String(50), nullable=False, default="kelly")  # "kelly", "flat", "percentage"
+    kelly_fraction = Column(Float, nullable=True, default=0.25)  # Fractional Kelly (e.g., 0.25 = quarter Kelly)
+    flat_bet_amount = Column(Float, nullable=True)  # For flat betting
+    percentage_of_bankroll = Column(Float, nullable=True)  # For percentage betting (e.g., 0.02 = 2%)
 
-    # Relationships
-    group = relationship("Group", back_populates="members")
-    user = relationship("User", back_populates="group_memberships")
+    # Max exposure limits
+    max_bet_amount = Column(Float, nullable=True)  # Hard cap on any single bet
+    max_daily_bets = Column(Integer, nullable=True)  # Max bets per day
+    max_daily_exposure = Column(Float, nullable=True)  # Max $ at risk per day
 
-    __table_args__ = (
-        UniqueConstraint("group_id", "user_id", name="uq_group_membership"),
-        Index("ix_group_membership_user", "user_id"),
-    )
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
 
-class Poll(Base):
-    __tablename__ = "polls"
-    id = Column(Integer, primary_key=True)
-    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
-    season = Column(Integer, nullable=False, index=True)
-    week = Column(Integer, nullable=False, index=True)
-    title = Column(String(128), nullable=False)
-    is_open = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    group = relationship("Group", back_populates="polls")
-    ballots = relationship("Ballot", back_populates="poll", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        UniqueConstraint("group_id", "season", "week", name="uq_poll_group_season_week"),
-        Index("ix_poll_open_season_week", "is_open", "season", "week"),
-        Index("ix_poll_group", "group_id"),
-    )
-
-class Ballot(Base):
-    __tablename__ = "ballots"
-    id = Column(Integer, primary_key=True)
-    poll_id = Column(Integer, ForeignKey("polls.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    submitted_at = Column(DateTime(timezone=True), nullable=True)
-    poll = relationship("Poll", back_populates="ballots")
-    user = relationship("User", backref="ballots")
-    items = relationship("BallotItem", back_populates="ballot", cascade="all, delete-orphan")
-    __table_args__ = (UniqueConstraint("poll_id", "user_id", name="uq_ballot_poll_user"),)
-
-class BallotItem(Base):
-    __tablename__ = "ballot_items"
-    id = Column(Integer, primary_key=True)
-    ballot_id = Column(Integer, ForeignKey("ballots.id", ondelete="CASCADE"), nullable=False, index=True)
-    rank = Column(Integer, nullable=False)  # 1..25
-    team_id = Column(Integer, ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False, index=True)
-    ballot = relationship("Ballot", back_populates="items")
-    team = relationship("Team")
-    __table_args__ = (
-        UniqueConstraint("ballot_id", "rank", name="uq_ballot_rank"),
-        UniqueConstraint("ballot_id", "team_id", name="uq_ballot_team_unique"),
-        Index("ix_ballot_items_rank", "rank"),
-    )
-
-class DefaultBallot(Base):
-    __tablename__ = "default_ballots"
-
-    id       = Column(Integer, primary_key=True)
-    poll_id  = Column(Integer, ForeignKey("polls.id"), nullable=True)  # None = global default
-    week_key = Column(String(32), nullable=True)  # e.g. "2025w10" or "Nov-07"
-    rank     = Column(Integer, nullable=False)
-    team_id  = Column(Integer, ForeignKey("teams.id"), nullable=False, index=True)
-
-    team = relationship("Team")
-    __table_args__ = (
-        UniqueConstraint("poll_id", "week_key", "rank", name="uq_default_slot"),
-    )
-
-# ============================================================
-# SPREADS SYSTEM MODELS
-# ============================================================
-
-class BovadaTeamMapping(Base):
-    """Maps Bovada team names to our Team IDs"""
-    __tablename__ = "bovada_team_mappings"
-
-    id = Column(Integer, primary_key=True)
-    bovada_name = Column(String(255), unique=True, nullable=False, index=True)
-    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
-    confidence = Column(String(20), nullable=True)  # 'exact', 'fuzzy', 'manual'
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    team = relationship("Team")
-
-class SpreadPoll(Base):
-    """Weekly spread poll container - like Poll but for spreads"""
-    __tablename__ = "spread_polls"
-
-    id = Column(Integer, primary_key=True)
-    group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
-    season = Column(Integer, nullable=False, index=True)
-    week = Column(Integer, nullable=False, index=True)
-    title = Column(String(128), nullable=False)  # e.g. "Week 10 - Saturday Games"
-    is_open = Column(Boolean, default=True, nullable=False)
-    closes_at = Column(DateTime(timezone=True), nullable=True)  # When picks close
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationships
-    group = relationship("Group", back_populates="spread_polls")
-    games = relationship("SpreadGame", back_populates="spread_poll", cascade="all, delete-orphan")
-    picks = relationship("SpreadPick", back_populates="spread_poll", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        UniqueConstraint("group_id", "season", "week", name="uq_spread_poll_group_season_week"),
-        Index("ix_spread_poll_open_season_week", "is_open", "season", "week"),
-        Index("ix_spread_poll_group", "group_id"),
-    )
-
-class SpreadGame(Base):
-    """Individual game with spread from Bovada"""
-    __tablename__ = "spread_games"
-
-    id = Column(Integer, primary_key=True)
-    spread_poll_id = Column(Integer, ForeignKey("spread_polls.id", ondelete="CASCADE"), nullable=False, index=True)
-    bovada_event_id = Column(String(128), nullable=True, index=True)  # Link back to Bovada
-
-    home_team_id = Column(Integer, ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False)
-    away_team_id = Column(Integer, ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False)
-
-    # Spread values (from Bovada)
-    home_spread = Column(String(20), nullable=True)  # e.g. "-3.5"
-    away_spread = Column(String(20), nullable=True)  # e.g. "+3.5"
-
-    game_time = Column(DateTime(timezone=True), nullable=True)  # Kickoff time
-    game_day = Column(String(20), nullable=True)  # e.g. "Saturday" for grouping in UI
-
-    # Game status
-    status = Column(String(50), nullable=True)  # 'scheduled', 'in_progress', 'final'
-
-    # Final scores (to determine winners)
-    home_score = Column(Integer, nullable=True)
-    away_score = Column(Integer, nullable=True)
-
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    spread_poll = relationship("SpreadPoll", back_populates="games")
-    home_team = relationship("Team", foreign_keys=[home_team_id])
-    away_team = relationship("Team", foreign_keys=[away_team_id])
-    picks = relationship("SpreadPick", back_populates="game", cascade="all, delete-orphan")
+    # Relationships
+    user = relationship("User", back_populates="strategies")
+    bets = relationship("BetJournal", back_populates="strategy")
 
-    __table_args__ = (
-        Index("ix_spread_game_teams", "home_team_id", "away_team_id"),
-        Index("ix_spread_game_time", "game_time"),
-    )
+    def __repr__(self):
+        return f"<Strategy {self.name} - {self.sport}>"
 
-class SpreadPick(Base):
-    """User's pick for a game"""
-    __tablename__ = "spread_picks"
+
+# ============================================================
+# BET TRACKING
+# ============================================================
+
+class BetJournal(Base):
+    """
+    Complete record of all bets placed
+    Auto-created from daily predictions or manually entered
+    """
+    __tablename__ = "bet_journal"
 
     id = Column(Integer, primary_key=True)
-    spread_poll_id = Column(Integer, ForeignKey("spread_polls.id", ondelete="CASCADE"), nullable=False, index=True)
-    spread_game_id = Column(Integer, ForeignKey("spread_games.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    strategy_id = Column(Integer, ForeignKey("strategies.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    picked_team_id = Column(Integer, ForeignKey("teams.id", ondelete="RESTRICT"), nullable=False)
-    spread_value = Column(String(20), nullable=True)  # Store the spread at time of pick (e.g. "-3.5")
+    # Bet identification
+    prediction_id = Column(Integer, nullable=True)  # Link to nba_predictions.id (if from NBA props)
+    external_ref = Column(String(128), nullable=True)  # External bet ID (from sportsbook)
 
-    picked_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Game context
+    game_date = Column(Date, nullable=False, index=True)
+    sport = Column(String(50), nullable=False, default="NBA")
+    player_name = Column(String(128), nullable=True)  # For player props
+    game_description = Column(String(255), nullable=True)  # e.g., "LAL @ BOS"
 
-    # Results (computed after game finishes)
-    is_correct = Column(Boolean, nullable=True)  # NULL until game is final
+    # Bet details
+    prop_type = Column(String(50), nullable=False)  # "points", "rebounds", "assists", etc.
+    line_value = Column(Float, nullable=False)  # The over/under line (e.g., 25.5)
+    pick = Column(String(10), nullable=False)  # "over" or "under"
 
-    spread_poll = relationship("SpreadPoll", back_populates="picks")
-    game = relationship("SpreadGame", back_populates="picks")
-    user = relationship("User", backref="spread_picks")
-    picked_team = relationship("Team")
+    # Prediction context
+    predicted_value = Column(Float, nullable=True)  # Our model's prediction
+    edge = Column(Float, nullable=True)  # Our edge (predicted - line)
+    confidence = Column(Float, nullable=True)  # Model confidence (0-1)
+
+    # Odds & sizing
+    odds = Column(Integer, nullable=True)  # American odds (e.g., -110)
+    stake = Column(Float, nullable=False)  # Amount wagered ($)
+    to_win = Column(Float, nullable=True)  # Potential profit ($)
+
+    # Bet status
+    status = Column(String(20), nullable=False, default="pending")  # "pending", "won", "lost", "push", "cancelled"
+    actual_value = Column(Float, nullable=True)  # Actual stat achieved (once game is final)
+
+    # Results
+    profit_loss = Column(Float, nullable=True)  # Actual P&L once settled ($)
+
+    # Timestamps
+    placed_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    user = relationship("User", back_populates="bet_journal_entries")
+    strategy = relationship("Strategy", back_populates="bets")
 
     __table_args__ = (
-        UniqueConstraint("spread_poll_id", "spread_game_id", "user_id", name="uq_spread_pick_user_game"),
-        Index("ix_spread_pick_user_poll", "user_id", "spread_poll_id"),
+        Index("ix_bet_journal_user_date", "user_id", "game_date"),
+        Index("ix_bet_journal_status", "status"),
     )
 
+    def __repr__(self):
+        return f"<BetJournal {self.player_name} {self.prop_type} {self.pick} {self.line_value} - {self.status}>"
+
+
+# ============================================================
+# PERFORMANCE TRACKING
+# ============================================================
+
+class DailyPerformance(Base):
+    """
+    Aggregated daily performance metrics
+    Calculated each day to track overall strategy performance
+    """
+    __tablename__ = "daily_performance"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    strategy_id = Column(Integer, ForeignKey("strategies.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # Date
+    date = Column(Date, nullable=False, index=True)
+
+    # Bet counts
+    bets_placed = Column(Integer, default=0, nullable=False)
+    bets_won = Column(Integer, default=0, nullable=False)
+    bets_lost = Column(Integer, default=0, nullable=False)
+    bets_push = Column(Integer, default=0, nullable=False)
+    bets_pending = Column(Integer, default=0, nullable=False)
+
+    # Financial metrics
+    total_staked = Column(Float, default=0.0, nullable=False)  # Total $ wagered
+    total_won = Column(Float, default=0.0, nullable=False)  # Total $ won
+    total_lost = Column(Float, default=0.0, nullable=False)  # Total $ lost
+    net_profit_loss = Column(Float, default=0.0, nullable=False)  # Net P&L for the day
+
+    # Performance metrics
+    win_rate = Column(Float, nullable=True)  # Win rate (0-1)
+    roi = Column(Float, nullable=True)  # Return on investment (P&L / total_staked)
+
+    # Bankroll
+    bankroll_start = Column(Float, nullable=True)  # Bankroll at start of day
+    bankroll_end = Column(Float, nullable=True)  # Bankroll at end of day
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "strategy_id", "date", name="uq_daily_perf_user_strategy_date"),
+        Index("ix_daily_perf_user_date", "user_id", "date"),
+    )
+
+    def __repr__(self):
+        return f"<DailyPerformance {self.date}: {self.bets_won}W-{self.bets_lost}L, P&L: ${self.net_profit_loss:.2f}>"
+
+
+class BankrollHistory(Base):
+    """
+    Historical bankroll snapshots for tracking growth over time
+    Can be daily or after each bet
+    """
+    __tablename__ = "bankroll_history"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    strategy_id = Column(Integer, ForeignKey("strategies.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # Snapshot
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    bankroll = Column(Float, nullable=False)  # Current bankroll ($)
+
+    # Context
+    event_type = Column(String(50), nullable=True)  # "bet_placed", "bet_settled", "daily_snapshot", "manual_adjustment"
+    event_ref = Column(String(128), nullable=True)  # Reference to bet_journal.id or other event
+    note = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_bankroll_history_user_time", "user_id", "timestamp"),
+    )
+
+    def __repr__(self):
+        return f"<BankrollHistory {self.timestamp}: ${self.bankroll:.2f}>"
